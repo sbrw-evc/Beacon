@@ -14,11 +14,18 @@ services:
       GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
       GF_NEWS_NEWS_FEED_ENABLED: "false"
       GF_DATE_FORMATS_DEFAULT_TIMEZONE: ${TZ:-UTC}
+      # The ClickHouse datasource of the Umbrella Flow "CI traffic" dashboard.
+      GF_PLUGINS_PREINSTALL: ${GRAFANA_PLUGINS:-grafana-clickhouse-datasource}
+      FLOW_CLICKHOUSE_HOST: ${FLOW_CLICKHOUSE_HOST:-flow-clickhouse}
+      FLOW_CLICKHOUSE_USER: ${FLOW_CLICKHOUSE_USER:-flow}
+      FLOW_CLICKHOUSE_PASSWORD: ${FLOW_CLICKHOUSE_PASSWORD:-}
+      FLOW_CLICKHOUSE_DATABASE: ${FLOW_CLICKHOUSE_DATABASE:-flow}
       UMBRELLA_INGEST_URL: ${UMBRELLA_INGEST_URL:-http://umbrella:8080/api/ingest/grafana}
       UMBRELLA_INGEST_TOKEN: ${UMBRELLA_INGEST_TOKEN:?set UMBRELLA_INGEST_TOKEN in .env}
     volumes:
       - ./provisioning:/etc/grafana/provisioning:ro
       - ./dashboards:/var/lib/grafana/umbrella-dashboards:ro
+      - ./flow-ci-traffic.json:/var/lib/grafana/flow-dashboards/flow-ci-traffic.json:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"

@@ -18,23 +18,41 @@ func TestGrafanaLink(t *testing.T) {
 	opened := time.Date(2026, 10, 5, 10, 0, 0, 0, time.UTC)
 	al := alert.Alert{ID: "INC-3", CIID: "CI-1", CIName: "db-01", Signal: "disk", OpenedAt: opened,
 		Route: alert.Route{Services: []alert.Ref{{ID: "S-1", Name: "Billing"}}, Team: &alert.Ref{ID: "T-1", Name: "DBA"}}}
-	if app.GrafanaLink(model.Grafana{}, al, opened) != "" {
+	if app.GrafanaLink(model.Grafana{}, al, nil, opened) != "" {
 		t.Fatal("a link without a dashboard")
 	}
 	set := model.Grafana{DashboardURL: "https://grafana.example/d/abc/incident?orgId=2", WindowMinute: 15}
-	u, _ := url.Parse(app.GrafanaLink(set, al, opened.Add(time.Hour)))
+	u, _ := url.Parse(app.GrafanaLink(set, al, nil, opened.Add(time.Hour)))
 	q := u.Query()
 	if u.Path != "/d/abc/incident" || q.Get("orgId") != "2" || q.Get("from") != "1791193500000" || q.Get("to") != "now" ||
 		q.Get("var-ci") != "db-01" || q.Get("var-ci_id") != "CI-1" || q.Get("var-service") != "Billing" || q.Get("var-team") != "DBA" ||
-		q.Get("var-incident") != "INC-3" || q.Get("var-signal") != "disk" {
+		q.Get("var-incident") != "INC-3" || q.Get("var-signal") != "disk" || q.Has("var-ip") || q.Has("var-ref") {
 		t.Fatalf("link = %s", u)
+	}
+	// ip and ref for the Flow "CI traffic" dashboard: from the event labels, the item wins.
+	al.Labels = map[string]string{"ip": "10.0.0.9", "source_ref": "inventory-db:dcim.device:7"}
+	if q = mustQuery(t, app.GrafanaLink(set, al, nil, opened)); q.Get("var-ip") != "10.0.0.9" || q.Get("var-ref") != "inventory-db:dcim.device:7" {
+		t.Fatalf("labels = %v", q)
+	}
+	ci := &model.ConfigItem{ID: "CI-1", Name: "db-01", IPs: []string{"10.0.0.1"}, InventoryDB: &model.InventoryRef{Ref: "inventory-db:dcim.device:100"}}
+	if q = mustQuery(t, app.GrafanaLink(set, al, ci, opened)); q.Get("var-ip") != "10.0.0.1" || q.Get("var-ref") != "inventory-db:dcim.device:100" {
+		t.Fatalf("item = %v", q)
 	}
 	resolved := opened.Add(20 * time.Minute)
 	al.ResolvedAt = &resolved
-	u, _ = url.Parse(app.GrafanaLink(set, al, opened.Add(time.Hour)))
+	u, _ = url.Parse(app.GrafanaLink(set, al, nil, opened.Add(time.Hour)))
 	if u.Query().Get("to") != "1791196500000" {
 		t.Fatalf("resolved link = %s", u)
 	}
+}
+
+func mustQuery(t *testing.T, raw string) url.Values {
+	t.Helper()
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return u.Query()
 }
 
 func TestGrafanaRedirect(t *testing.T) {

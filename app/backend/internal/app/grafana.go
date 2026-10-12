@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -22,8 +23,10 @@ const (
 
 // GrafanaLink is the dashboard of an incident: the time from the window before it opened to the
 // window after it ended (now while it lasts) and the variables ci, ci_id, service, team, signal
-// and incident.
-func GrafanaLink(set model.Grafana, al alert.Alert, now time.Time) string {
+// and incident, and ip and ref for the Umbrella Flow "CI traffic" dashboard: the first address
+// and the Inventory DB reference of the item (ci, may be nil), or the ip and source_ref labels
+// of the events.
+func GrafanaLink(set model.Grafana, al alert.Alert, ci *model.ConfigItem, now time.Time) string {
 	if set.DashboardURL == "" {
 		return ""
 	}
@@ -67,6 +70,13 @@ func GrafanaLink(set model.Grafana, al alert.Alert, now time.Time) string {
 	if al.Route.Team != nil {
 		q.Set("var-team", al.Route.Team.Name)
 	}
+	ip, ref := ciRef(ci)
+	if ip = cmp.Or(ip, strings.TrimSpace(al.Labels[alert.LabelIP])); ip != "" {
+		q.Set("var-ip", ip)
+	}
+	if ref = cmp.Or(ref, strings.TrimSpace(al.Labels[alert.LabelSourceRef])); ref != "" {
+		q.Set("var-ref", ref)
+	}
 	u.RawQuery = q.Encode()
 	return u.String()
 }
@@ -79,7 +89,16 @@ func (a *App) grafanaSettings() model.Grafana {
 
 // grafanaLink is the address of the incident context in Grafana; empty until Grafana is set up.
 func (a *App) grafanaLink(al alert.Alert) string {
-	return GrafanaLink(a.grafanaSettings(), al, time.Now().UTC())
+	var g model.Grafana
+	var ci *model.ConfigItem
+	a.deps.Store.Read(func(d *store.Data) {
+		g = d.Settings.Alerting.Grafana
+		if c := d.ConfigItems[al.CIID]; al.CIID != "" && c != nil {
+			cp := *c
+			ci = &cp
+		}
+	})
+	return GrafanaLink(g, al, ci, time.Now().UTC())
 }
 
 type GrafanaInput struct {

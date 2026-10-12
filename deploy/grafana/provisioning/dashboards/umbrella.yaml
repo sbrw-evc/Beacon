@@ -9,3 +9,13 @@ providers:
     allowUiUpdates: true
     options:
       path: /var/lib/grafana/umbrella-dashboards
+
+  # Umbrella Flow: the "CI traffic" dashboard (flow-ci-traffic.json) on the ClickHouse datasource.
+  - name: umbrella-flow
+    orgId: 1
+    folder: Umbrella Flow
+    type: file
+    disableDeletion: true
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/flow-dashboards
