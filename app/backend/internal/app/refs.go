@@ -56,15 +56,15 @@ func (a *App) registerRefs(mux *http.ServeMux) {
 // other sections come back as empty arrays so pages degrade instead of failing.
 //
 //	users    — Users (count), Teams and Roles (member pickers), CI editor (owners)
-//	roles    — Users (role filter/editor), LDAP/Entra group mapping
+//	roles    — Users (role filter/editor), LDAP/Entra group mapping, Service accounts
 //	teams    — Users, Teams, Services (owner tree), Incidents (team filter),
-//	           Alerting (PagerDuty routing), LDAP/Entra group mapping
-//	services — Alerting (PagerDuty routing)
+//	           Alerting (PagerDuty routing), LDAP/Entra group mapping, Service accounts
+//	services — Alerting (PagerDuty routing), Service accounts (scope)
 var refsAudience = struct{ users, roles, teams, services []string }{
 	users:    []string{"users:view", "teams:view", "roles:view", "cis:edit"},
-	roles:    []string{"users:view", "roles:view", "settings.ldap:view"},
-	teams:    []string{"users:view", "teams:view", "services:view", "incidents:view", "settings.alerting:view", "settings.ldap:view"},
-	services: []string{"settings.alerting:view"},
+	roles:    []string{"users:view", "roles:view", "settings.ldap:view", "serviceaccounts:view"},
+	teams:    []string{"users:view", "teams:view", "services:view", "incidents:view", "settings.alerting:view", "settings.ldap:view", "serviceaccounts:view"},
+	services: []string{"settings.alerting:view", "serviceaccounts:view"},
 }
 
 func hasAny(perms access.Set, want []string) bool {

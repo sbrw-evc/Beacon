@@ -46,6 +46,8 @@ export const navStrings: Dict = {
     'page.wallboards.subtitle': 'Full-screen incident boards for NOC TVs: open without signing in, but only from allowed networks.',
     'page.settings.alerting.subtitle': 'PagerDuty, backup notification by mail and Telegram, Grafana context.',
     'page.settings.subtitle': 'Connections and security of this Umbrella installation.',
+    'page.serviceaccounts': 'Service accounts',
+    'page.serviceaccounts.subtitle': 'Machine identities (Umbrella Flow, scripts) that call the API with API tokens instead of a session: a role and a visibility scope like a user.',
   },
   ru: {
     'nav.label': 'Разделы',
@@ -92,5 +94,7 @@ export const navStrings: Dict = {
     'page.wallboards.subtitle': 'Полноэкранные панели инцидентов для телевизоров дежурной смены: открываются без входа, но только из разрешённых сетей.',
     'page.settings.alerting.subtitle': 'PagerDuty, резервное оповещение по почте и в Telegram, контекст в Grafana.',
     'page.settings.subtitle': 'Подключения и безопасность этой установки Umbrella.',
+    'page.serviceaccounts': 'Сервисные учётные записи',
+    'page.serviceaccounts.subtitle': 'Учётные записи систем (Umbrella Flow, скриптов), которые обращаются к API по API-токенам вместо сессии: роль и область видимости, как у пользователя.',
   },
 }

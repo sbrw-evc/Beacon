@@ -36,9 +36,13 @@ type Data struct {
 	// InventoryDBPushed is the last alert state sent to Inventory DB, by alert ID.
 	InventoryDBPushed map[string]model.PushedAlert
 	GroupSync         model.GroupSyncState
-	Settings          model.Settings
-	Audit             []AuditEntry
-	Seq               map[string]int
+	// ServiceAccounts are the machine identities that call the API with API tokens.
+	ServiceAccounts map[string]*model.ServiceAccount
+	// APITokens are the tokens of service accounts, by token ID (only keyed hashes are kept).
+	APITokens map[string]*model.APIToken
+	Settings  model.Settings
+	Audit     []AuditEntry
+	Seq       map[string]int
 }
 
 type AuditEntry struct {
@@ -118,6 +122,12 @@ func (d *Data) init() {
 			u.MigrateTeams()
 			u.MigrateScope()
 		}
+	}
+	if d.ServiceAccounts == nil {
+		d.ServiceAccounts = map[string]*model.ServiceAccount{}
+	}
+	if d.APITokens == nil {
+		d.APITokens = map[string]*model.APIToken{}
 	}
 	if d.InventoryDBPushed == nil {
 		d.InventoryDBPushed = map[string]model.PushedAlert{}

@@ -159,6 +159,8 @@ type Settings struct {
 	// TrustedProxies are reverse proxies set in the interface, in addition to
 	// UMBRELLA_TRUSTED_PROXIES: their X-Forwarded-For is believed for the client address.
 	TrustedProxies []string `json:"trusted_proxies"`
+	// APITokenKeyRef is the OpenBao reference of the HMAC key API tokens are hashed with.
+	APITokenKeyRef string `json:"-"`
 	// PresetRolesSeeded: the preset roles were created once and are not created again.
 	PresetRolesSeeded bool `json:"-"`
 	// NetBoxUsersDecided: NetBox settings saved before «create accounts for contacts» existed were

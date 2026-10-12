@@ -131,6 +131,10 @@ var pages = []Page{
 	{"settings.postgres", GroupSettings, Text{"PostgreSQL", "PostgreSQL"}, []Feature{view, test, migrate}},
 	{"settings.openbao", GroupSettings, Text{"OpenBao", "OpenBao"}, []Feature{view, test, migrate}},
 	{"settings.policy", GroupSettings, Text{"Password policy", "Парольная политика"}, []Feature{view, {"edit", Text{"Change the policy", "Изменение политики"}}}},
+	{"serviceaccounts", GroupSettings, Text{"Service accounts", "Сервисные учётные записи"}, []Feature{
+		view,
+		{"edit", Text{"Create, change and delete service accounts, issue and revoke API tokens", "Создание, изменение и удаление сервисных учётных записей, выпуск и отзыв API-токенов"}},
+	}},
 }
 
 func Groups() []Group { return slices.Clone(groups) }

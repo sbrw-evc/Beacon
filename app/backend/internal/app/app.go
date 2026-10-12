@@ -89,6 +89,9 @@ type App struct {
 	// hostContext shows the machine of an incident: graphs, logs and events around it.
 	hostContext *HostContextService
 
+	// serviceAccounts are the machine identities that call the API with tokens.
+	serviceAccounts *ServiceAccountsService
+
 	creds         *CredentialsService
 	connectors    *ConnectorsService
 	queue         *ingest.Queue
@@ -209,6 +212,7 @@ func New(opt Options, deps Deps) *App {
 		}
 	}
 	a.cmdb = NewCMDBService(deps.Store, active)
+	a.serviceAccounts = NewServiceAccountsService(deps.Store, vault)
 	a.inventory = NewInventoryDBService(deps.Store, vault, active)
 	a.monitoring = NewMonitoringService(deps.Store, creds, a.cis)
 	a.alertPoll = newAlertPoller(a)
@@ -235,7 +239,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/users/{id}/avatar", a.authed(a.avatar))
 	mux.HandleFunc("PUT /api/settings", a.authed(a.can("status:defaults", a.updateSettings)))
 	mux.HandleFunc("GET /api/system", a.authed(a.can("status:view", a.system)))
-	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext} {
+	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts} {
 		register(mux)
 	}
 	a.registerRoutePreview(mux)

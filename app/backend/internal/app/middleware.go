@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
@@ -31,8 +32,41 @@ var allowedWhenExpired = map[string]bool{
 	"GET /api/users/{id}/avatar": true,
 }
 
+// bearerToken is the token of an Authorization: Bearer header, if the request has one.
+func bearerToken(r *http.Request) (string, bool) {
+	h := r.Header.Get("Authorization")
+	scheme, token, ok := strings.Cut(strings.TrimSpace(h), " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
+		return "", false
+	}
+	return strings.TrimSpace(token), true
+}
+
+// tokenRoutes: a token reaches every API route of its permissions except the session routes of
+// a person (sign-out, profile, password, preferences); it may read GET /api/auth/me.
+func tokenRoute(pattern string) bool {
+	_, path, _ := strings.Cut(pattern, " ")
+	return !strings.HasPrefix(path, "/api/auth/") || pattern == "GET /api/auth/me"
+}
+
+// authed lets signed-in users through: a session cookie (modifying requests also need the CSRF
+// header) or an API token of a service account in Authorization: Bearer (no CSRF; it is not a
+// browser credential). A request with a bearer header is judged by the token only.
 func (a *App) authed(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if token, ok := bearerToken(r); ok {
+			if !tokenRoute(r.Pattern) {
+				writeError(w, forbidden)
+				return
+			}
+			u, err := a.serviceAccounts.Authenticate(r.Context(), token, a.clientIP(r))
+			if err != nil {
+				writeError(w, err)
+				return
+			}
+			next(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, session{user: u, ss: &auth.Session{UserID: u.ID}})))
+			return
+		}
 		c, err := r.Cookie(CookieName)
 		if err != nil {
 			writeError(w, ErrUnauthenticated)
