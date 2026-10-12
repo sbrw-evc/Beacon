@@ -1,179 +1,179 @@
-# Приём инцидентов из Zabbix
+# Receiving incidents from Zabbix
 
-Что и как настроить, чтобы проблемы Zabbix приходили в Umbrella и открывали инциденты, а
-восстановления закрывали их.
+What to set up, and how, so that Zabbix problems reach Umbrella and open incidents, and
+recoveries close them.
 
-## Как это работает
+## How it works
 
 ```mermaid
 sequenceDiagram
   participant Z as Zabbix server
   participant U as Umbrella
-  Z->>Z: триггер в состоянии «Проблема»
-  Z->>Z: действие триггера → операция «Отправить сообщение» через способ «Umbrella»
-  Z->>U: POST /api/ingest/zabbix, Authorization: Bearer <токен>, JSON события
+  Z->>Z: trigger in the "Problem" state
+  Z->>Z: trigger action → "Send message" operation via the "Umbrella" media type
+  Z->>U: POST /api/ingest/zabbix, Authorization: Bearer <token>, event JSON
   U-->>Z: 202 Accepted
-  U->>U: коннектор «Zabbix»: важность, КЕ по имени хоста, сигнал → инцидент
-  Z->>U: восстановление с тем же event_id (status = 0)
-  U->>U: источник вернулся в норму → инцидент решается
+  U->>U: "Zabbix" connector: severity, CI by host name, signal → incident
+  Z->>U: recovery with the same event_id (status = 0)
+  U->>U: source is back to normal → incident is resolved
 ```
 
-Zabbix отправляет события **способом оповещения типа Webhook** (скрипт на JavaScript внутри
-Zabbix). Umbrella принимает их **коннектором**, собранным из шаблона «Zabbix (тип оповещения
-webhook)», и проверяет **Bearer-токен**. Umbrella сама в Zabbix не ходит за проблемами:
-доставку запускает действие Zabbix.
+Zabbix sends events with a **Webhook-type media type** (a JavaScript script inside
+Zabbix). Umbrella receives them with a **connector** built from the "Zabbix (webhook media
+type)" template and checks the **Bearer token**. Umbrella itself does not poll Zabbix for problems:
+delivery is started by a Zabbix action.
 
-## Что нужно заранее
+## Prerequisites
 
-| Что | Зачем |
+| What | Why |
 |---|---|
-| Zabbix 7.0 или новее, включая 8.0 | файл способа оповещения выгружен в формате 7.0, Zabbix 8.0 импортирует его без правок. На 6.0–6.4 способ создаётся вручную (см. «Zabbix 6.x») |
-| Доступ с **Zabbix server** (или прокси, если оповещения шлёт он) до адреса Umbrella по HTTP(S) | скрипт выполняется на сервере Zabbix, а не в браузере |
-| Публичный адрес Umbrella в «Настройки → Оповещения → Адрес Umbrella» | по нему Umbrella формирует адрес приёма в инструкции и файле |
-| Права в Umbrella: `connectors:edit`, `connectors:publish`, `credentials:edit` (и `monitoring:edit` для подключения из «Систем мониторинга») | создать токен и коннектор |
-| Права администратора в Zabbix | импорт способа оповещения, пользователь, действие |
+| Zabbix 7.0 or newer, including 8.0 | the media type file is exported in the 7.0 format, Zabbix 8.0 imports it without changes. On 6.0–6.4 the media type is created by hand (see "Zabbix 6.x") |
+| Access from the **Zabbix server** (or the proxy, if it sends the alerts) to the Umbrella address over HTTP(S) | the script runs on the Zabbix server, not in the browser |
+| The public Umbrella address in "Settings → Alerting → Umbrella address" | Umbrella uses it to build the intake address in the instructions and the file |
+| Permissions in Umbrella: `connectors:edit`, `connectors:publish`, `credentials:edit` (and `monitoring:edit` to connect from "Monitoring systems") | to create the token and the connector |
+| Administrator rights in Zabbix | importing the media type, the user, the action |
 
-Если Umbrella за HTTPS с самоподписанным сертификатом, Zabbix server должен доверять этому
-сертификату (системное хранилище CA на сервере Zabbix), иначе отправка падает с ошибкой TLS.
+If Umbrella is behind HTTPS with a self-signed certificate, the Zabbix server must trust that
+certificate (the system CA store on the Zabbix server), otherwise sending fails with a TLS error.
 
-## Шаг 1. Umbrella: токен и коннектор
+## Step 1. Umbrella: token and connector
 
-Быстрый путь (рекомендуется):
+The quick way (recommended):
 
-1. **Автоматизация → Системы мониторинга** → карточка вашего Zabbix → вкладка **Приём
-   алертов** → **Подключить приём алертов**. Или **Автоматизация → Коннекторы → Подключить
-   источник → Zabbix**.
-2. Umbrella создаст Bearer-токен «Токен приёма: …», коннектор «Zabbix» из шаблона и сразу
-   опубликует его.
-3. В ответе — адрес приёма (`https://umbrella.example.com/api/ingest/zabbix`), токен и файл
-   **`umbrella-mediatype.yaml` с уже подставленными адресом и токеном**. Скачайте файл сразу:
-   токен показывается **один раз**, дальше он хранится только в OpenBao.
+1. **Automation → Monitoring systems** → the card of your Zabbix → the **Alert
+   intake** tab → **Connect the alert intake**. Or **Automation → Connectors → Connect a
+   source → Zabbix**.
+2. Umbrella creates a Bearer token "Intake token: …" and a "Zabbix" connector from the template, and
+   publishes it right away.
+3. The response contains the intake address (`https://umbrella.example.com/api/ingest/zabbix`), the token and the file
+   **`umbrella-mediatype.yaml` with the address and token already filled in**. Download the file immediately:
+   the token is shown **once**; after that it is stored only in OpenBao.
 
-Вручную (если нужен свой коннектор):
+By hand (if you need your own connector):
 
-1. **Автоматизация → Учётные данные** → создать **Bearer-токен**, скопировать значение.
-2. **Коннекторы** → создать коннектор из шаблона «Zabbix (тип оповещения webhook)», в узле
-   webhook выбрать этот токен, **Опубликовать**. Адрес приёма — `/api/ingest/<slug>`,
-   по умолчанию `/api/ingest/zabbix`.
-3. Взять файл [`deploy/zabbix/umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml)
-   и после импорта вписать в нём `url` и `token` (шаг 2).
+1. **Automation → Credentials** → create a **Bearer token**, copy the value.
+2. **Connectors** → create a connector from the "Zabbix (webhook media type)" template, in the
+   webhook node choose this token, **Publish**. The intake address is `/api/ingest/<slug>`,
+   `/api/ingest/zabbix` by default.
+3. Take the file [`deploy/zabbix/umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml)
+   and after importing it fill in `url` and `token` (step 2).
 
-## Шаг 2. Zabbix: способ оповещения «Umbrella»
+## Step 2. Zabbix: the "Umbrella" media type
 
-1. **Оповещения → Способы оповещения → Импорт** → файл `umbrella-mediatype.yaml` → **Импорт**.
-2. Откройте способ **Umbrella** и проверьте параметры:
+1. **Alerts → Media types → Import** → the `umbrella-mediatype.yaml` file → **Import**.
+2. Open the **Umbrella** media type and check the parameters:
 
-   | Параметр | Значение | Что это |
+   | Parameter | Value | What it is |
    |---|---|---|
-   | `url` | адрес приёма из шага 1 | куда отправлять |
-   | `token` | токен из шага 1 | Bearer-токен; значение, начинающееся с `<`, считается не заданным |
-   | `event_id` | `{EVENT.ID}` | по нему восстановление находит ту же тревогу |
-   | `host` | `{HOST.HOST}` | техническое имя хоста — по нему ищется КЕ |
-   | `host_group` | `{TRIGGER.HOSTGROUP.NAME}` | группы хоста, уходят меткой `host_group` |
-   | `trigger` | `{EVENT.NAME}` | заголовок инцидента |
-   | `item_key` | `{ITEM.KEY1}` | сигнал: по паре «КЕ + сигнал» события схлопываются в один инцидент |
-   | `severity` | `{EVENT.NSEVERITY}` | важность 0–5 |
-   | `status` | `{EVENT.VALUE}` | 1 — проблема, 0 — восстановление |
-   | `value` | `{ITEM.LASTVALUE1}` | последнее значение элемента данных |
+   | `url` | the intake address from step 1 | where to send |
+   | `token` | the token from step 1 | the Bearer token; a value starting with `<` is treated as not set |
+   | `event_id` | `{EVENT.ID}` | the recovery finds the same alert by it |
+   | `host` | `{HOST.HOST}` | the technical host name — the CI is looked up by it |
+   | `host_group` | `{TRIGGER.HOSTGROUP.NAME}` | the host's groups, sent as the `host_group` label |
+   | `trigger` | `{EVENT.NAME}` | the incident title |
+   | `item_key` | `{ITEM.KEY1}` | the signal: events are collapsed into one incident by the "CI + signal" pair |
+   | `severity` | `{EVENT.NSEVERITY}` | severity 0–5 |
+   | `status` | `{EVENT.VALUE}` | 1 — problem, 0 — recovery |
+   | `value` | `{ITEM.LASTVALUE1}` | the last value of the item |
 
-3. Способ должен быть **Включён**. Таймаут по умолчанию — 10 с.
-4. Кнопка **Тест** в списке способов: заполните `url`, `token` и, например, `event_id=test-1`,
-   `host=<имя хоста>`, `trigger=Проверка`, `severity=3`, `status=1`. Ответ `OK` — Umbrella
-   приняла событие. Не забудьте закрыть его вторым тестом с `status=0` и тем же `event_id`.
+3. The media type must be **Enabled**. The default timeout is 10 s.
+4. The **Test** button in the list of media types: fill in `url`, `token` and, for example, `event_id=test-1`,
+   `host=<host name>`, `trigger=Test`, `severity=3`, `status=1`. The `OK` response means Umbrella
+   accepted the event. Don't forget to close it with a second test with `status=0` and the same `event_id`.
 
-## Шаг 3. Zabbix: получатель
+## Step 3. Zabbix: the recipient
 
-Действие отправляет сообщение пользователю, поэтому способ «Umbrella» нужно назначить
-пользователю (лучше отдельному служебному, например `umbrella`, без права входа в
-интерфейс):
+An action sends a message to a user, so the "Umbrella" media type must be assigned to a
+user (preferably a separate service user, for example `umbrella`, without the right to sign in to the
+interface):
 
-1. **Пользователи → Пользователи** → пользователь → вкладка **Оповещения** → **Добавить**.
-2. Тип — **Umbrella**, «Отправлять на» — любое непустое значение (например `umbrella`),
-   «Когда активно» — `1-7,00:00-24:00`, отметьте **все важности**. Фильтр важностей лучше
-   задавать в условиях действия (шаг 4).
-3. Пользователь должен иметь **право чтения на группы узлов**, события которых вы хотите
-   отправлять (через группу пользователей). Иначе Zabbix не отправит ему сообщения по этим
-   хостам.
+1. **Users → Users** → the user → the **Media** tab → **Add**.
+2. Type — **Umbrella**, "Send to" — any non-empty value (for example `umbrella`),
+   "When active" — `1-7,00:00-24:00`, tick **all severities**. The severity filter is better
+   set in the action conditions (step 4).
+3. The user must have **read permission on the host groups** whose events you want to
+   send (via a user group). Otherwise Zabbix will not send them messages for those
+   hosts.
 
-## Шаг 4. Zabbix: действие триггера
+## Step 4. Zabbix: the trigger action
 
-**Оповещения → Действия → Действия триггеров → Создать действие**:
+**Alerts → Actions → Trigger actions → Create action**:
 
-1. **Действие**: имя `Umbrella`. Условия (по желанию):
-   - «Важность триггера» **больше или равна** «Предупреждение» — не отправлять
-     информационные события;
-   - «Проблема подавлена» — **нет**, если плановые работы ведёте в Zabbix. Если сервисные
-     окна ведёте в Umbrella, это условие не нужно: Umbrella сама держит такие инциденты
-     у себя и не отправляет их в PagerDuty;
-   - «Группа узлов сети» — ограничить нужными группами.
-2. **Операции → Операции**: «Отправить сообщение», пользователь (или группа) из шага 3,
-   **Отправлять только через** — `Umbrella`. Шаг 1–1, длительность по умолчанию: одно
-   сообщение на проблему достаточно, повторы не нужны.
-3. **Операции восстановления**: «Отправить сообщение» тому же пользователю через `Umbrella`.
-   **Без этой операции инциденты в Umbrella не будут закрываться сами.**
-4. **Операции обновления** не нужны: подтверждения и комментарии в Zabbix Umbrella не
-   использует.
-5. **Добавить**, действие должно быть **Включено**.
+1. **Action**: name `Umbrella`. Conditions (optional):
+   - "Trigger severity" **is greater than or equals** "Warning" — do not send
+     informational events;
+   - "Problem is suppressed" — **No**, if you track maintenance in Zabbix. If you keep maintenance
+     windows in Umbrella, this condition is not needed: Umbrella itself holds such incidents
+     and does not send them to PagerDuty;
+   - "Host group" — restrict to the groups you need.
+2. **Operations → Operations**: "Send message", the user (or group) from step 3,
+   **Send only to** — `Umbrella`. Steps 1–1, default duration: one
+   message per problem is enough, no repeats are needed.
+3. **Recovery operations**: "Send message" to the same user via `Umbrella`.
+   **Without this operation, incidents in Umbrella will not close by themselves.**
+4. **Update operations** are not needed: Umbrella does not use acknowledgements and comments from
+   Zabbix.
+5. **Add**; the action must be **Enabled**.
 
-## Как Umbrella разбирает событие
+## How Umbrella parses an event
 
 | Zabbix | Umbrella |
 |---|---|
-| Важность 5 «Чрезвычайная» | P1 · Критический |
-| 4 «Высокая» | P2 · Высокий |
-| 3 «Средняя» | P3 · Средний |
-| 2 «Предупреждение» | P4 · Низкий |
-| 1 «Информация», 0 «Не классифицировано» | P5 · Информационный |
-| `{HOST.HOST}` | КЕ: сначала хосты с ручной привязкой в «Системах мониторинга», затем имя, короткое имя, IP и DNS КЕ |
-| `{ITEM.KEY1}` (если пусто — имя триггера) | сигнал инцидента |
-| `{EVENT.ID}` | внешний ID события: восстановление с тем же ID закрывает источник |
-| `{TRIGGER.HOSTGROUP.NAME}` | метка `host_group`; метка `source=zabbix` |
+| Severity 5 "Disaster" | P1 · Critical |
+| 4 "High" | P2 · High |
+| 3 "Average" | P3 · Medium |
+| 2 "Warning" | P4 · Low |
+| 1 "Information", 0 "Not classified" | P5 · Informational |
+| `{HOST.HOST}` | CI: first hosts with a manual link in "Monitoring systems", then the CI name, short name, IP and DNS |
+| `{ITEM.KEY1}` (if empty — the trigger name) | the incident signal |
+| `{EVENT.ID}` | the external event ID: a recovery with the same ID closes the source |
+| `{TRIGGER.HOSTGROUP.NAME}` | the `host_group` label; the `source=zabbix` label |
 
-Сопоставление важностей и полей можно поменять в редакторе коннектора (узлы `map.severity`
-и `map.event`) и опубликовать новую версию — Zabbix при этом трогать не нужно.
+The mapping of severities and fields can be changed in the connector editor (the `map.severity`
+and `map.event` nodes) and published as a new version — Zabbix does not need to be touched for that.
 
-Инцидент получает маршрут КЕ (бизнес-сервисы, команда, люди) и уходит в PagerDuty и
-резервное оповещение по общим правилам. Когда все источники инцидента прислали
-восстановление, он решается сам («все источники вернулись в норму»).
+The incident gets the CI route (business services, team, people) and goes to PagerDuty and
+the fallback notification under the common rules. When all sources of the incident have sent a
+recovery, it resolves itself ("every source is back to normal").
 
-Чтобы хосты Zabbix точно находили свои КЕ, добавьте Zabbix в **Автоматизация → Системы
-мониторинга** (адрес веб-интерфейса и API-токен Zabbix), загрузите хосты и привяжите
-несопоставленные к КЕ вручную или создайте из них КЕ ([monitoring-hosts.md](monitoring-hosts.md)).
-Без этого инцидент по неизвестному хосту всё равно откроется, но без КЕ и маршрута.
+To make sure Zabbix hosts find their CIs, add Zabbix in **Automation → Monitoring
+systems** (the web interface address and a Zabbix API token), load the hosts and link
+the unmatched ones to CIs by hand or create CIs from them ([monitoring-hosts.md](monitoring-hosts.md)).
+Without this, an incident for an unknown host still opens, but without a CI and a route.
 
-## Проверка
+## Verification
 
-1. В Umbrella на вкладке **Приём алертов** системы (или в редакторе коннектора) —
-   **Отправить тестовое событие**: проверяет коннектор и маршрут без участия Zabbix.
-   Тестовый инцидент не уходит в PagerDuty и решается сам через 5 минут.
-2. В Zabbix — **Тест** способа оповещения (шаг 2) или настоящий триггер: например, элемент
-   данных типа «Zabbix траппер» и `zabbix_sender -z <zabbix> -s <хост> -k <ключ> -o <значение>`.
-3. Результат:
-   - в Umbrella: **Инциденты** — новый инцидент; в коннекторе вкладки **Запросы**,
-     **События**, **Ошибки**;
-   - в Zabbix: **Отчёты → Журнал действий** — статус «Отправлено» или текст ошибки.
+1. In Umbrella, on the system's **Alert intake** tab (or in the connector editor) —
+   **Send a test event**: checks the connector and the route without involving Zabbix.
+   The test incident is not sent to PagerDuty and resolves itself after 5 minutes.
+2. In Zabbix — the media type **Test** (step 2) or a real trigger: for example, an item
+   of type "Zabbix trapper" and `zabbix_sender -z <zabbix> -s <host> -k <key> -o <value>`.
+3. The result:
+   - in Umbrella: **Incidents** — a new incident; in the connector, the **Requests**,
+     **Events**, **Failures** tabs;
+   - in Zabbix: **Reports → Action log** — status "Sent" or the error text.
 
-## Если не работает
+## Troubleshooting
 
-| Признак | Причина и что сделать |
+| Symptom | Cause and what to do |
 |---|---|
-| В журнале действий Zabbix `Umbrella answered 401` | неверный или не заданный `token`; создайте новый токен и обновите параметр |
-| `Umbrella answered 404` | коннектор не опубликован или неверный slug в `url` |
-| `Umbrella answered 403` | у коннектора ограничены сети приёма — добавьте адрес сервера Zabbix |
-| `Umbrella answered 503` | коннектор остановлен или с ошибкой публикации, либо Umbrella не готова принимать (PostgreSQL, OpenBao) — «Настройки → Состояние системы» |
-| `Umbrella answered 413` / `429` | слишком большое тело или превышен лимит частоты коннектора |
-| `Couldn't connect`, `timeout`, ошибка TLS | Zabbix server не достаёт до Umbrella: DNS, firewall, прокси, сертификат |
-| В журнале действий пусто | действие выключено, не совпали условия, у пользователя нет способа «Umbrella» или прав на группу узлов |
-| Инцидент есть, но без КЕ | имя хоста не совпало с КЕ — привяжите хост в «Системах мониторинга» |
-| Инциденты не закрываются | нет операции восстановления в действии |
-| Запрос пришёл, события нет | вкладка **Ошибки** коннектора: что не так с телом; после исправления — повторная обработка |
+| `Umbrella answered 401` in the Zabbix action log | wrong or unset `token`; create a new token and update the parameter |
+| `Umbrella answered 404` | the connector is not published, or the slug in `url` is wrong |
+| `Umbrella answered 403` | the connector restricts intake networks — add the Zabbix server address |
+| `Umbrella answered 503` | the connector is stopped or failed to publish, or Umbrella is not ready to receive (PostgreSQL, OpenBao) — "Settings → System status" |
+| `Umbrella answered 413` / `429` | the body is too large or the connector's rate limit is exceeded |
+| `Couldn't connect`, `timeout`, TLS error | the Zabbix server cannot reach Umbrella: DNS, firewall, proxy, certificate |
+| The action log is empty | the action is disabled, the conditions did not match, the user has no "Umbrella" media or no permissions on the host group |
+| There is an incident, but without a CI | the host name did not match a CI — link the host in "Monitoring systems" |
+| Incidents do not close | there is no recovery operation in the action |
+| The request arrived, but there is no event | the connector's **Failures** tab: what is wrong with the body; after fixing — reprocessing |
 
 ## Zabbix 6.x
 
-Импорт файла формата 7.0 в Zabbix 6.x не пройдёт. Создайте способ вручную:
-**Администрирование → Способы оповещения → Создать**, тип **Webhook**, имя `Umbrella`,
-параметры из таблицы шага 2, скрипт — содержимое поля `script` из
-[`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml), таймаут `10s`,
-шаблоны сообщений для «Проблема» и «Восстановление проблемы» (любой текст). Остальные шаги
-те же; в 6.0 разделы меню называются «Настройка → Действия» и «Администрирование →
-Пользователи».
+Importing a 7.0-format file into Zabbix 6.x will fail. Create the media type by hand:
+**Administration → Media types → Create media type**, type **Webhook**, name `Umbrella`,
+the parameters from the step 2 table, the script — the contents of the `script` field from
+[`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml), timeout `10s`,
+message templates for "Problem" and "Problem recovery" (any text). The other steps
+are the same; in 6.0 the menu sections are called "Configuration → Actions" and "Administration →
+Users".

@@ -1,41 +1,41 @@
-# Сопоставление групп каталога с ролями и командами
+# Mapping directory groups to roles and teams
 
-Раньше из каталога читалась только группа администраторов, а роль и команду каждому пользователю назначали вручную. Теперь на странице **Настройки → LDAP / AD / Entra ID**, под карточками LDAP и Entra ID, есть таблица **Группы → роли и команды**: участники группы получают роль, команду или и то и другое.
+Previously only the administrators group was read from the directory, and the role and team of every user were assigned by hand. Now the **Settings → LDAP / AD / Entra ID** page, below the LDAP and Entra ID cards, has the **Groups → roles and teams** table: members of a group get a role, a team, or both.
 
-## Таблица
+## Table
 
-| Поле | Что указать |
+| Field | What to enter |
 | --- | --- |
-| Каталог | `LDAP / AD` или `Entra ID` (столбец показывается, когда включены оба) |
-| Группа | для LDAP / AD — DN группы (`cn=ops,ou=groups,dc=example,dc=org`), для Entra ID — Object ID группы (GUID) |
-| Пометка | необязательное примечание для людей |
-| Роль | роль из списка ролей или «не менять» |
-| Команда | команда из иерархии команд или «не менять» |
+| Directory | `LDAP / AD` or `Entra ID` (the column is shown when both are turned on) |
+| Group | for LDAP / AD — the group DN (`cn=ops,ou=groups,dc=example,dc=org`), for Entra ID — the group Object ID (GUID) |
+| Note | an optional note for people |
+| Role | a role from the list of roles, or "do not change" |
+| Team | a team from the team hierarchy, or "do not change" |
 
-- Учитываются вложенные группы: в AD одним поиском с `LDAP_MATCHING_RULE_IN_CHAIN`, в OpenLDAP обходом `member`/`uniqueMember`/`memberUid` до восьми уровней, в Entra ID через `transitiveMemberOf` Microsoft Graph.
-- DN сравниваются без учёта регистра и пробелов вокруг разделителей, поэтому одна и та же группа, записанная по-разному, в таблице допускается один раз.
-- Для роли побеждает первая подходящая строка сверху; порядок строк меняется стрелками. **Каждая** подходящая строка добавляет свою команду: человек может состоять в нескольких командах. Группа администраторов из настроек подключения важнее таблицы.
-- Строки, которые ссылаются на удалённую роль или команду, теряют эту ссылку; строка без роли и без команды удаляется.
+- Nested groups are taken into account: in AD with a single search using `LDAP_MATCHING_RULE_IN_CHAIN`, in OpenLDAP by walking `member`/`uniqueMember`/`memberUid` up to eight levels deep, in Entra ID via Microsoft Graph `transitiveMemberOf`.
+- DNs are compared ignoring case and spaces around separators, so the same group written in different ways is allowed in the table only once.
+- For the role, the first matching row from the top wins; the order of rows is changed with the arrows. **Every** matching row adds its team: a person can be a member of several teams. The administrators group from the connection settings takes precedence over the table.
+- Rows that refer to a deleted role or team lose that reference; a row with neither a role nor a team is deleted.
 
-Новый пользователь каталога, которому таблица не выдала роль, получает «Роль для новых пользователей» (см. [access.md](access.md)).
+A new directory user who was not given a role by the table gets the "Role for new users" (see [access.md](access.md)).
 
-## Когда применяется
+## When it is applied
 
-1. **При каждом входе** пользователя каталога, вместе с синхронизацией профиля.
-2. **По расписанию** (по умолчанию каждые 60 минут, от 5 минут до 7 суток; можно выключить) — чтобы изменения в каталоге доходили и до тех, кто давно не входил. Кнопка «Синхронизировать сейчас» запускает проход вручную.
+1. **At every sign-in** of a directory user, together with the profile synchronization.
+2. **On a schedule** (by default every 60 minutes, from 5 minutes to 7 days; can be turned off) — so that changes in the directory also reach those who have not signed in for a long time. The "Synchronize now" button runs a pass by hand.
 
-Расписание читает группы без пароля пользователя: для LDAP / AD служебной учётной записью, для Entra ID — токеном приложения. Поэтому для Entra ID нужно разрешение приложения Microsoft Graph **`GroupMember.Read.All`** с согласием администратора; самому входу достаточно делегированного `User.Read`. Пользователь, которого в каталоге больше нет, в итогах синхронизации считается ненайденным, и его роль и команда не меняются.
+The schedule reads groups without the user's password: for LDAP / AD with the service account, for Entra ID with the application token. That is why Entra ID needs the Microsoft Graph application permission **`GroupMember.Read.All`** with admin consent; sign-in itself only needs the delegated `User.Read`. A user who is no longer in the directory counts as not found in the synchronization results, and their role and team are not changed.
 
-## Ручные изменения
+## Manual changes
 
-Значение из таблицы заменяет заданное вручную. Umbrella помнит, что именно выдала таблица (`mapped_role`, `mapped_teams` в учётной записи):
+A value from the table replaces one set by hand. Umbrella remembers exactly what the table granted (`mapped_role`, `mapped_teams` in the account):
 
-- пользователь перестал подходить под строки — выданное таблицей забирается: роль становится «Ролью для новых пользователей» (Роли → роль с пометкой «новые», по умолчанию «Наблюдатель»), выданные таблицей команды убираются;
-- если администратор с тех пор изменил роль вручную, она сохраняется; команды, добавленные вручную, остаются рядом с выданными таблицей;
-- роли и команды пользователей, которых таблица никогда не касалась, не меняются.
+- the user no longer matches any rows — what the table granted is taken away: the role becomes the "Role for new users" (Roles → the role marked "new users", "Viewer" by default), and the teams granted by the table are removed;
+- if an administrator has changed the role by hand since then, it is kept; teams added by hand remain alongside those granted by the table;
+- roles and teams of users the table has never touched are not changed.
 
-Итоги синхронизации (сколько проверено, изменено, не найдено) и число пользователей, которым роль и команда выданы таблицей сейчас, показаны в той же карточке. Каждое изменение роли или команды пишется в журнал: действие `groups.sync` (проход) или `user.groups` (вход).
+The synchronization results (how many were checked, changed, not found) and the number of users whose role and team are currently granted by the table are shown in the same card. Every change of a role or team is written to the log: the `groups.sync` action (a pass) or `user.groups` (sign-in).
 
-## Доступ
+## Access
 
-Карточка использует права страницы LDAP / AD: `settings.ldap:view` для просмотра и `settings.ldap:edit` для изменения таблицы и ручного запуска синхронизации.
+The card uses the permissions of the LDAP / AD page: `settings.ldap:view` for viewing and `settings.ldap:edit` for changing the table and running the synchronization by hand.

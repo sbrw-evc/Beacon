@@ -1,82 +1,82 @@
-# Системы мониторинга: Zabbix и Prometheus
+# Monitoring systems: Zabbix and Prometheus
 
-Страница **Автоматизация → Системы мониторинга** — одно место для одного Zabbix или Prometheus-совместимого сервера (Prometheus, VictoriaMetrics, Thanos, Mimir). Каждая система — карточка с вкладками:
+The **Automation → Monitoring systems** page is one place for a single Zabbix or Prometheus-compatible server (Prometheus, VictoriaMetrics, Thanos, Mimir). Each system is a card with tabs:
 
-- **Приём алертов** — связанный коннектор, адрес приёма, время последнего события и кнопка «Отправить тестовое событие». Если приёма ещё нет, кнопка **Подключить приём алертов** делает всё сразу (см. [connectors.md](connectors.md#быстрое-подключение-источника)): токен, коннектор из шаблона Zabbix или Alertmanager, публикация, готовый способ оповещения или получатель. Можно и выбрать существующий коннектор;
-- **Хосты** — сколько хостов прочитано и сопоставлено с КЕ, когда, и переход к списку хостов этой системы;
-- **Метрики RED/USE** (только Prometheus) — система сама служит источником метрик для правил RED/USE: в правиле её можно выбрать как источник, отдельный «Источник метрик» с тем же адресом и учётными данными не нужен.
+- **Alert intake** — the linked connector, the intake address, the time of the last event and the "Send a test event" button. If there is no intake yet, the **Connect the alert intake** button does everything at once (see [connectors.md](connectors.md#quick-source-connection)): a token, a connector from the Zabbix or Alertmanager template, publishing, a ready media type or receiver. An existing connector can be chosen instead;
+- **Hosts** — how many hosts were read and matched with CIs, and when, plus a link to the list of hosts of this system;
+- **RED/USE metrics** (Prometheus only) — the system itself serves as a metric source for RED/USE rules: it can be chosen as the source in a rule, and a separate "Metric source" with the same address and credentials is not needed.
 
-Адрес и учётные данные системы задаются один раз (кнопка **Настройки**). Учётные данные системы — **исходящие**: с ними Umbrella читает хосты и метрики. Токен приёма — **входящий**: с ним Zabbix или Alertmanager отправляет алерты в Umbrella. Это два разных секрета, работающих в противоположных направлениях.
+The address and credentials of a system are set once (the **Settings** button). The system's credentials are **outgoing**: Umbrella uses them to read hosts and metrics. The intake token is **incoming**: Zabbix or Alertmanager uses it to send alerts to Umbrella. These are two different secrets working in opposite directions.
 
-Система читает списки хостов и сопоставляет их с КЕ, в том числе загруженными из NetBox. Так видно, какие КЕ под мониторингом, а какие хосты мониторинга не описаны в CMDB.
+A system reads lists of hosts and matches them with CIs, including those loaded from NetBox. This shows which CIs are monitored and which monitoring hosts are not described in the CMDB.
 
-Связь трёх страниц: приём алертов — **Коннекторы**; списки хостов и сопоставление с КЕ — **Системы мониторинга**; метрики для правил — системы Prometheus или **Источники метрик** на странице правил RED/USE.
+How the three pages relate: alert intake — **Connectors**; host lists and matching with CIs — **Monitoring systems**; metrics for rules — Prometheus systems or **Metric sources** on the RED/USE rules page.
 
-## Подключение
+## Connecting
 
-Вкладка **Системы → Добавить систему**:
+The **Systems → Add a system** tab:
 
-| Поле | Что указать |
+| Field | What to enter |
 | --- | --- |
-| Система | Zabbix или Prometheus |
-| Адрес | Zabbix — адрес веб-интерфейса (`https://zabbix.example.com`, API берётся из `api_jsonrpc.php`); Prometheus — адрес HTTP API |
-| Учётные данные | из **Автоматизация → Учётные данные**, секреты хранятся в OpenBao. Zabbix: API-токен (bearer) или имя и пароль (basic, сессия закрывается после чтения). Prometheus: bearer, basic или header, если сервер их требует |
-| Запрос, метка хоста | только Prometheus: по умолчанию `up` и `instance`; порт и схема URL отбрасываются, все цели одного хоста (node, postgres, blackbox) — один хост |
-| Загружать каждые | интервал в минутах, 0 — только по кнопке |
+| System | Zabbix or Prometheus |
+| Address | Zabbix — the web interface address (`https://zabbix.example.com`, the API is taken from `api_jsonrpc.php`); Prometheus — the HTTP API address |
+| Credential | from **Automation → Credentials**, secrets are stored in OpenBao. Zabbix: an API token (bearer) or a name and password (basic, the session is closed after reading). Prometheus: bearer, basic or header, if the server requires them |
+| Query, Host label | Prometheus only: `up` and `instance` by default; the port and URL scheme are dropped, all targets of one host (node, postgres, blackbox) are one host |
+| Read every | interval in minutes, 0 — only with the button |
 
-Zabbix 6.4 и новее получает токен в заголовке `Authorization`, более старые версии — в поле `auth`. Версия определяется сама через `apiinfo.version`. Проверено на Zabbix 7.0 и 8.0 из [`deploy/zabbix`](../../deploy/zabbix).
+Zabbix 6.4 and newer receives the token in the `Authorization` header, older versions — in the `auth` field. The version is detected automatically via `apiinfo.version`. Tested on Zabbix 7.0 and 8.0 from [`deploy/zabbix`](../../deploy/zabbix).
 
-## Сопоставление
+## Matching
 
-Хост сопоставляется с КЕ по тем же ключам, по которым события находят КЕ (`alert.CIKeys` и `alert.EventKeys`): техническое и видимое имя хоста, его DNS-имена и IP-адреса против имени КЕ, короткого имени, IP-адресов и DNS-имени компьютера в AD. Имя, общее для нескольких КЕ, ничего не сопоставляет: хост попадает в «Несколько кандидатов».
+A host is matched with a CI by the same keys by which events find CIs (`alert.CIKeys` and `alert.EventKeys`): the technical and visible host name, its DNS names and IP addresses against the CI name, short name, IP addresses and the computer's DNS name in AD. A name shared by several CIs matches nothing: the host goes to "Several candidates".
 
-На вкладке **Хосты** несопоставленный хост можно:
+On the **Hosts** tab, an unmatched host can be:
 
-- **Привязать** к КЕ вручную — ручная привязка важнее автоматической;
-- пометить **Не является КЕ** — для тестовых хостов и шаблонов Zabbix;
-- **Создать КЕ** с именем и адресами хоста, при желании сразу зарегистрировав её в NetBox.
+- **Linked** to a CI by hand — a manual link takes precedence over the automatic one;
+- marked **Not a configuration item** — for test hosts and Zabbix templates;
+- turned into a CI with **Create CI**, using the host's name and addresses, optionally registering it in NetBox right away.
 
-## Привязки и инциденты
+## Links and incidents
 
-Ручные привязки действуют и на алерты. Когда событие называет хост (поле `ci` или метка `ci`), движок инцидентов сначала ищет его среди хостов с ручной привязкой — по техническому и видимому имени, коротким именам, DNS-именам, IP-адресам и адресам целей Prometheus (`host:port`), — и только потом сопоставляет по имени, IP и DNS КЕ:
+Manual links also apply to alerts. When an event names a host (the `ci` field or the `ci` label), the incident engine first looks for it among hosts with a manual link — by technical and visible name, short names, DNS names, IP addresses and Prometheus target addresses (`host:port`) — and only then matches by CI name, IP and DNS:
 
-- хост **привязан к КЕ** — инцидент получает эту КЕ и её маршрут (бизнес-сервисы, команда, люди), даже если имя хоста не совпадает с именем КЕ;
-- хост помечен **Не является КЕ** — инцидент открывается, но подавлен: в PagerDuty и резервным оповещением не отправляется, в списке помечен «Хост исключён», в хронологии — причина;
-- имя, по которому две ручные привязки расходятся, не решает ничего: работает автоматическое сопоставление.
+- the host is **linked to a CI** — the incident gets that CI and its route (business services, team, people), even if the host name does not match the CI name;
+- the host is marked **Not a configuration item** — the incident is opened but suppressed: it is not sent to PagerDuty or via the fallback notification, it is marked "Host excluded" in the list, and the timeline shows the reason;
+- a name on which two manual links disagree decides nothing: automatic matching applies.
 
-После изменения привязки (привязать, пометить, вернуть автоматическое сопоставление, создать КЕ из хоста) открытые инциденты сразу сопоставляются заново: инцидент переходит на новую КЕ и маршрут, теряет КЕ или становится подавленным; когда пометку снимают, инцидент отправляется как обычно. То же происходит после любого изменения каталога. Для этого инцидент помнит имя из первого события (`event_ci`). Инцидент не переносится на КЕ, у которой уже есть открытый инцидент по тому же сигналу.
+After a link changes (link, mark, return to automatic matching, create a CI from a host), open incidents are re-matched immediately: an incident moves to the new CI and route, loses its CI, or becomes suppressed; when the mark is removed, the incident is sent as usual. The same happens after any change of the catalog. For this, the incident remembers the name from the first event (`event_ci`). An incident is not moved to a CI that already has an open incident for the same signal.
 
-## Одна КЕ на все системы
+## One CI for all systems
 
-Одна машина — одна КЕ, сколько бы систем её ни видели. Хосты разных систем с общим именем или адресом попадают в одну КЕ. Если КЕ ещё нет, у несопоставленного хоста видно «Та же машина в: …»: **Создать КЕ** создаёт одну КЕ и привязывает к ней хосты этой машины во всех системах.
+One machine — one CI, no matter how many systems see it. Hosts from different systems with a shared name or address end up in one CI. If there is no CI yet, an unmatched host shows "Same machine in: …": **Create CI** creates one CI and links the hosts of this machine in all systems to it.
 
-## Массовое создание КЕ
+## Bulk CI creation
 
-На вкладке **Хосты** у хостов без КЕ есть флажки (флажок в заголовке выбирает все показанные). **Создать КЕ…** создаёт КЕ для всех выбранных хостов за один раз (до 500), с выбранным типом и, при желании, с регистрацией в NetBox. Правило «одна машина — одна КЕ» действует и здесь: хосты Zabbix обрабатываются первыми, поэтому КЕ получает техническое имя из Zabbix, а та же машина из Prometheus привязывается к ней («Связан с КЕ, созданной в этом пакете»). Хост, у которого к этому моменту уже есть КЕ, не меняется. По каждому хосту показан результат; если одна и та же ошибка (например, NetBox недоступен) повторилась три раза подряд, остальные хосты не обрабатываются и помечаются «Пропущен».
+On the **Hosts** tab, hosts without a CI have checkboxes (the checkbox in the header selects all shown). **Create items…** creates CIs for all selected hosts at once (up to 500), with the chosen type and, optionally, registration in NetBox. The "one machine — one CI" rule applies here too: Zabbix hosts are processed first, so the CI gets the technical name from Zabbix, and the same machine from Prometheus is linked to it ("Linked to an item made in this batch"). A host that already has a CI by that moment is not changed. The result is shown for each host; if the same error (for example, NetBox is unavailable) repeats three times in a row, the remaining hosts are not processed and are marked "Skipped".
 
-## Массовая привязка КЕ к бизнес-сервисам
+## Bulk binding of CIs to business services
 
-В **Каталоге КЕ** у строк есть флажки (нужно право `services:edit`). Выбранные КЕ можно **привязать к сервисам** или **отвязать от сервисов** — сразу к нескольким сервисам. В карточке сервиса можно отметить несколько найденных КЕ и нажать **Привязать выбранные**, или отметить привязанные и нажать **Отвязать выбранные**. Для сервисов, связанных с NetBox, тег сервиса ставится или снимается у КЕ из NetBox; если NetBox отказал по какой-то КЕ, её привязка не меняется, а остальные выполняются. Результат показан по каждой паре «КЕ — сервис».
+In **Configuration items** the rows have checkboxes (the `services:edit` permission is required). The selected CIs can be bound with **Bind to services…** or unbound with **Unbind from services…** — to or from several services at once. In a service card you can tick several found CIs and press **Bind selected**, or tick bound ones and press **Unbind selected**. For services linked with NetBox, the service tag is set or removed on the CIs from NetBox; if NetBox refuses for some CI, its binding is not changed while the rest are carried out. The result is shown for each "CI — service" pair.
 
-## Где заведена КЕ
+## Where the CI is present
 
-В карточке КЕ строка **Где заведена** перечисляет NetBox (если он подключён или КЕ связана с ним), Active Directory (если КЕ проверялась) и каждую включённую систему мониторинга с отметкой «Есть» или «Нет». Для систем мониторинга показаны состояние хоста и ссылка на него. В **Каталоге КЕ** то же самое показано в столбце «Где заведена»: системы, где КЕ есть, отмечены цветом, где её нет — зачёркнуты. Плитка **Без мониторинга** считает устройства и ВМ (кроме запланированных и выводимых из эксплуатации), которых не видит ни одна включённая система.
+In the CI card, the **Present in** row lists NetBox (if it is connected or the CI is linked with it), Active Directory (if the CI was checked) and every enabled monitoring system, each marked "Yes" or "No". For monitoring systems, the host state and a link to the host are shown. In **Configuration items** the same is shown in the "Present in" column: systems where the CI is present are highlighted in colour, those where it is absent are struck through. The **Not monitored** tile counts devices and VMs (except planned ones and those being decommissioned) that no enabled system sees.
 
-## Права
+## Permissions
 
-Страница `monitoring`: просмотр, проверка подключения, изменение, загрузка хостов и привязка хостов к КЕ. Создание КЕ из хоста требует ещё `cis:edit`. Подключение приёма алертов требует ещё `connectors:edit`, `connectors:publish` и `credentials:edit`; тестовое событие — `connectors:edit` или `monitoring:edit`.
+The `monitoring` page: view, connection check, edit, host loading and linking hosts to CIs. Creating a CI from a host also requires `cis:edit`. Connecting the alert intake also requires `connectors:edit`, `connectors:publish` and `credentials:edit`; the test event — `connectors:edit` or `monitoring:edit`.
 
-Систему Prometheus, которую опрашивают правила RED/USE, нельзя удалить или превратить в Zabbix, пока правила не перенесены (`source_in_use`).
+A Prometheus system that RED/USE rules query cannot be deleted or turned into Zabbix until the rules are moved (`source_in_use`).
 
-## Источники метрик
+## Metric sources
 
-Источники метрик на странице правил RED/USE продолжают работать. Источник, адрес которого совпадает с системой Prometheus, можно **Объединить с системой**: правила переходят на систему вместе с состоянием, источник удаляется. Источник без такой системы можно **Сделать системой мониторинга** — Umbrella создаст систему Prometheus с его адресом и учётными данными (`POST /api/metric-sources/{id}/merge`, права `rules:edit` и `monitoring:edit`).
+Metric sources on the RED/USE rules page keep working. A source whose address matches a Prometheus system can be merged with **Merge into the system**: the rules move to the system together with their state, and the source is deleted. A source without such a system can be turned into one with **Make a monitoring system** — Umbrella creates a Prometheus system with its address and credentials (`POST /api/metric-sources/{id}/merge`, permissions `rules:edit` and `monitoring:edit`).
 
 ## API
 
-| Метод и путь | Назначение |
+| Method and path | Purpose |
 | --- | --- |
-| `GET /api/monitoring` | системы с коннектором приёма (`connector`, последнее событие), числом правил (`rules`) |
-| `POST`, `PUT`, `DELETE /api/monitoring/sources[/{id}]` | система (`connector_id` — коннектор приёма) |
-| `PUT /api/monitoring/sources/{id}/connector` | привязать коннектор приёма (`{connector_id}`, пусто — отвязать) |
-| `POST /api/monitoring/link` | ручная привязка хоста; открытые инциденты сопоставляются заново |
+| `GET /api/monitoring` | systems with the intake connector (`connector`, last event) and the number of rules (`rules`) |
+| `POST`, `PUT`, `DELETE /api/monitoring/sources[/{id}]` | system (`connector_id` — the intake connector) |
+| `PUT /api/monitoring/sources/{id}/connector` | link the intake connector (`{connector_id}`, empty — unlink) |
+| `POST /api/monitoring/link` | manual host link; open incidents are re-matched |

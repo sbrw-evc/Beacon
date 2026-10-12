@@ -1,29 +1,29 @@
-# Umbrella — зонтичный мониторинг
+# Umbrella — umbrella monitoring
 
-Umbrella — веб-приложение зонтичного мониторинга: принимает события из систем мониторинга и облаков через low-code конструктор коннекторов, подтверждает получение источнику, нормализует и схлопывает дубли в инциденты по КЕ и сигналу, ведёт каталог КЕ и бизнес-сервисов с картой CMDB, формирует алерты по правилам RED и USE и передаёт инциденты в PagerDuty. Если PagerDuty не принял инцидент, ответственных оповещают резервные каналы (почта и Telegram). Из инцидента по ссылке открывается дашборд контекста в Grafana с переменными инцидента. Доступ к страницам и функциям настраивается ролями; роли и команды можно выдавать по группам корпоративного каталога (LDAP / AD или Microsoft Entra ID).
+Umbrella is an umbrella monitoring web application: it receives events from monitoring systems and clouds through a low-code connector builder, acknowledges receipt to the source, normalizes events and collapses duplicates into incidents by CI and signal, keeps a catalog of CIs and business services with a CMDB map, raises alerts by RED and USE rules and hands incidents over to PagerDuty. If PagerDuty has not accepted an incident, the responsible people are notified through fallback channels (e-mail and Telegram). From an incident, a link opens a context dashboard in Grafana with the incident's variables. Access to pages and functions is configured with roles; roles and teams can be assigned by corporate directory groups (LDAP / AD or Microsoft Entra ID).
 
-Код приложения (Go и React) лежит в [app](app/README.md): там описано, что уже работает, как запустить, и есть [скриншоты](app/README.md#скриншоты).
+The application code (Go and React) is in [app](app/README.md): it describes what already works and how to run it, and has [screenshots](app/README.md#screenshots).
 
-![Инциденты](app/docs/screens/incidents-light-ru.png)
+![Incidents](app/docs/screens/incidents-light-ru.png)
 
-Снимок сделан в одной из прежних версий интерфейса.
+The screenshot was taken in one of the earlier versions of the interface.
 
-## Окружение для стенда
+## Test environment
 
-В [deploy](deploy) — отдельные наборы Docker Compose, которые подключаются к общей сети `umbrella`. Каждый запускается из своей папки командой `docker compose up -d` после копирования `.env.example` в `.env`:
+[deploy](deploy) holds separate Docker Compose sets that join the shared `umbrella` network. Each one is started from its own folder with `docker compose up -d` after copying `.env.example` to `.env`:
 
-| Папка | Что поднимает |
+| Folder | What it brings up |
 | --- | --- |
-| [deploy/umbrella](deploy/umbrella) | само приложение: образ собирается из `app`, данные в томе `/data`, порт `8080` |
-| [deploy/postgres](deploy/postgres) | PostgreSQL 17 с `pg_stat_statements` (база `umbrella`) и pgAdmin |
-| [deploy/openbao](deploy/openbao) | OpenBao 2.7 с файловым хранилищем; контейнер инициализации распечатывает его, включает KV v2 `umbrella/` и AppRole `umbrella` и кладёт `role_id` и `secret_id` в `secrets/umbrella` |
-| [deploy/ad](deploy/ad) | контроллер домена Samba AD (LDAP 389, LDAPS 636) с тестовыми пользователями, служебной учётной записью `svc-umbrella` и группами Umbrella, плюс LDAP Account Manager |
-| [deploy/zabbix](deploy/zabbix/README.md) | Zabbix 7.0 LTS (сервер, веб-интерфейс, PostgreSQL, агент 2) и способ оповещения Umbrella |
-| [deploy/netbox](deploy/netbox/README.md) | NetBox 4.7 с фоновым обработчиком, PostgreSQL и Valkey; при первом запуске создаются администратор и API-токен |
-| [deploy/grafana](deploy/grafana/README.md) | Grafana 13 с точкой контакта «Umbrella» и дашбордом контекста инцидента |
+| [deploy/umbrella](deploy/umbrella) | the application itself: the image is built from `app`, data in the `/data` volume, port `8080` |
+| [deploy/postgres](deploy/postgres) | PostgreSQL 17 with `pg_stat_statements` (database `umbrella`) and pgAdmin |
+| [deploy/openbao](deploy/openbao) | OpenBao 2.7 with file storage; an init container unseals it, enables KV v2 `umbrella/` and AppRole `umbrella` and puts `role_id` and `secret_id` into `secrets/umbrella` |
+| [deploy/ad](deploy/ad) | a Samba AD domain controller (LDAP 389, LDAPS 636) with test users, the `svc-umbrella` service account and Umbrella groups, plus LDAP Account Manager |
+| [deploy/zabbix](deploy/zabbix/README.md) | Zabbix 7.0 LTS (server, web interface, PostgreSQL, agent 2) and the Umbrella media type |
+| [deploy/netbox](deploy/netbox/README.md) | NetBox 4.7 with the background worker, PostgreSQL and Valkey; an administrator and an API token are created on the first start |
+| [deploy/grafana](deploy/grafana/README.md) | Grafana 13 with the "Umbrella" contact point and the incident context dashboard |
 
-Как подключить Zabbix, NetBox и Grafana к Umbrella, описано в README их папок. Скрипта, который ставит весь стенд одной командой, в репозитории нет.
+How to connect Zabbix, NetBox and Grafana to Umbrella is described in the README files in their folders. There is no script in the repository that installs the whole test environment with a single command.
 
-## Архитектурная документация
+## Architecture documentation
 
-Документы архитектуры (MVP и целевая архитектура) и схемы к ним хранятся отдельно от этого репозитория. Здесь лежат документация приложения ([app/README.md](app/README.md) и [app/docs](app/docs)) и разбор возможностей n8n для конструктора коннекторов ([n8n.md](n8n.md)).
+Architecture documents (MVP and target architecture) and their diagrams are kept separately from this repository. This repository holds the application documentation ([app/README.md](app/README.md) and [app/docs](app/docs)) and an analysis of n8n capabilities for the connector builder ([n8n.md](n8n.md)).

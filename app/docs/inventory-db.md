@@ -1,55 +1,55 @@
-# Интеграция с Inventory DB (необязательная)
+# Integration with Inventory DB (optional)
 
-Inventory DB — учёт инвентаря ЦОД (площадки, стойки, устройства, адреса в стиле NetBox). Интеграция
-выключена по умолчанию: пока её не включили на странице «Inventory DB», Umbrella не обращается к
-Inventory DB и ничего не меняет в каталоге КЕ.
+Inventory DB is a data centre inventory (sites, racks, devices, addresses in the style of NetBox). The integration
+is off by default: until it is turned on on the "Inventory DB" page, Umbrella does not contact
+Inventory DB and changes nothing in the CI catalog.
 
-## Что делает
+## What it does
 
 ```mermaid
 sequenceDiagram
   participant U as Umbrella
   participant I as Inventory DB
   U->>I: GET /api/v1/integrations/<id>/umbrella/ci (xc-token)
-  I-->>U: устройства, стойки, площадки
-  U->>U: создать КЕ с источником «Inventory DB» или связать существующую КЕ по имени
-  U->>I: POST /api/v1/integrations/<id>/umbrella/alerts (подпись HMAC)
-  I-->>U: 202; карточка устройства показывает горящие тревоги со ссылкой на инцидент
+  I-->>U: devices, racks, sites
+  U->>U: create a CI with the "Inventory DB" source or link an existing CI by name
+  U->>I: POST /api/v1/integrations/<id>/umbrella/alerts (HMAC signature)
+  I-->>U: 202; the device card shows firing alerts with a link to the incident
 ```
 
-- **Устройства → КЕ.** По расписанию (по умолчанию раз в 15 минут) и по кнопке «Загрузить».
-  Существующая КЕ с тем же именем (без учёта регистра) связывается с устройством, а не дублируется.
-  Атрибуты: площадка, роль, тип (производитель и модель), арендатор, платформа, стойка, серийный номер.
-  Если устройство пропало из Inventory DB, загрузка с удалением требует подтверждения; пустой ответ
-  ничего не удаляет и не отвязывает.
-- **Статусы тревог → Inventory DB.** Раз в 30 секунд Umbrella отправляет изменения активных
-  инцидентов на связанных КЕ (открыт, принят, решён) со ссылкой на инцидент и Grafana. Важность P4
-  («Низкий») передаётся как `info`. Неотправленные изменения повторяются на следующем цикле.
-- **Ссылка на устройство в событиях.** Событие с меткой `source_ref` (`inventory-db:dcim.device:100`)
-  привязывается к КЕ с этой ссылкой раньше, чем по имени; так КЕ находит Umbrella Flow ([flow.md](flow.md)).
+- **Devices → CIs.** On a schedule (by default every 15 minutes) and with the "Read devices now" button.
+  An existing CI with the same name (case-insensitive) is linked to the device rather than duplicated.
+  Attributes: site, role, type (manufacturer and model), tenant, platform, rack, serial number.
+  If a device disappears from Inventory DB, a load with removal requires confirmation; an empty response
+  deletes and unlinks nothing.
+- **Alert states → Inventory DB.** Every 30 seconds Umbrella sends changes of active
+  incidents on linked CIs (opened, acknowledged, resolved) with a link to the incident and Grafana. Severity P4
+  ("Low") is sent as `info`. Unsent changes are retried on the next cycle.
+- **Device reference in events.** An event with the `source_ref` label (`inventory-db:dcim.device:100`)
+  is bound to the CI with that reference before matching by name; this is how Umbrella Flow finds the CI ([flow.md](flow.md)).
 
-## Настройка
+## Setup
 
-1. В Inventory DB создайте интеграцию Umbrella (`POST /api/v1/integrations`), сохраните её id
-   (`int_…`) и секрет подписи — он показывается один раз.
-2. В Inventory DB заведите пользователя только на чтение и выпустите ему API-токен.
-3. В Umbrella откройте «Автоматизация → Inventory DB», включите «Подключить Inventory DB», укажите
-   адрес, id интеграции, токен и секрет. Umbrella проверит подключение перед сохранением. Токен и секрет
-   хранятся в OpenBao по пути `umbrella/inventory-db`.
-4. Для ссылок на инциденты задайте «Настройки → Оповещения → Адрес Umbrella».
+1. In Inventory DB, create an Umbrella integration (`POST /api/v1/integrations`), save its id
+   (`int_…`) and the signing secret — it is shown once.
+2. In Inventory DB, create a read-only user and issue an API token for it.
+3. In Umbrella, open "Automation → Inventory DB", turn on "Connect Inventory DB", enter the
+   address, the integration id, the token and the secret. Umbrella checks the connection before saving. The token and secret
+   are stored in OpenBao at the path `umbrella/inventory-db`.
+4. For links to incidents, set "Settings → Alerting → Umbrella address".
 
-## Права
+## Permissions
 
-| Право | Что даёт |
+| Permission | What it grants |
 |---|---|
-| `inventorydb:view` | видеть страницу и состояние загрузки |
-| `inventorydb:test` | проверять подключение |
-| `inventorydb:edit` | менять настройки |
-| `inventorydb:sync` | запускать загрузку, в том числе с удалением |
+| `inventorydb:view` | see the page and the load status |
+| `inventorydb:test` | check the connection |
+| `inventorydb:edit` | change the settings |
+| `inventorydb:sync` | run a load, including one with removal |
 
 ## API
 
-| Метод | Путь | Право |
+| Method | Path | Permission |
 |---|---|---|
 | GET | `/api/inventory-db` | `inventorydb:view` |
 | PUT | `/api/inventory-db` | `inventorydb:edit` |

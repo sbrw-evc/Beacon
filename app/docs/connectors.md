@@ -1,113 +1,113 @@
-# Коннекторы: приём вебхуков и визуальный конструктор
+# Connectors: webhook intake and the visual builder
 
-Реализация идей из [`n8n.md`](../../n8n.md): этап 0, этап 1, большая часть этапов 2 и 4, откат версий из этапа 5. Код n8n, схемы узлов, тексты и иконки не использовались — только идеи.
+An implementation of ideas from [`n8n.md`](../../n8n.md): stage 0, stage 1, most of stages 2 and 4, version rollback from stage 5. No n8n code, node schemas, texts or icons were used — only ideas.
 
-## Как это устроено
+## How it works
 
-Коннектор — граф узлов (JSON с `type_version` у каждого узла и стабильными идентификаторами). При публикации граф компилируется в конвейер `Step`; исполнитель проходит узлы в топологическом порядке (порядок на холсте не влияет на поведение), каждая запись несёт lineage «запрос → элемент».
+A connector is a graph of nodes (JSON with a `type_version` on every node and stable identifiers). On publishing, the graph is compiled into a `Step` pipeline; the executor walks the nodes in topological order (the order on the canvas does not affect behaviour), and every record carries the "request → item" lineage.
 
 ```
 POST /api/ingest/{slug}
-  → сеть (CIDR) → лимит частоты → размер тела → аутентификация → accept_if
-  → запись в ingest_requests (PostgreSQL) → 202
-  → обработчики (FOR UPDATE SKIP LOCKED) → конвейер версии, на которую пришёл запрос
-  → connector_events (upsert по ключу идемпотентности), ingest_failures, connector_stats
+  → network (CIDR) → rate limit → body size → authentication → accept_if
+  → write to ingest_requests (PostgreSQL) → 202
+  → workers (FOR UPDATE SKIP LOCKED) → pipeline of the version the request arrived at
+  → connector_events (upsert by idempotency key), ingest_failures, connector_stats
 ```
 
-Определения (коннекторы, черновики, версии, образцы, учётные данные) хранятся в снимке состояния, как остальные объекты Umbrella, и переезжают вместе с ним при переносе в другую базу PostgreSQL. Высокочастотные данные — в отдельных таблицах PostgreSQL: `ingest_requests` (секции по дням), `ingest_idempotency`, `connector_events`, `ingest_failures`, `connector_stats`; при переносе в другую базу они не копируются. Таблицы создаются при старте; пока они не готовы, адрес приёма отвечает 503 (`ingest_unavailable`).
+Definitions (connectors, drafts, versions, samples, credentials) are kept in the state snapshot, like the other Umbrella objects, and move with it when migrating to another PostgreSQL database. High-frequency data lives in separate PostgreSQL tables: `ingest_requests` (daily partitions), `ingest_idempotency`, `connector_events`, `ingest_failures`, `connector_stats`; they are not copied when migrating to another database. The tables are created at startup; until they are ready, the intake address answers 503 (`ingest_unavailable`).
 
-Хранение: архив запросов — 7 дней, ошибки и статистика — 30 дней, ключи идемпотентности (`Idempotency-Key`) — 24 часа (сроки задаются переменными `UMBRELLA_INGEST_KEEP_*`, см. [README](../README.md)). Очистка и создание секций — раз в час под advisory-блокировкой.
+Retention: the request archive — 7 days, failures and statistics — 30 days, idempotency keys (`Idempotency-Key`) — 24 hours (the periods are set by the `UMBRELLA_INGEST_KEEP_*` variables, see [README](../README.md)). Cleanup and partition creation run once an hour under an advisory lock.
 
-## Узлы (версия 1)
+## Nodes (version 1)
 
-| Тип | Назначение |
+| Type | Purpose |
 | --- | --- |
-| `trigger.webhook` | учётные данные или анонимный доступ, HMAC-заголовок и префикс, разрешённые сети, лимит тела (КБ) и частоты (запросов/с), условие `accept_if` на CEL |
-| `parse.json` | разбор тела, выбор массива элементов, корень документа доступен каждому элементу |
-| `filter` | условие CEL, отброшенные записи считаются |
-| `route.switch` | правила «выход — условие», первое совпадение или все, выход `else` |
-| `map.severity` | таблица соответствия в приоритеты P1 `critical` … P4 `low`, P5 `info`, значение по умолчанию |
-| `enrich.labels` | фиксированные и вычисляемые метки |
-| `map.event` | заголовок, КЕ, сигнал, метод, важность, статус, внешний ID, значение, ключ дедупликации; синонимы важности (в том числе `p1`…`p5`, `sev1`…`sev5`) и статуса нормализуются |
-| `out.event` | выход событий |
-| `ack.response` | свой ответ источнику: код 2xx, тип и тело |
+| `trigger.webhook` | credentials or anonymous access, HMAC header and prefix, allowed networks, body limit (KB) and rate limit (requests/s), `accept_if` condition in CEL |
+| `parse.json` | body parsing, choosing the array of items; the document root is available to every item |
+| `filter` | CEL condition; dropped records are counted |
+| `route.switch` | "output — condition" rules, first match or all, `else` output |
+| `map.severity` | mapping table to priorities P1 `critical` … P4 `low`, P5 `info`, default value |
+| `enrich.labels` | fixed and computed labels |
+| `map.event` | title, CI, signal, method, severity, status, external ID, value, deduplication key; severity synonyms (including `p1`…`p5`, `sev1`…`sev5`) and status synonyms are normalized |
+| `out.event` | event output |
+| `ack.response` | a custom response to the source: 2xx code, type and body |
 
-Для узлов, которые могут отклонить запись, задаётся политика ошибки: `fail_record` (в список ошибок), `skip`, `route_error` (выход `error`). Узел можно отключить — записи проходят без изменений.
+For nodes that can reject a record, an error policy is set: `fail_record` (to the failure list), `skip`, `route_error` (the `error` output). A node can be disabled — records pass through unchanged.
 
-Выражения: шаблоны `${путь}` с запасными вариантами `${a|$b|"текст"}` и фильтрами (`lower`, `upper`, `trim`, `json`, `default:"x"`, `date:"layout"`), `$${` — экранирование. Условия — CEL (`event`, `request`, `connector`) с лимитом стоимости, расширения строк и кодировщиков, `in_cidr`, `sha256`. Предпросмотр выражений выполняется тем же движком на сервере.
+Expressions: `${path}` templates with fallbacks `${a|$b|"text"}` and filters (`lower`, `upper`, `trim`, `json`, `default:"x"`, `date:"layout"`), `$${` is the escape. Conditions are CEL (`event`, `request`, `connector`) with a cost limit, string and encoder extensions, `in_cidr`, `sha256`. Expression preview runs on the server with the same engine.
 
-## Учётные данные
+## Credentials
 
-Типы: Bearer-токен (`Authorization: Bearer` или `X-Umbrella-Token`), Basic, заголовок с секретом, HMAC-SHA256. Секреты пишутся только в OpenBao (`credentials/<id>`), API их не возвращает, в архив запросов и образцы не попадают заголовки с секретами. Страница «Учётные данные», разрешения `credentials:view` и `credentials:edit`.
+Types: Bearer token (`Authorization: Bearer` or `X-Umbrella-Token`), Basic, header with a secret, HMAC-SHA256. Secrets are written only to OpenBao (`credentials/<id>`), the API never returns them, and headers with secrets do not get into the request archive or samples. The "Credentials" page, permissions `credentials:view` and `credentials:edit`.
 
-В каталоге лежат и **входящие** секреты (ими коннекторы проверяют запросы источников), и **исходящие** (с ними системы мониторинга и источники метрик входят в Zabbix и Prometheus). Колонка «Используется» перечисляет всех потребителей: коннекторы (черновик или любая версия), системы мониторинга и источники метрик — со ссылками. Используемые учётные данные удалить нельзя: ответ `409 credential_in_use` содержит `used_by` — список `{kind, id, name}`, где `kind` — `connector`, `monitoring` или `metric_source`.
+The catalog holds both **incoming** secrets (connectors use them to check requests from sources) and **outgoing** ones (monitoring systems and metric sources use them to sign in to Zabbix and Prometheus). The "Used by" column lists all consumers: connectors (the draft or any version), monitoring systems and metric sources — with links. Credentials in use cannot be deleted: the `409 credential_in_use` response contains `used_by` — a list of `{kind, id, name}`, where `kind` is `connector`, `monitoring` or `metric_source`.
 
-## Быстрое подключение источника
+## Quick source connection
 
-Кнопка **Подключить источник** на странице «Коннекторы» (и на «Системах мониторинга», и по адресу `/monitoring?connect=1`) делает за один шаг то, что раньше требовало трёх страниц:
+The **Connect a source** button on the "Connectors" page (and on "Monitoring systems", and at `/monitoring?connect=1`) does in one step what used to require three pages:
 
-1. создаёт Bearer-токен (учётные данные «Токен приёма: …»);
-2. создаёт коннектор из шаблона Zabbix, Alertmanager, Grafana, Graylog, Umbrella Flow или универсального webhook с этим токеном (адрес — из названия, при занятом добавляется номер);
-3. публикует его.
+1. creates a Bearer token (credentials "Intake token: …");
+2. creates a connector from the Zabbix, Alertmanager, Grafana, Graylog, Umbrella Flow or generic webhook template with this token (the address is derived from the name; if it is taken, a number is appended);
+3. publishes it.
 
-Ответ показывает адрес приёма (публичный адрес Umbrella из настроек оповещений или адрес, по которому открыт интерфейс) и токен — **один раз**, дальше он хранится только в OpenBao. Для Zabbix выдаётся способ оповещения [`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml) с уже подставленными адресом и токеном, для Alertmanager — готовый получатель `alertmanager.yml`, для Grafana — параметры точки контакта, для Umbrella Flow — адрес и токен для его настроек ([flow.md](flow.md)), для webhook — пример `curl`. С вкладки «Приём алертов» системы мониторинга коннектор сразу становится приёмом этой системы.
+The response shows the intake address (the public Umbrella address from the alerting settings, or the address the interface was opened at) and the token — **once**; after that it is stored only in OpenBao. For Zabbix you get the [`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml) media type with the address and token already filled in, for Alertmanager — a ready `alertmanager.yml` receiver, for Grafana — contact point parameters, for Umbrella Flow — the address and token for its settings ([flow.md](flow.md)), for webhook — a `curl` example. From the "Alert intake" tab of a monitoring system, the connector immediately becomes that system's intake.
 
-`POST /api/connectors/quick` (права `connectors:edit`, `connectors:publish`, `credentials:edit`; с `monitoring_id` — ещё `monitoring:edit`): тело `{preset: "zabbix"|"alertmanager"|"grafana"|"graylog"|"network-flow"|"webhook", name?, monitoring_id?}`, ответ `{connector, credential_id, ingest_url, token, instructions: {preset, ingest_url, auth_header, snippet?, snippet_kind?}, mediatype_yaml?, monitoring_id?}`. Если шаг не удался, созданное раньше удаляется.
+`POST /api/connectors/quick` (permissions `connectors:edit`, `connectors:publish`, `credentials:edit`; with `monitoring_id` — also `monitoring:edit`): body `{preset: "zabbix"|"alertmanager"|"grafana"|"graylog"|"network-flow"|"webhook", name?, monitoring_id?}`, response `{connector, credential_id, ingest_url, token, instructions: {preset, ingest_url, auth_header, snippet?, snippet_kind?}, mediatype_yaml?, monitoring_id?}`. If a step fails, whatever was created before it is deleted.
 
-## Тестовое событие
+## Test event
 
-Кнопка **Отправить тестовое событие** (в редакторе опубликованного коннектора, после быстрого подключения и на вкладке «Приём алертов» системы) кладёт в очередь приёма запрос в формате шаблона коннектора (для своего формата — первый образец), и обработчики проводят его через опубликованную версию так же, как настоящую доставку. Получившееся событие получает заголовок «Тестовое событие Umbrella», метки `umbrella_test=true` и `umbrella_test_id`, собственный сигнал (поэтому не сливается с настоящими инцидентами) и указанное имя КЕ (по умолчанию `umbrella-test`). Если коннектор не выдал событие, оно создаётся само — тест всё равно показывает маршрут.
+The **Send a test event** button (in the editor of a published connector, after a quick connection and on the "Alert intake" tab of a system) puts a request in the connector template's format into the intake queue (for a custom format — the first sample), and the workers run it through the published version exactly like a real delivery. The resulting event gets the title "Тестовое событие Umbrella" ("Umbrella test event"; the title is fixed in the code), the labels `umbrella_test=true` and `umbrella_test_id`, its own signal (so it does not merge with real incidents) and the given CI name (`umbrella-test` by default). If the connector produced no event, one is created anyway — the test still shows the route.
 
-Тестовый инцидент не отправляется в PagerDuty (состояние «пропущен»), каналы резервного оповещения его пропускают по метке `umbrella_test`, через 5 минут он решается сам (причина «тестовое событие завершено»). Интерфейс показывает номер инцидента, КЕ и маршрут: бизнес-сервисы, команду и людей.
+A test incident is not sent to PagerDuty (state "skipped"), fallback notification channels skip it by the `umbrella_test` label, and after 5 minutes it resolves itself (reason "the test event is over"). The interface shows the incident number, the CI and the route: business services, the team and people.
 
-`POST /api/connectors/{id}/test-event` (права `connectors:edit` или `monitoring:edit`): тело `{ci?}`, ответ `{incident_id, request_id, status, error?}` — ждёт инцидент до 15 секунд; `status: failed` — коннектор не смог обработать запрос. Внешний запрос не может выдать себя за тестовый: служебные заголовки `X-Umbrella-Test*` с адреса приёма отбрасываются.
+`POST /api/connectors/{id}/test-event` (permissions `connectors:edit` or `monitoring:edit`): body `{ci?}`, response `{incident_id, request_id, status, error?}` — waits up to 15 seconds for the incident; `status: failed` means the connector could not process the request. An external request cannot pass itself off as a test: the service headers `X-Umbrella-Test*` are dropped at the intake address.
 
-## Редактор
+## Editor
 
-Страница «Коннекторы» (`/connectors`), редактор — `/connectors/{id}`:
+The "Connectors" page (`/connectors`), the editor — `/connectors/{id}`:
 
-- холст @xyflow: палитра реализованных узлов, перетаскивание, связи по именованным выходам, удаление, отмена и повтор (Ctrl+Z / Ctrl+Shift+Z);
-- инспектор: формы из описаний параметров (строки, шаблоны, CEL, пути, числа, флаги, списки, таблицы, выбор учётных данных), проблемы узла, предпросмотр выражений на входе узла;
-- автосохранение черновика с номером ревизии (конфликт двух окон обнаруживается) и блокировка редактирования (аренда 60 с, продлевается, пока редактор открыт);
-- публикация с компиляцией (ошибки — во вкладке «Проблемы»), остановка, версии с восстановлением в черновик, экспорт и импорт со слотами учётных данных;
-- образцы: захват реальных запросов на адрес коннектора (до 20 запросов, до 60 минут, работает и до публикации), ручной ввод, сохранение из архива запросов, образцы шаблонов;
-- тест: прогон образца, прогон до выбранного узла, прогон всех образцов (регрессия перед публикацией); вход и выход каждого узла (JSON или таблица), счётчики на узлах и связях, закрепление выхода узла, пометка устаревших результатов после правок; тест ничего не записывает;
-- вкладки «Запросы», «Ошибки» (повторная обработка выбранных или всех на текущей версии), «События», «Статистика».
+- @xyflow canvas: a palette of implemented nodes, drag and drop, links via named outputs, deletion, undo and redo (Ctrl+Z / Ctrl+Shift+Z);
+- inspector: forms built from parameter descriptions (strings, templates, CEL, paths, numbers, flags, lists, tables, credential selection), node problems, expression preview on the node input;
+- draft autosave with a revision number (a conflict between two windows is detected) and an edit lock (60 s lease, extended while the editor is open);
+- publishing with compilation (errors go to the "Problems" tab), stopping, versions with restore into the draft, export and import with credential slots;
+- samples: capturing real requests to the connector address (up to 20 requests, up to 60 minutes, works even before publishing), manual input, saving from the request archive, template samples;
+- test: running a sample, running up to a chosen node, running all samples (regression before publishing); the input and output of every node (JSON or table), counters on nodes and links, pinning a node output, marking stale results after edits; a test writes nothing;
+- the "Requests", "Failures" (reprocessing selected or all of them on the current version), "Events", "Statistics" tabs.
 
-Шаблоны: Prometheus Alertmanager, Grafana Alerting, Graylog, Umbrella Flow (`network-flow`, события трафика NetFlow / IPFIX / sFlow — [flow.md](flow.md)), Zabbix (webhook), универсальный webhook — со встроенными образцами.
+Templates: Prometheus Alertmanager, Grafana Alerting, Graylog, Umbrella Flow (`network-flow`, NetFlow / IPFIX / sFlow traffic events — [flow.md](flow.md)), Zabbix (webhook), generic webhook — with built-in samples.
 
-Шаблон — файл `backend/internal/presets/*.json` в формате выгрузки коннектора. Необязательный объект `quick` делает его доступным быстрому подключению: порядок в диалоге (`order`), название коннектора по умолчанию (`name`, en/ru), виды систем мониторинга (`monitoring_kinds`), число шагов настройки источника (`steps`, их текст — в строках интерфейса `src.steps.<id>.<n>`), фрагмент настройки (`snippet`) и файл для импорта (`attachment`) — шаблоны Go `text/template` с `{{.URL}}` и `{{.Token}}` (функции `quote`, `yaml`, `json`) — и тело тестового события (`test_body`, с `{{.Nonce}}`, `{{.CI}}`, `{{.Title}}`). Шаблон с `starter` задаёт граф нового коннектора без шаблона.
+A template is a `backend/internal/presets/*.json` file in the connector export format. The optional `quick` object makes it available to quick connection: its order in the dialog (`order`), the default connector name (`name`, en/ru), the kinds of monitoring systems (`monitoring_kinds`), the number of source setup steps (`steps`, their text is in the interface strings `src.steps.<id>.<n>`), a setup snippet (`snippet`) and a file to import (`attachment`) — Go `text/template` templates with `{{.URL}}` and `{{.Token}}` (functions `quote`, `yaml`, `json`) — and the test event body (`test_body`, with `{{.Nonce}}`, `{{.CI}}`, `{{.Title}}`). A template with `starter` defines the graph of a new connector created without a template.
 
-Разрешения страницы `connectors`: `view`, `edit` (черновики, образцы, тесты), `publish` (публикация, остановка, повторная обработка), `payload` (тела запросов, образцы, ошибочные записи).
+Permissions of the `connectors` page: `view`, `edit` (drafts, samples, tests), `publish` (publishing, stopping, reprocessing), `payload` (request bodies, samples, failed records).
 
 ## API
 
-| Метод и путь | Назначение |
+| Method and path | Purpose |
 | --- | --- |
-| `POST`, `PUT /api/ingest/{slug}` | приём |
-| `GET`, `POST /api/connectors` | список (со счётчиками за 24 ч), создание (из шаблона) |
-| `POST /api/connectors/quick` | быстрое подключение: токен, коннектор из шаблона, публикация |
-| `POST /api/connectors/{id}/test-event` | тестовое событие через опубликованную версию |
-| `GET /api/connectors/node-types`, `/presets`, `/credentials` | реестр узлов, шаблоны, выбор учётных данных |
-| `GET /api/credentials/kinds` | типы учётных данных с их полями и секретами |
-| `POST /api/connectors/preview` | предпросмотр шаблона, CEL или пути |
-| `POST /api/connectors/import/check`, `/import` | разбор выгрузки и импорт |
-| `GET`, `PUT`, `DELETE /api/connectors/{id}` | коннектор |
-| `PUT /api/connectors/{id}/draft` | сохранение черновика (`revision`) |
-| `POST`, `DELETE /api/connectors/{id}/lock` | блокировка редактирования |
-| `POST /api/connectors/{id}/publish`, `/unpublish` | публикация, остановка |
-| `GET /api/connectors/{id}/versions/{n}`, `POST …/restore` | версия, восстановление |
-| `GET /api/connectors/{id}/export` | выгрузка (`?version=`, `?samples=true`) |
-| `…/samples`, `…/capture` | образцы, захват |
-| `POST …/test-run`, `…/test-all` | тестовые прогоны |
-| `GET …/requests`, `…/failures`, `…/events`, `…/stats`; `POST …/failures/reprocess` | архив, ошибки, события, статистика |
-| `/api/credentials` | учётные данные |
+| `POST`, `PUT /api/ingest/{slug}` | intake |
+| `GET`, `POST /api/connectors` | list (with 24 h counters), creation (from a template) |
+| `POST /api/connectors/quick` | quick connection: token, connector from a template, publishing |
+| `POST /api/connectors/{id}/test-event` | test event through the published version |
+| `GET /api/connectors/node-types`, `/presets`, `/credentials` | node registry, templates, credential selection |
+| `GET /api/credentials/kinds` | credential types with their fields and secrets |
+| `POST /api/connectors/preview` | preview of a template, CEL or path |
+| `POST /api/connectors/import/check`, `/import` | export parsing and import |
+| `GET`, `PUT`, `DELETE /api/connectors/{id}` | connector |
+| `PUT /api/connectors/{id}/draft` | saving the draft (`revision`) |
+| `POST`, `DELETE /api/connectors/{id}/lock` | edit lock |
+| `POST /api/connectors/{id}/publish`, `/unpublish` | publishing, stopping |
+| `GET /api/connectors/{id}/versions/{n}`, `POST …/restore` | version, restore |
+| `GET /api/connectors/{id}/export` | export (`?version=`, `?samples=true`) |
+| `…/samples`, `…/capture` | samples, capture |
+| `POST …/test-run`, `…/test-all` | test runs |
+| `GET …/requests`, `…/failures`, `…/events`, `…/stats`; `POST …/failures/reprocess` | archive, failures, events, statistics |
+| `/api/credentials` | credentials |
 
-## Что из плана ещё не сделано
+## What is not done yet from the plan
 
-- Этап 2: выборочные трассы рабочих запросов и связь событие → трасса; перетаскивание поля в параметр и автодополнение путей; dry-run привязки к КЕ.
-- Этап 3 целиком: `trigger.poll`, durable-планировщик, курсоры, повторы и предохранитель внешних вызовов, самоконтроль коннекторов, метрики Prometheus/OpenTelemetry.
-- Этап 4: `enrich.lookup`, справочники, переменные `vars.*`, фрагменты.
-- Этап 5: области и команды-владельцы, дифф версий, согласование публикации, фильтры по тегам, декларативные описания источников.
-- Этап 6 — по запросу.
-- Несколько экземпляров Umbrella: обработчики уже безопасны (`SKIP LOCKED`), но лимит частоты считается в каждом процессе отдельно.
+- Stage 2: sampled traces of production requests and the event → trace link; dragging a field into a parameter and path autocompletion; dry-run of CI binding.
+- Stage 3 entirely: `trigger.poll`, a durable scheduler, cursors, retries and a circuit breaker for external calls, connector self-monitoring, Prometheus/OpenTelemetry metrics.
+- Stage 4: `enrich.lookup`, lookup tables, `vars.*` variables, fragments.
+- Stage 5: scopes and owning teams, version diff, publication approval, tag filters, declarative source descriptions.
+- Stage 6 — on request.
+- Several Umbrella instances: the workers are already safe (`SKIP LOCKED`), but the rate limit is counted in each process separately.

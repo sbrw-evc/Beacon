@@ -1,557 +1,557 @@
-# n8n: разбор возможностей применительно к Umbrella Monitoring
+# n8n: a feature analysis for Umbrella Monitoring
 
-Документ разбирает open-source платформу автоматизации n8n и отвечает на вопрос, какие её идеи стоит взять в конструктор коннекторов и движок обработки событий Umbrella, как реализовать их в нашем стеке (Go 1.24, React 18 + TypeScript + Vite + @xyflow/react, PostgreSQL, OpenBao, локальные пользователи и LDAP/AD) и в каком порядке.
+This document analyses n8n, the open-source automation platform, and answers three questions: which of its ideas are worth bringing into Umbrella's connector builder and event-processing engine, how to implement them in our stack (Go 1.24, React 18 + TypeScript + Vite + @xyflow/react, PostgreSQL, OpenBao, local users and LDAP/AD), and in what order.
 
-Источники проверены 4 октября 2026 года: актуальный релиз n8n — `n8n@2.41.6` (2 октября 2026), документация [docs.n8n.io](https://docs.n8n.io) в новой структуре разделов (`build/`, `deploy/`, `administer/`, `connect/`, `integrations/`), исходники — ветка `master` репозитория [n8n-io/n8n](https://github.com/n8n-io/n8n). Пути к исходникам ниже даны относительно корня репозитория.
+Sources were checked on 4 October 2026: the current n8n release is `n8n@2.41.6` (2 October 2026), the documentation is [docs.n8n.io](https://docs.n8n.io) in its new section layout (`build/`, `deploy/`, `administer/`, `connect/`, `integrations/`), and the source code is the `master` branch of the [n8n-io/n8n](https://github.com/n8n-io/n8n) repository. Source paths below are relative to the repository root.
 
-> **Лицензия.** n8n распространяется по [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) (модель fair-code), файлы и каталоги с `.ee` в имени — по отдельной [n8n Enterprise License](https://github.com/n8n-io/n8n/blob/master/LICENSE_EE.md). Это **не** open-source лицензия в смысле OSI: использование и модификация разрешены только для собственных внутренних целей или некоммерческого использования, распространение — только бесплатно и некоммерчески. Umbrella — продукт, поэтому **копировать код n8n, переводить его на Go «один к одному», брать JSON-схемы узлов, иконки, тексты интерфейса и документации нельзя**. Берём только идеи, понятия и архитектурные приёмы, реализуем с нуля. Ссылки на исходники в этом документе даны для понимания принципа, а не как образец для переноса.
+> **Licence.** n8n is distributed under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) (a fair-code model); files and directories with `.ee` in their name are under the separate [n8n Enterprise License](https://github.com/n8n-io/n8n/blob/master/LICENSE_EE.md). This is **not** an open-source licence in the OSI sense: use and modification are allowed only for your own internal purposes or non-commercial use, and redistribution only free of charge and non-commercially. Umbrella is a product, so **we must not copy n8n code, translate it into Go "one to one", or take node JSON schemas, icons, UI text or documentation**. We take only ideas, concepts and architectural techniques, and implement them from scratch. Links to the source code in this document are there to explain the principle, not as a template to port.
 
-## Содержание
+## Contents
 
-1. [Краткие выводы](#1-краткие-выводы)
-2. [Соответствие понятий: прежний конструктор Umbrella и n8n](#2-соответствие-понятий-прежний-конструктор-umbrella-и-n8n)
-3. [Ключевое архитектурное различие: поток событий против автоматизации](#3-ключевое-архитектурное-различие-поток-событий-против-автоматизации)
-4. [Разбор возможностей](#4-разбор-возможностей)
-5. [Сводная таблица применимости](#5-сводная-таблица-применимости)
-6. [Приоритизированный план внедрения](#6-приоритизированный-план-внедрения)
-7. [Что из n8n брать не стоит](#7-что-из-n8n-брать-не-стоит)
-8. [Открытые вопросы](#8-открытые-вопросы)
-9. [Ссылки](#9-ссылки)
+1. [Key findings](#1-key-findings)
+2. [Concept mapping: the former Umbrella builder and n8n](#2-concept-mapping-the-former-umbrella-builder-and-n8n)
+3. [The key architectural difference: event stream versus automation](#3-the-key-architectural-difference-event-stream-versus-automation)
+4. [Feature analysis](#4-feature-analysis)
+5. [Applicability summary table](#5-applicability-summary-table)
+6. [Prioritised implementation plan](#6-prioritised-implementation-plan)
+7. [What not to take from n8n](#7-what-not-to-take-from-n8n)
+8. [Open questions](#8-open-questions)
+9. [References](#9-references)
 
 ---
 
-## 1. Краткие выводы
+## 1. Key findings
 
-- **n8n — универсальная платформа автоматизации (iPaaS)**, рассчитанная на сравнительно редкие запуски сценариев с полной записью каждого запуска. Umbrella — конвейер обработки большого потока событий с жёсткими требованиями к задержке и идемпотентности. Поэтому модель n8n нельзя переносить целиком: у нас графовый редактор компилируется в быстрый конвейер, а не интерпретируется узел за узлом с сохранением состояния после каждого шага.
-- **Самое ценное для нас** — опыт разработки в редакторе: захват образцов входящих запросов (тестовый URL у webhook), закреплённые данные (pinned data), частичный запуск до выбранного узла, просмотр входа и выхода каждого узла, пометка устаревших результатов (dirty nodes), повтор запуска на данных из истории. Именно этого не хватало прежнему конструктору, и это главное, что отличает удобный low-code от формы с JSON.
-- **Второе по ценности** — модель жизненного цикла: черновик с автосохранением → публикация конкретной версии → атомарное переключение триггеров только по изменившимся частям, история версий с откатом, именованные версии, согласование перед публикацией.
-- **Третье** — надёжность триггеров: «долговечный» (durable) планировщик опросов в БД с захватом задач, арендой (lease), политикой пропущенных запусков и курсором опроса, сохраняемым в одной транзакции с результатом. В n8n это появилось только в 2.32–2.37 и до сих пор помечено как не вполне стабильное для опросов, — нам нужно это с первого дня.
-- **Выражения**: синтаксис n8n `{{ }}` — это полноценный JavaScript; n8n потребовалось несколько лет, чтобы загнать его в песочницу (V8-изолят по умолчанию только с 2.35). Нам выгоднее оставить собственный простой шаблон `${field|$fallback|default}` для подстановок и добавить безопасный язык условий без побочных эффектов (рекомендуется CEL, `github.com/google/cel-go`).
-- **Пользовательский код (Code node)** в n8n требует отдельного процесса-исполнителя (task runner) в отдельном контейнере, иначе код читает БД, ключ шифрования и секреты. Для Umbrella это низкий приоритет; если понадобится, — только песочница без доступа к сети и ФС (Starlark или WASM) с лимитами CPU и памяти, вне горячего пути по умолчанию.
-- **Секреты**: в n8n они шифруются ключом экземпляра в БД, внешние хранилища — платная функция. У нас OpenBao — единственное место хранения, в конфигурации коннектора только ссылки `openbao://...`. Здесь мы изначально сильнее и это надо сохранить.
-- **Масштабирование**: queue mode n8n (Redis + Bull + worker'ы) — следствие однопоточности Node.js. В Go достаточно горутин и PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED`, advisory locks для лидерства); брокер сообщений добавлять только при доказанной нагрузке.
-- **Не брать**: каталог сотен интеграций, JavaScript в выражениях, сохранение всех запусков по умолчанию, Wait-узлы и долгоживущие запуски в конвейере приёма, порядок исполнения по положению узлов на холсте, установку сторонних узлов из npm, AI-агентов.
-- **План** (раздел 6): фундамент движка и модели графа → MVP коннекторов webhook с OpenBao и версиями → отладка в редакторе → опросы и надёжность → ветвления и обработка ошибок → управление доступом и жизненным циклом → опциональные расширения.
+- **n8n is a general-purpose automation platform (iPaaS)** designed for relatively infrequent workflow runs with a full record of every run. Umbrella is a pipeline that processes a large stream of events with strict latency and idempotency requirements. So the n8n model cannot be adopted wholesale: our graph editor compiles into a fast pipeline instead of being interpreted node by node with state saved after every step.
+- **The most valuable thing for us** is the in-editor development experience: capturing samples of incoming requests (the webhook's test URL), pinned data, partial execution up to a selected node, viewing each node's input and output, marking stale results (dirty nodes), and re-running on data from history. This is exactly what the former builder lacked, and it is the main thing that separates a convenient low-code tool from a form with JSON.
+- **Second in value** is the lifecycle model: a draft with autosave → publishing a specific version → atomically switching triggers only for the parts that changed, version history with rollback, named versions, approval before publishing.
+- **Third** is trigger reliability: a "durable" polling scheduler in the database with task claiming, leases, a missed-run policy and a polling cursor saved in the same transaction as the result. In n8n this only appeared in 2.32–2.37 and is still marked as not fully stable for polling; we need it from day one.
+- **Expressions**: n8n's `{{ }}` syntax is full JavaScript; it took n8n several years to put it in a sandbox (a V8 isolate is the default only since 2.35). It pays for us to keep our own simple `${field|$fallback|default}` template for substitutions and add a safe condition language without side effects (CEL is recommended, `github.com/google/cel-go`).
+- **User code (Code node)** in n8n requires a separate executor process (task runner) in a separate container; otherwise the code can read the database, the encryption key and secrets. For Umbrella this is low priority; if it is ever needed, only a sandbox with no network or filesystem access (Starlark or WASM) with CPU and memory limits, off the hot path by default.
+- **Secrets**: n8n encrypts them in the database with the instance key; external stores are a paid feature. We have OpenBao as the only place of storage, and the connector configuration holds only `openbao://...` references. Here we are stronger from the start, and this must be kept.
+- **Scaling**: n8n's queue mode (Redis + Bull + workers) is a consequence of Node.js being single-threaded. In Go, goroutines and PostgreSQL are enough (`SELECT … FOR UPDATE SKIP LOCKED`, advisory locks for leadership); add a message broker only when load proves it necessary.
+- **Do not take**: the catalogue of hundreds of integrations, JavaScript in expressions, saving all executions by default, Wait nodes and long-lived executions in the ingest pipeline, execution order based on node position on the canvas, installing third-party nodes from npm, AI agents.
+- **Plan** (section 6): engine and model foundation → MVP of webhook connectors with OpenBao and versions → in-editor debugging → polling and reliability → branching and error handling → access control and lifecycle → optional extensions.
 
-## 2. Соответствие понятий: прежний конструктор Umbrella и n8n
+## 2. Concept mapping: the former Umbrella builder and n8n
 
-| Прежний Umbrella | Аналог в n8n | Комментарий |
+| Former Umbrella | n8n equivalent | Comment |
 | --- | --- | --- |
-| Коннектор (граф узлов @xyflow) | Workflow (узлы + связи, JSON) | По сути одно и то же; у n8n граф хранится как `nodes[]` + `connections{}` |
-| `trigger.webhook` | [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook) | У n8n есть тестовый и рабочий URL, аутентификация, список разрешённых IP, условие «Only Run If», режимы ответа |
-| `trigger.poll` | [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger) + [HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest); polling-триггеры с курсором | У n8n опрос «из коробки» есть только у узлов конкретных сервисов; универсального HTTP-опроса с курсором нет |
-| `parse.json` с выбором массива items | Неявно: вход узла — массив items; [Split Out](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout) для разворота массива | Наш явный выбор массива удобнее для мониторинга (Alertmanager шлёт `alerts[]`) |
-| `map.severity` (таблица) | Switch / выражение / Code | У n8n нет табличного сопоставления — у нас оно лучше и его надо сохранить |
+| Connector (graph of @xyflow nodes) | Workflow (nodes + connections, JSON) | Essentially the same thing; n8n stores the graph as `nodes[]` + `connections{}` |
+| `trigger.webhook` | [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook) | n8n has a test URL and a production URL, authentication, an IP allowlist, an "Only Run If" condition, response modes |
+| `trigger.poll` | [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger) + [HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest); polling triggers with a cursor | In n8n, out-of-the-box polling exists only in nodes for specific services; there is no generic HTTP polling with a cursor |
+| `parse.json` with choice of the items array | Implicit: a node's input is an array of items; [Split Out](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout) to unwrap an array | Our explicit array choice is more convenient for monitoring (Alertmanager sends `alerts[]`) |
+| `map.severity` (table) | Switch / expression / Code | n8n has no table mapping; ours is better and should be kept |
 | `enrich.labels` | [Edit Fields (Set)](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set) | — |
-| `map.event` | Edit Fields (Set) в режиме «только эти поля» | У нас целевая схема фиксирована (title, ci, signal, method, severity, status, external_id, value) — это плюс: можно валидировать |
-| `out.event` | Последний узел; записи в целевую систему | У нас — запись в конвейер нормализации/инцидентов |
-| `ack.response` | [Respond to Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook) / режим ответа Webhook | — |
-| `${field\|$fallback\|default}` | [Выражения](https://docs.n8n.io/build/work-with-data/transform-data/expressions-for-data-transformation) `{{ $json.field ?? 'default' }}` | n8n — полный JS; наш вариант безопаснее и быстрее |
-| Черновик / опубликован | [Save and publish](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows): автосохранение черновика, публикация версии | n8n пришёл к той же модели в 2.x |
-| running / stopped | Published / unpublished, статусы публикации (partial, failed) | У n8n есть полезный статус «опубликован частично» |
-| Счётчики событий и ошибок | [Insights](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights), список запусков | — |
-| Parse errors | Неуспешные запуски + [Error workflow](https://docs.n8n.io/build/flow-logic/handle-errors-gracefully) | У нас отдельное хранилище «сырых» тел с повторной обработкой — лучше для мониторинга |
-| `openbao://...` | Credentials (шифрование ключом экземпляра) + `$secrets` из [внешних хранилищ](https://docs.n8n.io/administer/manage-credentials/use-external-secret-stores) (Enterprise) | Наш подход сильнее |
-| Встроенные пресеты | [Шаблоны](https://docs.n8n.io/build/ways-of-building-workflows/use-templates), [импорт/экспорт JSON](https://docs.n8n.io/build/manage-workflows/export-and-import) | — |
+| `map.event` | Edit Fields (Set) in "only these fields" mode | Our target schema is fixed (title, ci, signal, method, severity, status, external_id, value), which is a plus: it can be validated |
+| `out.event` | The last node; writes to the target system | For us, a write into the normalisation/incident pipeline |
+| `ack.response` | [Respond to Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook) / Webhook response mode | — |
+| `${field\|$fallback\|default}` | [Expressions](https://docs.n8n.io/build/work-with-data/transform-data/expressions-for-data-transformation) `{{ $json.field ?? 'default' }}` | n8n is full JS; our variant is safer and faster |
+| Draft / published | [Save and publish](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows): draft autosave, publishing a version | n8n arrived at the same model in 2.x |
+| running / stopped | Published / unpublished, publication statuses (partial, failed) | n8n has a useful "partially published" status |
+| Event and error counters | [Insights](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights), executions list | — |
+| Parse errors | Failed executions + [Error workflow](https://docs.n8n.io/build/flow-logic/handle-errors-gracefully) | We have a separate store of raw bodies with reprocessing, which is better for monitoring |
+| `openbao://...` | Credentials (encrypted with the instance key) + `$secrets` from [external stores](https://docs.n8n.io/administer/manage-credentials/use-external-secret-stores) (Enterprise) | Our approach is stronger |
+| Built-in presets | [Templates](https://docs.n8n.io/build/ways-of-building-workflows/use-templates), [JSON import/export](https://docs.n8n.io/build/manage-workflows/export-and-import) | — |
 
-## 3. Ключевое архитектурное различие: поток событий против автоматизации
+## 3. The key architectural difference: event stream versus automation
 
-Как исполняет n8n (см. `packages/core/src/execution-engine/workflow-execute.ts`): каждый срабатывающий триггер порождает **запуск (execution)** — запись в БД; движок обходит граф по стеку узлов, каждый узел получает массив items и возвращает массив массивов (по выходам), после узлов (при включённом «Save execution progress») или в конце запуска состояние со всеми промежуточными данными сериализуется в БД. В queue mode главный процесс кладёт в Redis только идентификатор запуска, worker читает определение и данные из БД, исполняет и пишет результат обратно ([Enable queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode)). Это удобно для отладки и восстановления, но дорого: несколько обращений к БД на каждое входящее событие и большая БД, если не урезать сохранение ([Manage execution data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data): по умолчанию хранение 14 дней или 10 000 запусков).
+How n8n executes (see `packages/core/src/execution-engine/workflow-execute.ts`): every trigger that fires creates an **execution**, a record in the database; the engine walks the graph using a node stack, each node receives an array of items and returns an array of arrays (one per output), and after each node (when "Save execution progress" is enabled) or at the end of the execution the state with all intermediate data is serialised into the database. In queue mode the main process puts only the execution ID into Redis; a worker reads the definition and data from the database, executes and writes the result back ([Enable queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode)). This is convenient for debugging and recovery, but expensive: several database round trips for each incoming event and a large database unless saving is cut down ([Manage execution data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data): by default retention is 14 days or 10,000 executions).
 
-Для Umbrella поток — тысячи событий в секунду в пиках «шторма» алертов, а значение имеет задержка от источника до инцидента. Поэтому предлагается разделить два режима:
+For Umbrella the stream is thousands of events per second at the peaks of an alert "storm", and what matters is the latency from source to incident. So we propose separating two modes:
 
-| | **Конвейер приёма (ingest pipeline)** | **Сценарий автоматизации (automation flow)** — позже, если понадобится |
+| | **Ingest pipeline** | **Automation flow** (later, if needed) |
 | --- | --- | --- |
-| Назначение | Источник → нормализованное событие | Реакция на инцидент: обогащение из внешних систем, эскалации, действия |
-| Частота | Высокая, потоковая | Низкая |
-| Исполнение | Граф **компилируется** при публикации в цепочку Go-функций; без записи промежуточных состояний | Интерпретация графа с сохранением состояния, допустимы ожидания |
-| Состояние | Без состояния, кроме курсора опроса и ключей идемпотентности | Состояние запуска в PostgreSQL |
-| Трассировка | Выборочная (последние N, все ошибки, по запросу) | Полная |
-| Пользовательский код | Нет (только выражения CEL и шаблоны) | Возможен в песочнице |
+| Purpose | Source → normalised event | Reacting to an incident: enrichment from external systems, escalations, actions |
+| Frequency | High, streaming | Low |
+| Execution | The graph is **compiled** on publish into a chain of Go functions; no intermediate state is written | Graph interpretation with state saved; waits are allowed |
+| State | Stateless, except for the polling cursor and idempotency keys | Execution state in PostgreSQL |
+| Tracing | Selective (last N, all errors, on demand) | Full |
+| User code | None (only CEL expressions and templates) | Possible in a sandbox |
 
-Редактор (@xyflow) и модель графа общие; различаются набор доступных узлов и исполнитель. Всё, что ниже помечено как «для конвейера», должно укладываться в первый столбец.
+The editor (@xyflow) and the graph model are shared; what differs is the set of available nodes and the executor. Everything marked "for the pipeline" below must fit into the first column.
 
-## 4. Разбор возможностей
+## 4. Feature analysis
 
-Для каждой возможности: **что это в n8n**, **зачем пользователю**, **применимость к Umbrella** (высокая / средняя / низкая / не нужна) и **как реализовать у нас**.
+For each feature: **what it is in n8n**, **why the user needs it**, **applicability to Umbrella** (high / medium / low / not needed) and **how to implement it on our side**.
 
-### 4.1. Модель workflow: узлы, связи, items
+### 4.1. Workflow model: nodes, connections, items
 
-**В n8n.** Workflow — JSON с массивом узлов (`type`, `typeVersion`, `parameters`, `credentials`, позиция на холсте) и объектом связей «выход узла → вход узла» с индексами выходов/входов ([Understand n8n's data structure](https://docs.n8n.io/build/work-with-data/understand-n8ns-data-structure), типы в `packages/workflow/src/interfaces.ts`). Данные между узлами — **массив items**, каждый item — `{ json: {...}, binary?: {...}, pairedItem?: {...} }`. Узел по умолчанию выполняется для каждого item; узел может иметь несколько выходов (IF — два, Switch — N). У каждого типа узла есть версия (`typeVersion`), и старые workflow продолжают работать на старой версии узла ([Versioning](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/versioning)). Связь items между узлами ([Item linking](https://docs.n8n.io/build/work-with-data/reference-data/link-data-items)) позволяет понять, из какого входного item получился выходной.
+**In n8n.** A workflow is JSON with an array of nodes (`type`, `typeVersion`, `parameters`, `credentials`, position on the canvas) and a connections object "node output → node input" with output/input indexes ([Understand n8n's data structure](https://docs.n8n.io/build/work-with-data/understand-n8ns-data-structure), types in `packages/workflow/src/interfaces.ts`). Data between nodes is an **array of items**, each item is `{ json: {...}, binary?: {...}, pairedItem?: {...} }`. By default a node runs once per item; a node can have several outputs (IF has two, Switch has N). Every node type has a version (`typeVersion`), and old workflows keep working on the old node version ([Versioning](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/versioning)). Item linking between nodes ([Item linking](https://docs.n8n.io/build/work-with-data/reference-data/link-data-items)) makes it possible to tell which input item an output item came from.
 
-**Зачем пользователю.** Единая предсказуемая модель: любой узел принимает и отдаёт список записей, всё видно в таблице/JSON в редакторе. Пакетная обработка без явных циклов.
+**Why the user needs it.** A single predictable model: every node takes and returns a list of records, and everything is visible as a table/JSON in the editor. Batch processing without explicit loops.
 
-**Применимость: высокая.** Прежний конструктор уже близок к этой модели; её стоит формализовать.
+**Applicability: high.** The former builder is already close to this model; it is worth formalising.
 
-**Как реализовать.**
-- Хранение: таблица `connectors` (идентичность, владелец, теги, статус) и `connector_versions` (неизменяемый снимок графа `graph jsonb`, номер, автор, время, имя/описание версии, признак опубликованности). Граф: `nodes[]` с `id` (стабильный UUID, а не имя — n8n ссылается по имени узла, и переименование ломает выражения), `type`, `type_version`, `params`, `position`; `edges[]` с `source`, `source_output`, `target`, `target_input`.
-- Go: реестр типов узлов. Каждый тип описывает себя декларативно: JSON Schema параметров, число и имена входов/выходов, категория (trigger/transform/output), версия. Метод `Compile(params) (Step, error)` выполняется **один раз при публикации**: разбирает шаблоны, компилирует CEL, проверяет ссылки на секреты. `Step` — `func(ctx, batch []Record) (outputs [][]Record, err error)`.
-- `Record` — `map[string]any` плюс служебные поля: `lineage` (индекс исходного item и идентификатор входящего запроса — аналог `pairedItem`, нужен для трассировки «из какого запроса родилось это событие»), `raw_ref` (ссылка на сырое тело).
-- Валидация графа при сохранении: ацикличность (для конвейера), ровно один триггер, достижимость `out.event`, совместимость типов выходов, все обязательные параметры заданы.
-- Версии типов узлов: поле `type_version` в графе с первого дня; при изменении семантики узла — новая версия, старая остаётся в реестре.
-- React: панель параметров генерируется из JSON Schema типа узла (как декларативные описания узлов у n8n, но по нашей схеме). Показывать в палитре только реализованные типы узлов.
+**How to implement.**
+- Storage: a `connectors` table (identity, owner, tags, status) and `connector_versions` (an immutable snapshot of the graph `graph jsonb`, number, author, time, version name/description, published flag). Graph: `nodes[]` with `id` (a stable UUID, not a name: n8n references nodes by name, and renaming breaks expressions), `type`, `type_version`, `params`, `position`; `edges[]` with `source`, `source_output`, `target`, `target_input`.
+- Go: a registry of node types. Each type describes itself declaratively: a JSON Schema for parameters, the number and names of inputs/outputs, a category (trigger/transform/output), a version. The `Compile(params) (Step, error)` method runs **once at publish time**: it parses templates, compiles CEL, checks secret references. `Step` is `func(ctx, batch []Record) (outputs [][]Record, err error)`.
+- `Record` is `map[string]any` plus service fields: `lineage` (the index of the source item and the ID of the incoming request, the equivalent of `pairedItem`, needed for tracing "which request this event came from"), `raw_ref` (a reference to the raw body).
+- Graph validation on save: acyclicity (for the pipeline), exactly one trigger, `out.event` reachable, output types compatible, all required parameters set.
+- Node type versions: a `type_version` field in the graph from day one; when a node's semantics change, a new version is added and the old one stays in the registry.
+- React: the parameters panel is generated from the node type's JSON Schema (like n8n's declarative node descriptions, but following our schema). Show only implemented node types in the palette.
 
 ### 4.2. Binary data
 
-**В n8n.** У item может быть свойство `binary` с файлами; режимы хранения — в памяти, ФС, БД, S3 ([Work with files and images](https://docs.n8n.io/build/work-with-data/handle-special-data-types/work-with-files-and-images), [Handle binary data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/handle-binary-data)); в queue mode ФС не поддерживается.
+**In n8n.** An item can have a `binary` property with files; storage modes are memory, filesystem, database, S3 ([Work with files and images](https://docs.n8n.io/build/work-with-data/handle-special-data-types/work-with-files-and-images), [Handle binary data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/handle-binary-data)); the filesystem is not supported in queue mode.
 
-**Зачем.** Вложения, файлы, изображения.
+**Why.** Attachments, files, images.
 
-**Применимость: низкая.** События мониторинга — JSON/текст. Возможный сценарий — снимки графиков в оповещениях, но это область системы оповещения, а не конвейера приёма.
+**Applicability: low.** Monitoring events are JSON/text. A possible scenario is graph snapshots in notifications, but that belongs to the notification system, not the ingest pipeline.
 
-**Как реализовать (если понадобится).** Не вводить `binary` в модель записи. Сырые тела входящих запросов хранить отдельно (см. 4.10) с лимитом размера. Вложения оповещений — отдельное хранилище (S3-совместимое) со ссылками.
+**How to implement (if needed).** Do not add `binary` to the record model. Store raw bodies of incoming requests separately (see 4.10) with a size limit. Notification attachments go into a separate (S3-compatible) store with references.
 
-### 4.3. Триггеры: webhook
+### 4.3. Triggers: webhook
 
-**В n8n.** [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook): методы, путь, **тестовый URL** (принимает один запрос и показывает его в редакторе) и **рабочий URL** (регистрируется при публикации); аутентификация Basic / Header / JWT; список разрешённых IP; CORS; «сырое» тело; условие «Only Run If» по запросу; режимы ответа: сразу, после последнего узла, через узел Respond to Webhook; лимит тела по умолчанию 16 МБ. В queue mode приём webhook можно вынести в отдельные процессы за балансировщиком.
+**In n8n.** [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook): methods, path, a **test URL** (accepts one request and shows it in the editor) and a **production URL** (registered on publish); Basic / Header / JWT authentication; an IP allowlist; CORS; raw body; an "Only Run If" condition on the request; response modes: immediately, after the last node, via a Respond to Webhook node; a default body limit of 16 MB. In queue mode webhook intake can be moved into separate processes behind a load balancer.
 
-**Зачем.** Источники «толкают» события; пользователь хочет за минуту получить URL, отправить тестовый алерт и увидеть его структуру.
+**Why.** Sources "push" events; the user wants to get a URL within a minute, send a test alert and see its structure.
 
-**Применимость: высокая.**
+**Applicability: high.**
 
-**Как реализовать.**
-- URL вида `/ingest/{connector_slug}` с аутентификацией одним из способов: токен в заголовке, Basic, **HMAC-подпись тела** (многие системы подписывают webhook — у n8n этого нет «из коробки», нам нужно), mTLS на уровне ingress. Секреты — в OpenBao.
-- Список разрешённых сетей (CIDR), лимит размера тела, лимит частоты на коннектор (ответ 429 с `Retry-After`).
-- **Режим захвата образцов** (аналог тестового URL): в редакторе кнопка «Ждать образец» — следующие N запросов на тот же URL сохраняются как образцы (тело, заголовки без секретов, время) и становятся входом для отладки (см. 4.12). Работает и для опубликованного коннектора — без отдельного тестового адреса, чтобы не перенастраивать источник.
-- Ответ: по умолчанию **202 сразу после надёжной фиксации** запроса (запись в PostgreSQL), обработка — асинхронно. Синхронный ответ «после обработки» не делать: источник не должен ждать CMDB и схлопывание. Узел `ack.response` — только для источников, требующих особого тела/кода ответа.
-- Условие «принимать, только если…» — CEL-выражение над запросом (аналог «Only Run If»).
+**How to implement.**
+- A URL of the form `/ingest/{connector_slug}` with authentication by one of: a token in a header, Basic, **HMAC signature of the body** (many systems sign webhooks; n8n does not have this out of the box, and we need it), mTLS at the ingress level. Secrets live in OpenBao.
+- An allowlist of networks (CIDR), a body size limit, a per-connector rate limit (a 429 response with `Retry-After`).
+- **Sample capture mode** (the equivalent of the test URL): in the editor a "Capture as samples" button saves the next N requests to the same URL as samples (body, headers without secrets, time), and they become the input for debugging (see 4.12). It also works for a published connector, without a separate test address, so the source does not have to be reconfigured.
+- Response: by default **202 immediately after the request is durably recorded** (written to PostgreSQL), processing is asynchronous. Do not implement a synchronous "after processing" response: the source should not wait for the CMDB and deduplication. The `ack.response` node is only for sources that require a special response body/code.
+- An "accept only if…" condition: a CEL expression over the request (the equivalent of "Only Run If").
 
-### 4.4. Триггеры: расписание и опрос (polling)
+### 4.4. Triggers: schedule and polling
 
-**В n8n.** [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger) (интервалы и cron, часовой пояс workflow). Polling-триггеры конкретных сервисов хранят курсор в «static data» workflow. С 2.36 есть [Durable scheduler](https://docs.n8n.io/deploy/host-n8n/configure-n8n/durable-scheduler) (пакет `packages/@n8n/scheduler`): предстоящие запуски заранее материализуются строками в БД, экземпляры **захватывают** их (только один исполняет), «жнец» освобождает захваты упавших экземпляров, есть **политика пропущенных запусков** (не запускать / один догоняющий запуск) с периодом допуска, **таймаут опроса** (45 с по умолчанию) с расширяющимся интервалом повтора при постоянных сбоях, dead-letter после N попыток и **durable poll cursors** — курсор хранится в отдельной таблице и сохраняется в одной транзакции с результатом, чтобы повторный опрос не терял и не дублировал данные. Документация прямо говорит, что опрос может выполниться дважды (at-least-once). Для расписаний добавлен уникальный ключ дедупликации запуска (`deduplicationKey` в таблице запусков, миграция `AddExecutionDeduplicationKey`). Метрики планировщика: очередь, просроченные задачи, задержка старта (p50/p99), перехваченные аренды.
+**In n8n.** [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger) (intervals and cron, the workflow's time zone). Polling triggers for specific services keep their cursor in the workflow's "static data". Since 2.36 there is the [Durable scheduler](https://docs.n8n.io/deploy/host-n8n/configure-n8n/durable-scheduler) (the `packages/@n8n/scheduler` package): upcoming runs are materialised in advance as rows in the database, instances **claim** them (only one executes), a "reaper" releases claims held by crashed instances, there is a **missed-run policy** (do not run / one catch-up run) with a grace period, a **polling timeout** (45 s by default) with a growing retry interval on persistent failures, dead-lettering after N attempts, and **durable poll cursors**: the cursor is kept in a separate table and saved in the same transaction as the result, so that a repeated poll neither loses nor duplicates data. The documentation states plainly that a poll can run twice (at-least-once). For schedules a unique execution deduplication key was added (`deduplicationKey` in the executions table, the `AddExecutionDeduplicationKey` migration). Scheduler metrics: queue, overdue tasks, start delay (p50/p99), stolen leases.
 
-**Зачем.** Источники, которые не умеют отправлять webhook (API Zabbix, OpenSearch-запросы, HTTP-эндпойнты состояния). Пользователю важно, чтобы после перезапуска Umbrella опрос не «потерял» окно и не задвоил события.
+**Why.** Sources that cannot send webhooks (the Zabbix API, OpenSearch queries, HTTP health endpoints). The user cares that after an Umbrella restart polling does not "lose" a window or duplicate events.
 
-**Применимость: высокая.** Это ровно наш `trigger.poll`, и решения n8n — хороший список требований.
+**Applicability: high.** This is exactly our `trigger.poll`, and n8n's solutions make a good list of requirements.
 
-**Как реализовать.**
-- Таблицы `poll_schedules` (коннектор, версия, интервал/cron, часовой пояс, политика пропуска, период допуска, таймаут) и `poll_runs` (запланированное время, статус, `claimed_by`, `lease_until`, попытка, ошибка).
-- Захват: `UPDATE poll_runs SET claimed_by=$1, lease_until=now()+$2 WHERE id IN (SELECT id FROM poll_runs WHERE due_at<=now() AND status='pending' ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT $3) RETURNING …`. Работает на любом числе экземпляров Umbrella без лидера.
-- Уникальный ключ `(schedule_id, due_at)` — запуск не материализуется дважды.
-- Курсор: таблица `poll_cursors (connector_id, node_id, cursor jsonb, updated_at)`; обновление курсора и вставка принятых событий в очередь нормализации — **в одной транзакции PostgreSQL**. Повтор опроса тогда безопасен.
-- Таймаут HTTP-запроса меньше аренды; при постоянных ошибках — экспоненциальный откат интервала и признак «коннектор деградирован» (см. 4.9).
-- Метрики Prometheus: `due`, задержка старта, длительность опроса, ошибки, перехваченные аренды.
-- Защита от «стада»: случайный сдвиг (jitter) старта в пределах интервала.
+**How to implement.**
+- Tables `poll_schedules` (connector, version, interval/cron, time zone, missed-run policy, grace period, timeout) and `poll_runs` (scheduled time, status, `claimed_by`, `lease_until`, attempt, error).
+- Claiming: `UPDATE poll_runs SET claimed_by=$1, lease_until=now()+$2 WHERE id IN (SELECT id FROM poll_runs WHERE due_at<=now() AND status='pending' ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT $3) RETURNING …`. Works on any number of Umbrella instances without a leader.
+- A unique key `(schedule_id, due_at)`: a run is never materialised twice.
+- Cursor: a `poll_cursors (connector_id, node_id, cursor jsonb, updated_at)` table; updating the cursor and inserting the accepted events into the normalisation queue happen **in a single PostgreSQL transaction**. A repeated poll is then safe.
+- The HTTP request timeout is shorter than the lease; on persistent errors, exponential backoff of the interval and a "connector degraded" flag (see 4.9).
+- Prometheus metrics: `due`, start delay, poll duration, errors, stolen leases.
+- Protection against a "thundering herd": a random start offset (jitter) within the interval.
 
-### 4.5. Event-триггеры (очереди, потоки, внутренние события)
+### 4.5. Event triggers (queues, streams, internal events)
 
-**В n8n.** Триггеры, держащие постоянное соединение (очереди сообщений, почта по IMAP и т. п.) — в multi-main их запускает только лидер; [n8n Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.n8ntrigger) — события самого n8n; [Error Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.errortrigger).
+**In n8n.** Triggers that keep a persistent connection (message queues, IMAP mail, etc.); in multi-main only the leader runs them; [n8n Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.n8ntrigger) for events of n8n itself; [Error Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.errortrigger).
 
-**Зачем.** Источники, которые публикуют события в шину (Kafka и аналоги), syslog, SNMP trap.
+**Why.** Sources that publish events to a bus (Kafka and similar), syslog, SNMP traps.
 
-**Применимость: средняя.** Для части заказчиков — основной канал (в лабораторном стенде уже есть Kafka). Не нужно в первом MVP.
+**Applicability: medium.** For some customers this is the main channel (the lab environment already has Kafka). Not needed in the first MVP.
 
-**Как реализовать.** Тип триггера `trigger.stream` с адаптерами (Kafka consumer group — смещения коммитить после фиксации в PostgreSQL; syslog/SNMP — отдельный приёмник). Распределение подписок между экземплярами — через захват строк подписки с арендой (как в 4.4) или механизм consumer group самой шины. Внутренние события Umbrella (ошибка коннектора, изменение КЕ) — не через пользовательские триггеры, а встроенными механизмами (см. 4.9).
+**How to implement.** A `trigger.stream` trigger type with adapters (Kafka consumer group: commit offsets after recording in PostgreSQL; syslog/SNMP: a separate receiver). Subscriptions are distributed between instances by claiming subscription rows with a lease (as in 4.4) or by the bus's own consumer group mechanism. Umbrella's internal events (connector error, CI change) do not go through user triggers but through built-in mechanisms (see 4.9).
 
-### 4.6. Выражения
+### 4.6. Expressions
 
-**В n8n.** `{{ … }}` в любом параметре — это JavaScript ([Expressions](https://docs.n8n.io/build/work-with-data/transform-data/expressions-for-data-transformation), [справочник](https://docs.n8n.io/build/work-with-data/transform-data/expression-reference)). Переменные: `$json` (текущий item), `$input`, `$('Имя узла').item` / `$node[…]`, `$now`/`$today` (Luxon DateTime), `$execution`, `$workflow`, `$vars`, `$secrets`; расширения типов (`.toDateTime()`, `.isEmpty()` и т. п.), JMESPath. Реализация — `packages/workflow/src/expression.ts`, `workflow-data-proxy.ts`, песочница — `packages/@n8n/expression-runtime` (V8-изолят через isolated-vm). [Expression engine](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/expression-engine): изолированный движок `vm` стал умолчанием только с 2.35; в редакторе по умолчанию до сих пор неизолированный `legacy`; лимиты — 5 с и 128 МиБ на вычисление. Редактор подсвечивает выражение и показывает результат на текущих данных.
+**In n8n.** `{{ … }}` in any parameter is JavaScript ([Expressions](https://docs.n8n.io/build/work-with-data/transform-data/expressions-for-data-transformation), [reference](https://docs.n8n.io/build/work-with-data/transform-data/expression-reference)). Variables: `$json` (the current item), `$input`, `$('Node name').item` / `$node[…]`, `$now`/`$today` (Luxon DateTime), `$execution`, `$workflow`, `$vars`, `$secrets`; type extensions (`.toDateTime()`, `.isEmpty()`, etc.), JMESPath. Implementation: `packages/workflow/src/expression.ts`, `workflow-data-proxy.ts`; sandbox: `packages/@n8n/expression-runtime` (a V8 isolate via isolated-vm). [Expression engine](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/expression-engine): the isolated `vm` engine became the default only in 2.35; the editor still uses the non-isolated `legacy` engine by default; limits are 5 s and 128 MiB per evaluation. The editor highlights the expression and shows its result on the current data.
 
-**Зачем.** Гибкое сопоставление полей без кода; предпросмотр результата прямо в поле.
+**Why.** Flexible field mapping without code; a result preview right in the field.
 
-**Применимость: высокая** (идея и UX), **не нужна** (JavaScript как язык).
+**Applicability: high** (the idea and UX), **not needed** (JavaScript as the language).
 
-**Как реализовать.**
-- **Подстановки** — оставить свой шаблонный язык `${path|$fallback|default}`; расширить: путь с индексами и экранированием (`${labels["app.kubernetes.io/name"]}`), фильтры-функции (`|lower`, `|trim`, `|default:…`, `|date:"RFC3339"`), ссылка на выход именованного узла `${node.<id>.field}` только для предшествующих узлов. Разбор при компиляции, исполнение — без аллокаций по возможности.
-- **Условия и вычисления** — CEL (`cel-go`): типизированный, без побочных эффектов, не Тьюринг-полный, с оценкой стоимости и лимитом (`cel.CostLimit`), компилируется один раз. Свои функции: время (`now()`, `parse_time`, `duration`), строки (regex с ограничением), CIDR, хеш. Даты — стандартные `timestamp`/`duration` CEL вместо Luxon.
-- Единое окружение переменных: `event` (текущая запись), `request` (заголовки/параметры webhook), `connector`, `vars` (несекретные константы, см. 4.19). **Секреты в выражениях недоступны** — только в полях, явно помеченных как секретные (так же поступает n8n с внешними секретами).
-- React: редактор выражений на CodeMirror 6 с автодополнением путей из текущего образца данных и предпросмотром результата; вычисление предпросмотра — **на сервере** тем же движком (нет расхождения браузер/сервер, нет исполнения недоверенного кода в браузере).
+**How to implement.**
+- **Substitutions**: keep our own template language `${path|$fallback|default}`; extend it with paths with indexes and escaping (`${labels["app.kubernetes.io/name"]}`), filter functions (`|lower`, `|trim`, `|default:…`, `|date:"RFC3339"`), and a reference to a named node's output `${node.<id>.field}`, for preceding nodes only. Parsing at compile time, execution without allocations where possible.
+- **Conditions and computations**: CEL (`cel-go`): typed, side-effect free, not Turing-complete, with cost estimation and a limit (`cel.CostLimit`), compiled once. Our own functions: time (`now()`, `parse_time`, `duration`), strings (regex with limits), CIDR, hashing. Dates use the standard CEL `timestamp`/`duration` instead of Luxon.
+- A single variable environment: `event` (the current record), `request` (webhook headers/parameters), `connector`, `vars` (non-secret constants, see 4.19). **Secrets are not available in expressions**, only in fields explicitly marked as secret (n8n does the same with external secrets).
+- React: an expression editor on CodeMirror 6 with path autocompletion from the current data sample and a result preview; the preview is evaluated **on the server** with the same engine (no browser/server discrepancy, no untrusted code running in the browser).
 
-### 4.7. Code node (JavaScript / Python) и песочница
+### 4.7. Code node (JavaScript / Python) and sandbox
 
-**В n8n.** [Code](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code): JavaScript или Python, режимы «один раз для всех items» и «для каждого item». Исполняется через [task runners](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners) (`packages/@n8n/task-runner`, `packages/@n8n/task-runner-python`): брокер в n8n, исполнители подключаются по WebSocket. Документация прямо предупреждает: без внешнего режима «любой, кто может редактировать workflow, потенциально может прочитать БД, ключ шифрования, секреты и переменные окружения»; внутренний режим объявлен устаревшим к 3.0. [Усиление](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/harden-task-runners): отдельный контейнер, distroless, пользователь nobody, read-only ФС, AppArmor-запрет чтения `/proc/*/environ`.
+**In n8n.** [Code](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code): JavaScript or Python, in "once for all items" and "for each item" modes. It is executed via [task runners](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners) (`packages/@n8n/task-runner`, `packages/@n8n/task-runner-python`): a broker in n8n, with executors connecting over WebSocket. The documentation warns explicitly that without external mode "anyone who can edit a workflow can potentially read the database, the encryption key, secrets and environment variables"; internal mode is deprecated as of 3.0. [Hardening](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/harden-task-runners): a separate container, distroless, the nobody user, a read-only filesystem, an AppArmor rule forbidding reads of `/proc/*/environ`.
 
-**Зачем.** «Аварийный выход», когда стандартных узлов не хватает: разбор экзотического формата, сложная логика.
+**Why.** An "escape hatch" when the standard nodes are not enough: parsing an exotic format, complex logic.
 
-**Применимость: низкая для конвейера, средняя в перспективе.** Код в горячем пути — риск по задержке и безопасности (у Umbrella доступ к CMDB и токенам каналов оповещения). Большинство случаев закрывают CEL и табличные узлы.
+**Applicability: low for the pipeline, medium in the longer term.** Code on the hot path is a latency and security risk (Umbrella has access to the CMDB and to notification channel tokens). Most cases are covered by CEL and table nodes.
 
-**Как реализовать (этап 6, по запросу).**
-- Язык — **Starlark** (`go.starlark.net`): Python-подобный, детерминированный, без доступа к ФС/сети/времени, если их не дать; лимит шагов (`thread.SetMaxExecutionSteps`) и отмена по контексту. Альтернатива для JS-синтаксиса — QuickJS, собранный в WASM, под `wazero` с лимитом памяти и прерыванием; `goja` в том же процессе не изолирует память — только в отдельном процессе.
-- Исполнение в **отдельном процессе-исполнителе** (sidecar) с минимальными правами, без секретов и без сетевого доступа; обмен батчами по gRPC/Unix-socket; таймаут на батч; при превышении — запись в ошибки разбора, не падение коннектора.
-- Право «писать код» — отдельная роль (scope `connector:code`), изменения аудируются.
+**How to implement (stage 6, on request).**
+- Language: **Starlark** (`go.starlark.net`): Python-like, deterministic, with no access to the filesystem/network/time unless granted; a step limit (`thread.SetMaxExecutionSteps`) and cancellation via context. An alternative for JS syntax is QuickJS compiled to WASM, running under `wazero` with a memory limit and interruption; `goja` in the same process does not isolate memory, so only in a separate process.
+- Execution in a **separate executor process** (sidecar) with minimal privileges, no secrets and no network access; batches are exchanged over gRPC/Unix socket; a timeout per batch; when exceeded, a record goes to parse errors and the connector does not crash.
+- The right to write code is a separate role (scope `connector:code`); changes are audited.
 
-### 4.8. Ветвления и управление потоком
+### 4.8. Branching and flow control
 
-**В n8n.** [IF](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if) и [Switch](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch) ([Split with conditionals](https://docs.n8n.io/build/flow-logic/split-with-conditionals)), [Filter](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter), [Merge](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge) (добавление, объединение по ключу, по позиции, SQL-подобный режим), [Loop Over Items / Split in Batches](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches), [Wait](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait) (пауза, ожидание webhook — запуск выгружается в БД и потом возобновляется), [Remove Duplicates](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.removeduplicates) (в пределах входа или против истории прошлых запусков: «значение новое», «больше прежнего», «дата позже»). [Порядок исполнения](https://docs.n8n.io/build/flow-logic/understand-execution-order) веток в v1 зависит от **положения ветки на холсте** (сверху вниз, слева направо).
+**In n8n.** [IF](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if) and [Switch](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch) ([Split with conditionals](https://docs.n8n.io/build/flow-logic/split-with-conditionals)), [Filter](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter), [Merge](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge) (append, combine by key, by position, an SQL-like mode), [Loop Over Items / Split in Batches](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches), [Wait](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait) (pause, waiting for a webhook: the execution is offloaded to the database and resumed later), [Remove Duplicates](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.removeduplicates) (within the input or against the history of previous executions: "value is new", "greater than previous", "date is later"). The [execution order](https://docs.n8n.io/build/flow-logic/understand-execution-order) of branches in v1 depends on **the branch's position on the canvas** (top to bottom, left to right).
 
-**Зачем.** Разные типы алертов одного источника обрабатываются по-разному; отбрасывание шума; объединение данных.
+**Why.** Different alert types from one source are handled differently; noise is dropped; data is combined.
 
-**Применимость.**
+**Applicability.**
 
-| Узел n8n | Применимость | Аналог в Umbrella |
+| n8n node | Applicability | Umbrella equivalent |
 | --- | --- | --- |
-| IF / Switch | Высокая | `route.switch`: список правил CEL → именованные выходы + «иначе» |
-| Filter | Высокая | `filter`: CEL-условие, отброшенное считается в отдельном счётчике «отфильтровано» (видно, что шум режется, а не теряется) |
-| Remove Duplicates (в пределах входа) | Средняя | Опция `parse.json`/`map.event`; глобальная дедупликация — в ядре (ниже) |
-| Remove Duplicates (против истории) | Высокая как идея | Не узел, а **встроенная идемпотентность**: ключ `(source, external_id, status, fingerprint)` с уникальным индексом и окном |
-| Merge | Низкая | Вместо объединения потоков — узел-поиск `enrich.lookup` (CMDB, справочник) |
-| Loop / Split in Batches | Не нужна | Конвейер и так пакетный |
-| Wait | Не нужна в конвейере | Для эскалаций — встроенная машина состояний оповещений, не пользовательский узел |
+| IF / Switch | High | `route.switch`: a list of CEL rules → named outputs + "otherwise" |
+| Filter | High | `filter`: a CEL condition; dropped records are counted in a separate "filtered" counter (so it is visible that noise is being cut, not lost) |
+| Remove Duplicates (within the input) | Medium | An option of `parse.json`/`map.event`; global deduplication lives in the core (below) |
+| Remove Duplicates (against history) | High as an idea | Not a node but **built-in idempotency**: a key `(source, external_id, status, fingerprint)` with a unique index and a window |
+| Merge | Low | Instead of merging streams, a lookup node `enrich.lookup` (CMDB, reference data) |
+| Loop / Split in Batches | Not needed | The pipeline is already batch-based |
+| Wait | Not needed in the pipeline | For escalations, the built-in notification state machine, not a user node |
 
-**Как реализовать.** Ветвление компилируется в маршрутизацию записей по выходам; несколько веток могут завершаться в разных `out.event` (например, разные правила привязки к КЕ). Порядок исполнения — **топологический по графу**, детерминированный и не зависящий от координат узлов.
+**How to implement.** Branching compiles into routing records to outputs; several branches can end in different `out.event` nodes (for example, different CI binding rules). Execution order is **topological over the graph**, deterministic and independent of node coordinates.
 
-### 4.9. Обработка ошибок
+### 4.9. Error handling
 
-**В n8n.** ([Handle errors gracefully](https://docs.n8n.io/build/flow-logic/handle-errors-gracefully)) На уровне узла: **Retry On Fail** (число попыток, пауза), **On Error**: остановить workflow / продолжить / продолжить через отдельный «ошибочный» выход. Узел [Stop And Error](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.stopanderror) для явной ошибки. На уровне workflow — **error workflow**: отдельный сценарий с Error Trigger, получающий идентификатор запуска, ошибку, последний узел, ссылку на запуск. Таймаут workflow в настройках.
+**In n8n.** ([Handle errors gracefully](https://docs.n8n.io/build/flow-logic/handle-errors-gracefully)) At node level: **Retry On Fail** (number of attempts, pause), **On Error**: stop the workflow / continue / continue via a separate "error" output. The [Stop And Error](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.stopanderror) node raises an explicit error. At workflow level, an **error workflow**: a separate workflow with an Error Trigger that receives the execution ID, the error, the last node and a link to the execution. A workflow timeout in the settings.
 
-**Зачем.** Сбой одного алерта не должен останавливать поток; об ошибках коннектора должны узнавать.
+**Why.** A failure on one alert must not stop the stream; people need to find out about connector errors.
 
-**Применимость: высокая.**
+**Applicability: high.**
 
-**Как реализовать.**
-- **Политика ошибок узла** (параметр каждого узла): `fail_record` (запись уходит в ошибки разбора, остальные идут дальше — по умолчанию для конвейера), `skip` (отбросить и посчитать), `route_error` (на отдельный выход узла, например в упрощённое сопоставление «сырой алерт»). Остановку всего пакета из-за одной записи не делать.
-- **Повторы** — только для узлов с внешними вызовами (опрос, обогащение по HTTP): число попыток, экспоненциальная пауза с jitter, разделение ошибок на повторяемые (5xx, таймаут, 429) и нет (4xx, ошибка разбора). Предохранитель (circuit breaker) на внешнюю систему.
-- **Ошибки разбора / DLQ**: таблица `ingest_failures` (коннектор, версия, узел, ошибка, ссылка на сырое тело, время, число повторов) с кнопкой «Обработать повторно» на текущей опубликованной версии (см. 4.10).
-- **Вместо error workflow — встроенный самоконтроль (meta-monitoring)**: превышение порога ошибок, отсутствие событий дольше ожидаемого («тишина» источника), постоянные сбои опроса порождают **внутреннее событие Umbrella** с КЕ «коннектор X», которое проходит обычный путь «инцидент → оповещение дежурных». Пользователю не нужно вручную собирать сценарий обработки ошибок, и мониторинг мониторинга работает из коробки.
-- Таймауты: на узел и на пакет; превышение — ошибка записи/пакета, не зависание воркера.
+**How to implement.**
+- **Node error policy** (a parameter of every node): `fail_record` (the record goes to parse errors and the rest go on; the default for the pipeline), `skip` (drop and count), `route_error` (to a separate node output, for example into a simplified "raw alert" mapping). Do not stop the whole batch because of one record.
+- **Retries**: only for nodes with external calls (polling, HTTP enrichment): number of attempts, exponential pause with jitter, errors split into retryable (5xx, timeout, 429) and non-retryable (4xx, parse error). A circuit breaker per external system.
+- **Parse errors / DLQ**: an `ingest_failures` table (connector, version, node, error, reference to the raw body, time, retry count) with a "Reprocess" button that uses the current published version (see 4.10).
+- **Instead of an error workflow, built-in meta-monitoring**: an exceeded error threshold, no events for longer than expected (source "silence"), or persistent polling failures produce an **internal Umbrella event** with the CI "connector X", which goes the usual path "incident → on-call notification". The user does not have to build an error-handling workflow by hand, and monitoring of the monitoring works out of the box.
+- Timeouts: per node and per batch; exceeding one is a record/batch error, not a hung worker.
 
-### 4.10. Учётные данные (credentials) и секреты
+### 4.10. Credentials and secrets
 
-**В n8n.** Типы credentials декларативно описывают поля и способ аутентификации запросов ([Credentials files](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/credentials-files)); OAuth1/OAuth2 с обновлением токенов; значения шифруются ключом экземпляра (`N8N_ENCRYPTION_KEY`, `packages/core/src/encryption`), с недавних пор — двухуровневая схема с [ротацией ключа данных](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/rotate-encryption-keys). [Совместное использование](https://docs.n8n.io/administer/manage-credentials/share-credentials-securely): credential можно использовать в workflow, не видя значения. [Внешние хранилища секретов](https://docs.n8n.io/administer/manage-credentials/use-external-secret-stores) (в т. ч. Vault) — только Enterprise, ссылка `{{ $secrets.<vault>.<key> }}`, работают только в полях credentials, только строковые значения; хранилище может быть глобальным или закреплённым за проектом. [Credential overwrites](https://docs.n8n.io/administer/manage-credentials/credential-overwrites) — администратор задаёт client secret глобально.
+**In n8n.** Credential types declaratively describe their fields and how requests are authenticated ([Credentials files](https://docs.n8n.io/connect/create-nodes/build-your-node/reference/credentials-files)); OAuth1/OAuth2 with token refresh; values are encrypted with the instance key (`N8N_ENCRYPTION_KEY`, `packages/core/src/encryption`), and recently with a two-level scheme with [data key rotation](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/rotate-encryption-keys). [Sharing](https://docs.n8n.io/administer/manage-credentials/share-credentials-securely): a credential can be used in a workflow without seeing its value. [External secret stores](https://docs.n8n.io/administer/manage-credentials/use-external-secret-stores) (including Vault) are Enterprise only, referenced as `{{ $secrets.<vault>.<key> }}`, work only in credential fields and only with string values; a store can be global or bound to a project. [Credential overwrites](https://docs.n8n.io/administer/manage-credentials/credential-overwrites): an administrator sets a client secret globally.
 
-**Зачем.** Подключиться к источнику, не раскрывая пароль/токен коллегам и не храня его в конфигурации.
+**Why.** To connect to a source without revealing the password/token to colleagues and without storing it in the configuration.
 
-**Применимость: высокая.** Базовая модель у нас уже правильная.
+**Applicability: high.** Our basic model is already right.
 
-**Как реализовать.**
-- Единственное хранилище — OpenBao (KV v2). Конфигурация коннектора содержит только ссылки `openbao://<mount>/<path>#<key>`; Umbrella аутентифицируется в OpenBao своим методом (AppRole / Kubernetes auth) с политикой, ограниченной своим префиксом.
-- **Типы учётных данных** как отдельная сущность с JSON Schema: `basic`, `bearer`, `header`, `hmac_secret`, `oauth2_client_credentials`, `mtls` (сертификат + ключ), `api_key_query`. Узел объявляет, какие типы принимает. Запись секрета — через API Umbrella (**только запись**, чтение значения из UI невозможно, отображается маска и версия KV).
-- OAuth2: client credentials в первую очередь (машинные источники); access token кешируется в памяти до истечения; refresh token (если нужен) — в OpenBao.
-- Ротация: версионирование KV; коннектор получает новое значение без перепубликации (кеш с TTL, инвалидация по версии).
-- Разделение прав: `credential:use` (выбрать в узле) отдельно от `credential:manage` (создать/заменить).
-- В выражениях секреты недоступны; в трассировках и ошибках значения маскируются (см. 4.11 — редактирование данных).
-- Экспорт коннектора никогда не содержит секретов — только «заполнитель» с типом (см. 4.16).
+**How to implement.**
+- The only store is OpenBao (KV v2). The connector configuration contains only `openbao://<mount>/<path>#<key>` references; Umbrella authenticates to OpenBao with its own method (AppRole / Kubernetes auth) under a policy limited to its own prefix.
+- **Credential types** as a separate entity with a JSON Schema: `basic`, `bearer`, `header`, `hmac_secret`, `oauth2_client_credentials`, `mtls` (certificate + key), `api_key_query`. A node declares which types it accepts. Secrets are written through the Umbrella API (**write-only**: the value cannot be read from the UI; a mask and the KV version are shown).
+- OAuth2: client credentials first (machine sources); the access token is cached in memory until it expires; the refresh token (if needed) lives in OpenBao.
+- Rotation: KV versioning; the connector picks up the new value without republishing (a cache with TTL, invalidated by version).
+- Separation of rights: `credential:use` (select in a node) is separate from `credential:manage` (create/replace).
+- Secrets are not available in expressions; values are masked in traces and errors (see 4.11, data redaction).
+- A connector export never contains secrets, only a typed placeholder (see 4.16).
 
-### 4.11. История выполнений (executions)
+### 4.11. Execution history (executions)
 
-**В n8n.** ([Understand executions](https://docs.n8n.io/build/understand-workflows/understand-executions)) Список запусков по workflow и общий, фильтры по статусу, данные каждого узла (вход/выход), повтор неуспешного запуска с исходным или текущим workflow, [копирование данных запуска в редактор](https://docs.n8n.io/build/understand-workflows/understand-executions/debug-executions) для отладки, [пользовательские метаданные запуска](https://docs.n8n.io/build/understand-workflows/understand-executions/customize-executions-data) для поиска. Настройки сохранения per-workflow: успешные / ошибочные / ручные / прогресс по узлам. [Очистка](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data): по возрасту (336 ч) и количеству (10 000), мягкое удаление с буфером, аннотированные запуски не удаляются (`packages/cli/src/services/pruning`). [Скрытие данных запусков](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/redact-execution-data) (Enterprise): метаданные видны, полезная нагрузка — нет. [Ограничение параллелизма](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/control-concurrency) с FIFO-очередью.
+**In n8n.** ([Understand executions](https://docs.n8n.io/build/understand-workflows/understand-executions)) A list of executions per workflow and overall, filters by status, each node's data (input/output), retrying a failed execution with the original or the current workflow, [copying execution data into the editor](https://docs.n8n.io/build/understand-workflows/understand-executions/debug-executions) for debugging, [custom execution metadata](https://docs.n8n.io/build/understand-workflows/understand-executions/customize-executions-data) for search. Per-workflow saving settings: successful / failed / manual / per-node progress. [Pruning](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data): by age (336 h) and count (10,000), soft deletion with a buffer, annotated executions are not deleted (`packages/cli/src/services/pruning`). [Redacting execution data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/redact-execution-data) (Enterprise): metadata is visible, the payload is not. [Concurrency control](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/control-concurrency) with a FIFO queue.
 
-**Зачем.** Ответ на вопрос «почему этот алерт не стал инцидентом / стал не таким».
+**Why.** To answer the question "why did this alert not become an incident / become the wrong one".
 
-**Применимость: высокая** (идея), с другой моделью хранения.
+**Applicability: high** (the idea), with a different storage model.
 
-**Как реализовать.**
-- Не сохранять каждый «запуск». Вместо этого:
-  - **Сырые входящие запросы** — таблица `ingest_requests` (тело до лимита, заголовки без секретов, коннектор, версия, время, статус обработки), секционирование по дням, удаление секций по сроку хранения (дни, настраивается). Это и аудит приёма, и источник для повторной обработки.
-  - **Трассировки** — для каждого коннектора: все запросы с ошибками; выборка успешных (например, 1 из N или последние K); по требованию — «записывать всё следующие 10 минут» при отладке. Трасса = вход/выход каждого узла для конкретного запроса. Хранить в `jsonb` с лимитом размера, с TTL.
-  - **Счётчики** — агрегаты в минутных бакетах (`connector_stats`: принято, отфильтровано, ошибок, событий создано, p50/p95 задержки) + метрики Prometheus.
-- **Связь событие → запрос**: в нормализованном событии хранить `ingest_request_id` и `lineage` — из карточки инцидента можно открыть исходный запрос и трассу.
-- **Повторная обработка**: выбрать запросы (по фильтру или из DLQ) → обработать текущей опубликованной версией; идемпотентность (4.20) не даст задвоить события.
-- **Маскирование**: поля, помеченные в схеме как секретные, и заголовки авторизации не попадают в трассы; дополнительно — правило маскирования путей на уровне коннектора; право `trace:read_payload` отдельно от `connector:read` (аналог redaction в n8n).
+**How to implement.**
+- Do not save every "execution". Instead:
+  - **Raw incoming requests**: an `ingest_requests` table (body up to a limit, headers without secrets, connector, version, time, processing status), partitioned by day, with partitions dropped after the retention period (days, configurable). This is both an intake audit and the source for reprocessing.
+  - **Traces**, per connector: all requests with errors; a sample of successful ones (for example 1 in N, or the last K); on demand, "record everything for the next 10 minutes" while debugging. A trace = the input/output of every node for a specific request. Stored in `jsonb` with a size limit and a TTL.
+  - **Counters**: aggregates in one-minute buckets (`connector_stats`: accepted, filtered, errors, events created, p50/p95 latency) + Prometheus metrics.
+- **Event → request link**: the normalised event stores `ingest_request_id` and `lineage`, so the source request and trace can be opened from the incident card.
+- **Reprocessing**: select requests (by filter or from the DLQ) → process them with the current published version; idempotency (4.20) prevents duplicate events.
+- **Masking**: fields marked as secret in the schema and authorization headers do not get into traces; in addition, a path-masking rule at connector level; the `trace:read_payload` right is separate from `connector:read` (the equivalent of redaction in n8n).
 
-### 4.12. Pinned data, частичный запуск, отладка в редакторе
+### 4.12. Pinned data, partial execution, in-editor debugging
 
-**В n8n.** [Pin and mock data](https://docs.n8n.io/build/work-with-data/pin-and-mock-data): выход узла можно «закрепить» (и отредактировать) — при ручных запусках узел не исполняется, используются закреплённые данные; рабочие запуски закрепления игнорируют. [Частичный запуск](https://docs.n8n.io/build/understand-workflows/understand-executions/types-of-executions) «Execute step» исполняет выбранный узел и необходимых предшественников (`packages/core/src/execution-engine/partial-execution-utils`). [Dirty nodes](https://docs.n8n.io/build/understand-workflows/understand-executions/understand-dirty-nodes): при изменении параметров, связей, закреплений узел и последующие помечаются как устаревшие. Отключение узла. Панели входа/выхода с представлениями таблица / JSON / схема, перетаскивание поля из входа в параметр создаёт выражение.
+**In n8n.** [Pin and mock data](https://docs.n8n.io/build/work-with-data/pin-and-mock-data): a node's output can be "pinned" (and edited); in manual executions the node is not run and the pinned data is used instead; production executions ignore pins. [Partial execution](https://docs.n8n.io/build/understand-workflows/understand-executions/types-of-executions) "Execute step" runs the selected node and its required predecessors (`packages/core/src/execution-engine/partial-execution-utils`). [Dirty nodes](https://docs.n8n.io/build/understand-workflows/understand-executions/understand-dirty-nodes): when parameters, connections or pins change, the node and those after it are marked as stale. Disabling a node. Input/output panels with table / JSON / schema views; dragging a field from the input into a parameter creates an expression.
 
-**Зачем.** Строить сопоставление на реальном алерте, не дожидаясь, пока источник что-то пришлёт, и видеть результат каждого шага.
+**Why.** To build the mapping on a real alert without waiting for the source to send something, and to see the result of every step.
 
-**Применимость: высокая — главный приоритет для конструктора.**
+**Applicability: high. The top priority for the builder.**
 
-**Как реализовать.**
-- **Образцы** (samples): привязаны к коннектору, источники — захват с webhook (4.3), ручная вставка JSON, импорт из `ingest_requests`/DLQ, встроенные образцы пресетов (Alertmanager, Grafana и т. д.). Хранятся вместе с черновиком; в экспорт — опционально.
-- **Тестовый прогон** — API `POST /connectors/{id}/draft/test-run` с образцом и, опционально, целевым узлом: сервер компилирует черновик и исполняет до узла в **режиме без побочных эффектов**: `out.event` не пишет в конвейер, а возвращает итоговое нормализованное событие и результат привязки к КЕ (dry-run в CMDB — какой КЕ был бы найден), внешние HTTP-узлы выполняются только по явной кнопке.
-- **Закрепление выхода узла**: результат узла сохраняется в черновике; последующие прогоны начинаются с него. Полезно для опроса (не дёргать внешний API на каждой правке).
-- **Устаревшие результаты**: фронтенд хранит хеш параметров узла и входов; при изменении — пометка узла и всех потомков; повторный прогон снимает пометку. Чистая логика на клиенте, без сервера.
-- Панели входа/выхода: таблица, JSON, «схема» (дерево полей с типами); перетаскивание поля в параметр вставляет `${path}`. Подсветка полей `map.event`, не заполненных для данного образца.
-- **Проверка на наборе образцов**: «прогнать все образцы» и показать таблицу результатов (severity, КЕ, status) — регрессионная проверка перед публикацией. Это развитие идеи n8n Evaluations для детерминированного конвейера.
+**How to implement.**
+- **Samples**: bound to the connector; sources are webhook capture (4.3), pasting JSON by hand, import from `ingest_requests`/DLQ, the built-in preset samples (Alertmanager, Grafana, etc.). Stored together with the draft; optionally included in the export.
+- **Test run**: the `POST /connectors/{id}/draft/test-run` API with a sample and, optionally, a target node: the server compiles the draft and executes up to the node in **side-effect-free mode**: `out.event` does not write to the pipeline but returns the final normalised event and the CI binding result (a dry run against the CMDB: which CI would be found); external HTTP nodes run only on an explicit button press.
+- **Pinning a node's output**: the node's result is saved in the draft; later runs start from it. Useful for polling (no need to hit the external API on every edit).
+- **Stale results**: the frontend keeps a hash of the node's parameters and inputs; when it changes, the node and all its descendants are marked; a re-run clears the mark. Pure client-side logic, no server involved.
+- Input/output panels: table, JSON, "schema" (a tree of fields with types); dragging a field into a parameter inserts `${path}`. Highlighting of `map.event` fields that are not filled for the given sample.
+- **Checking against the sample set**: "Run all samples" and show a table of results (severity, CI, status), a regression check before publishing. This develops the idea of n8n Evaluations for a deterministic pipeline.
 
 ### 4.13. Sub-workflows
 
-**В n8n.** [Execute Sub-workflow](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflow) + [Execute Sub-workflow Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflowtrigger) со схемой входных полей; ожидание результата или запуск «в фоне»; настройка «кто может вызывать этот workflow»; [преобразование выделенных узлов в sub-workflow](https://docs.n8n.io/build/flow-logic/convert-to-sub-workflows).
+**In n8n.** [Execute Sub-workflow](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflow) + [Execute Sub-workflow Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflowtrigger) with a schema of input fields; waiting for the result or running "in the background"; a "who can call this workflow" setting; [converting selected nodes into a sub-workflow](https://docs.n8n.io/build/flow-logic/convert-to-sub-workflows).
 
-**Зачем.** Переиспользование общей логики (одна таблица severity для всех Zabbix, общие правила привязки к КЕ).
+**Why.** Reusing shared logic (one severity table for every Zabbix, shared CI binding rules).
 
-**Применимость: средняя.**
+**Applicability: medium.**
 
-**Как реализовать.** «Фрагменты» (shared fragments): именованный подграф с объявленным входом/выходом и собственной версией. Коннектор ссылается на фрагмент **с конкретной версией** (или «последняя опубликованная» — осознанный выбор). При компиляции фрагмент встраивается (inline) — без накладных расходов вызова. Отдельно — «справочники» (таблицы соответствий как данные, не как граф): `map.severity` ссылается на справочник, который можно редактировать без перепубликации коннекторов (с аудитом). Справочники закрывают большую часть потребности в переиспользовании проще, чем фрагменты.
+**How to implement.** "Fragments" (shared fragments): a named subgraph with a declared input/output and its own version. A connector references a fragment **at a specific version** (or "latest published", as a deliberate choice). At compile time the fragment is inlined, with no call overhead. Separately, "lookup tables" (mapping tables as data, not as a graph): `map.severity` references a lookup table that can be edited without republishing connectors (with auditing). Lookup tables cover most of the need for reuse more simply than fragments.
 
-### 4.14. Версии и история workflow
+### 4.14. Workflow versions and history
 
-**В n8n.** ([Save and publish](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows), [View change history](https://docs.n8n.io/build/manage-workflows/view-change-history), `packages/cli/src/workflows/workflow-history`) Автосохранение каждые 1–5 с создаёт версии; рабочие запуски используют только опубликованную версию; публикация асинхронна и **применяет только изменившиеся триггеры** — неизменные продолжают работать без перерыва; статусы «опубликован, есть изменения», «опубликован частично» (часть триггеров не активировалась), «публикация не удалась». Восстановление, клонирование, скачивание версии, именованные версии (не удаляются при очистке). Блокировка редактирования: один редактор, остальные — только чтение. [Workflow reviews](https://docs.n8n.io/build/manage-workflows/workflow-reviews) (preview, Enterprise): отправка версии на согласование, визуальный дифф, комментарии; при одобрении версия публикуется от имени автора. Важное ограничение n8n: согласование не покрывает credentials, переменные и настройки — они меняются сразу.
+**In n8n.** ([Save and publish](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows), [View change history](https://docs.n8n.io/build/manage-workflows/view-change-history), `packages/cli/src/workflows/workflow-history`) Autosave every 1–5 s creates versions; production executions use only the published version; publishing is asynchronous and **applies only the triggers that changed**, while unchanged ones keep running without interruption; statuses "published, has changes", "partially published" (some triggers failed to activate), "publishing failed". Restoring, cloning, downloading a version, named versions (not deleted by pruning). Edit locking: one editor, everyone else is read-only. [Workflow reviews](https://docs.n8n.io/build/manage-workflows/workflow-reviews) (preview, Enterprise): submitting a version for approval, a visual diff, comments; on approval the version is published on the author's behalf. An important n8n limitation: approval does not cover credentials, variables and settings; those change immediately.
 
-**Зачем.** Безопасно править рабочий коннектор; быстро откатиться; понимать, кто и что поменял.
+**Why.** To edit a live connector safely, roll back quickly, and understand who changed what.
 
-**Применимость: высокая.**
+**Applicability: high.**
 
-**Как реализовать.**
-- Черновик — одна изменяемая строка на коннектор (`connector_drafts`) с автосохранением (debounce 1–2 с) и оптимистической блокировкой (`revision`); **блокировка редактирования** с арендой и индикатором «редактирует N».
-- Публикация — создаёт неизменяемую строку `connector_versions`, компилирует её; при ошибке компиляции публикация отклоняется с указанием узла. Переключение рабочей версии — атомарно в транзакции; движок получает уведомление (`LISTEN/NOTIFY`) и подменяет скомпилированный конвейер без остановки приёма (запросы в обработке доигрываются на старой версии). Расписание опроса пересоздаётся только при его изменении.
-- Статусы публикации: `published`, `published_with_changes`, `publish_failed` (с причиной).
-- История: список версий, дифф двух версий (узлы добавлены/удалены/изменены, параметры — построчно; визуально на холсте — подсветка), откат = публикация старой версии как новой.
-- Именованные версии и комментарий к публикации; удалять старые неименованные версии по сроку.
-- Согласование (4 глаза) — этап 5; в отличие от n8n, в согласуемый снимок включать ссылки на учётные данные и версии фрагментов/справочников.
+**How to implement.**
+- The draft is one mutable row per connector (`connector_drafts`) with autosave (debounce 1–2 s) and optimistic locking (`revision`); **edit locking** with a lease and an "N is editing" indicator.
+- Publishing creates an immutable `connector_versions` row and compiles it; if compilation fails, publishing is rejected with the offending node identified. Switching the live version is atomic within a transaction; the engine is notified (`LISTEN/NOTIFY`) and swaps the compiled pipeline without stopping intake (requests in flight finish on the old version). The polling schedule is recreated only when it changes.
+- Publication statuses: `published`, `published_with_changes`, `publish_failed` (with a reason).
+- History: a list of versions, a diff of two versions (nodes added/removed/changed, parameters line by line; visually on the canvas, with highlighting), rollback = publishing an old version as a new one.
+- Named versions and a publish comment; delete old unnamed versions after a retention period.
+- Approval (four eyes) is stage 5; unlike n8n, the snapshot under approval includes credential references and fragment/lookup table versions.
 
-### 4.15. Теги, папки, избранное
+### 4.15. Tags, folders, favourites
 
-**В n8n.** [Теги](https://docs.n8n.io/build/manage-workflows/tag-workflows), папки, [избранное](https://docs.n8n.io/build/manage-workflows/favorite-items).
+**In n8n.** [Tags](https://docs.n8n.io/build/manage-workflows/tag-workflows), folders, [favourites](https://docs.n8n.io/build/manage-workflows/favorite-items).
 
-**Применимость: средняя / низкая.** При десятках коннекторов достаточно фильтров по типу источника, статусу, команде-владельцу и тегам.
+**Applicability: medium / low.** With dozens of connectors, filters by source type, status, owning team and tags are enough.
 
-**Как реализовать.** Таблица `tags` + связь многие-ко-многим; фильтр в списке коннекторов. Папки — не делать, их роль выполняют проекты/команды (4.17).
+**How to implement.** A `tags` table + a many-to-many link; a filter in the connector list. Do not add folders; projects/teams play their role (4.17).
 
-### 4.16. Шаблоны, импорт и экспорт
+### 4.16. Templates, import and export
 
-**В n8n.** [Шаблоны](https://docs.n8n.io/build/ways-of-building-workflows/use-templates) из публичной библиотеки или [собственной](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/configure-a-custom-workflow-templates-library); [экспорт/импорт JSON](https://docs.n8n.io/build/manage-workflows/export-and-import) (копирование узлов через буфер обмена), CLI; новые [пакеты `.n8np`](https://docs.n8n.io/build/manage-workflows/n8n-packages/export-a-package) с зависимостями (sub-workflows, переменные, credentials без значений) и [проверкой перед импортом](https://docs.n8n.io/build/manage-workflows/n8n-packages/how-import-works) с сопоставлением credentials.
+**In n8n.** [Templates](https://docs.n8n.io/build/ways-of-building-workflows/use-templates) from the public library or [your own](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/configure-a-custom-workflow-templates-library); [JSON export/import](https://docs.n8n.io/build/manage-workflows/export-and-import) (copying nodes via the clipboard), a CLI; the new [`.n8np` packages](https://docs.n8n.io/build/manage-workflows/n8n-packages/export-a-package) with dependencies (sub-workflows, variables, credentials without values) and [pre-import checks](https://docs.n8n.io/build/manage-workflows/n8n-packages/how-import-works) with credential mapping.
 
-**Зачем.** Быстрый старт с типовым источником; перенос между стендами; обмен конфигурациями.
+**Why.** A quick start with a typical source; moving between environments; sharing configurations.
 
-**Применимость: высокая** (пресеты — часть мастера первичной настройки).
+**Applicability: high** (presets are part of the initial setup wizard).
 
-**Как реализовать.**
-- Формат экспорта: JSON с полем `format_version`, графом, образцами (опционально), ссылками на справочники/фрагменты, **заполнителями** для учётных данных (`{ "credential_slot": "zabbix_api", "type": "bearer" }`).
-- Импорт: проверка схемы и версий типов узлов → мастер сопоставления заполнителей с существующими учётными данными или создание новых (значение вводится и сразу пишется в OpenBao) → создание черновика (не публикация).
-- Пресеты = встроенные шаблоны в том же формате, поставляются с бинарником (`embed.FS`), версионируются вместе с Umbrella; у каждого — набор образцов для проверки (4.12).
-- Копирование/вставка узлов в редакторе через буфер обмена в том же формате.
+**How to implement.**
+- Export format: JSON with a `format_version` field, the graph, samples (optional), references to lookup tables/fragments, and **placeholders** for credentials (`{ "credential_slot": "zabbix_api", "type": "bearer" }`).
+- Import: check the schema and node type versions → a wizard that maps placeholders to existing credentials or creates new ones (the value is entered and written straight to OpenBao) → create a draft (not a publication).
+- Presets = built-in templates in the same format, shipped with the binary (`embed.FS`) and versioned together with Umbrella; each has a set of samples for checking (4.12).
+- Copying/pasting nodes in the editor via the clipboard in the same format.
 
-### 4.17. RBAC и проекты
+### 4.17. RBAC and projects
 
-**В n8n.** ([Set permissions and roles](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac)) Роли экземпляра (owner, admin, member) и роли проекта (admin, editor, viewer); [проекты](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects) объединяют workflow, credentials, исполнения; [пользовательские роли](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/create-custom-roles) из набора scopes вида `workflow:read`, `workflow:publish`, `credential:share` (`packages/@n8n/permissions`); [LDAP](https://docs.n8n.io/administer/manage-users-and-access/verify-user-identity/connect-ldap), SAML, OIDC, 2FA. Большая часть — в платных редакциях.
+**In n8n.** ([Set permissions and roles](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac)) Instance roles (owner, admin, member) and project roles (admin, editor, viewer); [projects](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects) group workflows, credentials and executions; [custom roles](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/create-custom-roles) built from a set of scopes such as `workflow:read`, `workflow:publish`, `credential:share` (`packages/@n8n/permissions`); [LDAP](https://docs.n8n.io/administer/manage-users-and-access/verify-user-identity/connect-ldap), SAML, OIDC, 2FA. Most of it is in the paid editions.
 
-**Зачем.** Команда Zabbix правит свои коннекторы и не видит секреты команды облака; дежурный только смотрит.
+**Why.** The Zabbix team edits its own connectors and cannot see the cloud team's secrets; the on-call engineer only views.
 
-**Применимость: высокая** (в части scopes и связи с группами LDAP/AD), **средняя** (проекты).
+**Applicability: high** (scopes and the link to LDAP/AD groups), **medium** (projects).
 
-**Как реализовать.**
-- Модель: **разрешения (scopes)** в коде (`connector:read`, `connector:edit`, `connector:publish`, `connector:code`, `credential:use`, `credential:manage`, `trace:read_payload`, `sample:manage` и т. д.) → **роли** как наборы разрешений (встроенные + настраиваемые) → **назначения** роли пользователю или группе LDAP/AD на область (весь экземпляр или команда).
-- «Команда» (аналог проекта) — владелец коннекторов, учётных данных, справочников; соответствует группе AD. Секреты команды — отдельный префикс в OpenBao и отдельная политика.
-- Проверка — в одном middleware Go на уровне API, фронтенд только скрывает недоступное (по списку разрешений текущего пользователя).
-- Все изменения конфигурации и публикации — в журнал аудита (он у нас уже есть).
+**How to implement.**
+- Model: **permissions (scopes)** in code (`connector:read`, `connector:edit`, `connector:publish`, `connector:code`, `credential:use`, `credential:manage`, `trace:read_payload`, `sample:manage`, etc.) → **roles** as sets of permissions (built-in + custom) → **assignments** of a role to a user or an LDAP/AD group over a scope (the whole instance or a team).
+- A "team" (the equivalent of a project) owns connectors, credentials and lookup tables; it corresponds to an AD group. A team's secrets get a separate prefix in OpenBao and a separate policy.
+- Checks are done in a single Go middleware at the API level; the frontend only hides what is unavailable (based on the current user's list of permissions).
+- All configuration changes and publications go to the audit log (we already have one).
 
-### 4.18. Переменные окружения (custom variables)
+### 4.18. Environment variables (custom variables)
 
-**В n8n.** [Custom variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables) `$vars.<name>` — несекретные строковые константы уровня экземпляра/проекта, разные на разных окружениях (платная функция). Отдельно — переменные окружения процесса для конфигурации самого n8n.
+**In n8n.** [Custom variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables) `$vars.<name>`: non-secret string constants at instance/project level, different in different environments (a paid feature). Separately, process environment variables configure n8n itself.
 
-**Зачем.** Один и тот же коннектор на тестовом и рабочем стендах с разными адресами.
+**Why.** The same connector on test and production environments with different addresses.
 
-**Применимость: средняя.**
+**Applicability: medium.**
 
-**Как реализовать.** Таблица `variables (scope, name, value)`; доступ в шаблонах и CEL как `vars.name`; изменение переменной не требует перепубликации, но фиксируется в аудите и показывается в списке зависимостей коннектора. Секреты — никогда не в переменных. Конфигурацию самой Umbrella — переменные окружения процесса и OpenBao, как сейчас.
+**How to implement.** A `variables (scope, name, value)` table; accessible in templates and CEL as `vars.name`; changing a variable does not require republishing, but it is recorded in the audit log and shown in the connector's list of dependencies. Secrets never go into variables. Umbrella's own configuration stays in process environment variables and OpenBao, as now.
 
-### 4.19. Queue mode, масштабирование и надёжность
+### 4.19. Queue mode, scaling and reliability
 
-**В n8n.** [Queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode) (`packages/cli/src/scaling`): main принимает триггеры и создаёт запуск, Redis (Bull) хранит очередь идентификаторов, worker'ы (по умолчанию 10 параллельных задач) берут запуск из БД, исполняют, пишут результат; отдельные процессы приёма webhook за балансировщиком; multi-main с лидером (Enterprise) — лидер выполняет «ровно-один-раз» задачи (таймеры, опросы, очистку). Ответ webhook из worker'а передаётся через Redis (лимит 64 МиБ). Graceful shutdown 30 с, `/healthz`, `/healthz/readiness`, `/metrics`, OpenTelemetry. [Ограничение параллелизма](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/control-concurrency) в обычном режиме, восстановление очереди после рестарта (`packages/cli/src/concurrency`). В репозитории идёт работа над новым движком исполнения (`packages/cli/src/modules/engine-v2` с разделением control plane / data plane) — публично не документирован, поэтому здесь не разбирается.
+**In n8n.** [Queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode) (`packages/cli/src/scaling`): main receives triggers and creates the execution, Redis (Bull) holds a queue of IDs, workers (10 parallel jobs by default) take the execution from the database, execute it and write the result; separate webhook intake processes behind a load balancer; multi-main with a leader (Enterprise), where the leader runs "exactly-once" tasks (timers, polling, pruning). A webhook response from a worker is passed via Redis (64 MiB limit). Graceful shutdown of 30 s, `/healthz`, `/healthz/readiness`, `/metrics`, OpenTelemetry. [Concurrency control](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/control-concurrency) in regular mode, queue recovery after a restart (`packages/cli/src/concurrency`). The repository has ongoing work on a new execution engine (`packages/cli/src/modules/engine-v2`, with a control plane / data plane split); it is not publicly documented, so it is not analysed here.
 
-**Зачем.** Пропускная способность, отказоустойчивость, отсутствие потерь при рестарте.
+**Why.** Throughput, fault tolerance, no losses on restart.
 
-**Применимость: высокая** (требования), **не нужна** (реализация на Redis/Bull).
+**Applicability: high** (the requirements), **not needed** (the Redis/Bull implementation).
 
-**Как реализовать.**
-- **Путь события**: HTTP-приём → проверка аутентификации/лимитов → запись в `ingest_requests` (одна вставка, batched-коммит каждые несколько мс для пиков) → 202. Отдельные горутины-обработчики забирают необработанные записи (`FOR UPDATE SKIP LOCKED`, пачками), прогоняют скомпилированный конвейер, в **той же транзакции** пишут нормализованные события и помечают запрос обработанным. Это at-least-once без внешнего брокера и с восстановлением после падения.
-- **Масштабирование**: несколько экземпляров Umbrella за балансировщиком, все равноправны; «единичные» задачи (очистка секций, материализация расписаний) — под `pg_try_advisory_lock` или через захват строк, без выделенного лидера.
-- **Брокер** (NATS JetStream или Kafka) — только если PostgreSQL станет узким местом по измерениям; интерфейс очереди в Go сделать абстрактным с первого дня.
-- **Противодавление**: лимит частоты и размер очереди на коннектор; при переполнении — 429/503 источнику (источники мониторинга обычно повторяют), а не рост памяти. Справедливость между коннекторами: «шумный» источник не должен задерживать остальные (раздельные очереди/квоты на обработчики).
-- **Таймауты и отмена**: `context.Context` на пакет и на узел; graceful shutdown: перестать принимать, доиграть захваченное, освободить аренды.
-- **Наблюдаемость**: `/healthz`, `/readyz`, Prometheus (по коннекторам: принято, обработано, отброшено, ошибки, задержка, длина очереди), OpenTelemetry-трассы с `ingest_request_id`.
-- Нагрузочный тест (k6 или Go-генератор) — критерий приёмки каждого этапа: целевая пропускная способность и p99 задержки от приёма до события.
+**How to implement.**
+- **Event path**: HTTP intake → authentication/limit checks → a write to `ingest_requests` (a single insert, with batched commits every few ms for peaks) → 202. Separate handler goroutines pick up unprocessed rows (`FOR UPDATE SKIP LOCKED`, in batches), run the compiled pipeline, and **in the same transaction** write the normalised events and mark the request as processed. This is at-least-once without an external broker, with recovery after a crash.
+- **Scaling**: several Umbrella instances behind a load balancer, all equal; singleton tasks (dropping partitions, materialising schedules) run under `pg_try_advisory_lock` or via row claiming, without a dedicated leader.
+- **Broker** (NATS JetStream or Kafka): only if measurements show PostgreSQL becoming the bottleneck; make the queue interface in Go abstract from day one.
+- **Backpressure**: a rate limit and queue size per connector; on overflow, 429/503 to the source (monitoring sources usually retry) rather than growing memory. Fairness between connectors: a "noisy" source must not delay the others (separate queues/quotas for handlers).
+- **Timeouts and cancellation**: `context.Context` per batch and per node; graceful shutdown: stop accepting, finish what has been claimed, release leases.
+- **Observability**: `/healthz`, `/readyz`, Prometheus (per connector: accepted, processed, dropped, errors, latency, queue length), OpenTelemetry traces with `ingest_request_id`.
+- A load test (k6 or a Go generator) is an acceptance criterion for every stage: target throughput and p99 latency from intake to event.
 
-### 4.20. Идемпотентность и дедупликация
+### 4.20. Idempotency and deduplication
 
-**В n8n.** Нет единого механизма: Remove Duplicates против истории запусков, курсоры опроса, ключ дедупликации для запусков по расписанию (`deduplicationKey`, комментарий в миграции упоминает будущие ключи идемпотентности webhook).
+**In n8n.** There is no single mechanism: Remove Duplicates against execution history, polling cursors, a deduplication key for scheduled executions (`deduplicationKey`; a comment in the migration mentions future webhook idempotency keys).
 
-**Применимость: высокая — это ядро Umbrella, а не узел.**
+**Applicability: high. This is Umbrella's core, not a node.**
 
-**Как реализовать.** Ключ идемпотентности события вычисляется в `map.event`: по умолчанию `(connector_id, external_id, status)` либо хеш выбранных полей (`fingerprint`). Уникальный индекс в таблице приёма с окном (секционирование по времени) — повторная доставка того же алерта не создаёт нового события, а обновляет «последний раз видели». Для webhook — опциональный заголовок `Idempotency-Key`. Схлопывание событий в инциденты — следующий уровень, отдельно от идемпотентности доставки.
+**How to implement.** An event's idempotency key is computed in `map.event`: by default `(connector_id, external_id, status)` or a hash of selected fields (`fingerprint`). A unique index in the intake table with a window (time-based partitioning): a repeated delivery of the same alert does not create a new event but updates "last seen". For webhooks, an optional `Idempotency-Key` header. Collapsing events into incidents is the next level, separate from delivery idempotency.
 
-### 4.21. Community nodes и SDK узлов
+### 4.21. Community nodes and the node SDK
 
-**В n8n.** [Создание узлов](https://docs.n8n.io/connect/create-nodes): два стиля — [декларативный](https://docs.n8n.io/connect/create-nodes/build-your-node/tutorial-build-a-declarative-style-node) (описание HTTP-запросов в JSON-подобной структуре, `packages/core/src/execution-engine/routing-node.ts`) и программный (`execute()`); CLI `@n8n/node-cli`, линтер, версия узла. [Community nodes](https://docs.n8n.io/integrations/community-nodes) — установка npm-пакетов из UI, [риски](https://docs.n8n.io/integrations/community-nodes/risks) (полный доступ к машине), проверенные узлы, блок-лист, возможность [заблокировать узлы](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/block-specific-nodes).
+**In n8n.** [Creating nodes](https://docs.n8n.io/connect/create-nodes): two styles, [declarative](https://docs.n8n.io/connect/create-nodes/build-your-node/tutorial-build-a-declarative-style-node) (HTTP requests described in a JSON-like structure, `packages/core/src/execution-engine/routing-node.ts`) and programmatic (`execute()`); the `@n8n/node-cli` CLI, a linter, node versions. [Community nodes](https://docs.n8n.io/integrations/community-nodes): installing npm packages from the UI, [risks](https://docs.n8n.io/integrations/community-nodes/risks) (full access to the machine), verified nodes, a blocklist, the ability to [block nodes](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/block-specific-nodes).
 
-**Зачем.** Расширение без участия основной команды.
+**Why.** Extension without involving the core team.
 
-**Применимость:** сторонний исполняемый код — **не нужна**; декларативное описание источников — **средняя**.
+**Applicability:** third-party executable code is **not needed**; declarative source descriptions are **medium**.
 
-**Как реализовать.** Внутренний Go-интерфейс узла (4.1) — это и есть наш «SDK»; новые типы узлов добавляет команда Umbrella. Вместо сторонних плагинов — **декларативные описания источников**: JSON/YAML-файл (URL опроса, параметры запроса, аутентификация, путь к массиву, пагинация, курсор, сопоставление по умолчанию, образцы), из которого строится пресет. Загружать такие описания можно без перекомпиляции, исполняемого кода в них нет. WASM-плагины — только если появится реальный спрос и после песочницы (4.7).
+**How to implement.** The internal Go node interface (4.1) is our "SDK"; new node types are added by the Umbrella team. Instead of third-party plugins, **declarative source descriptions**: a JSON/YAML file (polling URL, request parameters, authentication, path to the array, pagination, cursor, default mapping, samples) from which a preset is built. Such descriptions can be loaded without recompiling and contain no executable code. WASM plugins only if real demand appears, and after the sandbox (4.7).
 
-### 4.22. AI-узлы (кратко)
+### 4.22. AI nodes (briefly)
 
-**В n8n.** [AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent) и кластерные узлы на LangChain (модели, память, инструменты, векторные хранилища), MCP-клиент и MCP-сервер, Guardrails, [оценки](https://docs.n8n.io/build/integrate-ai/test-and-improve-ai-workflows/understand-why-to-test), AI-помощник в редакторе и генерация кода.
+**In n8n.** [AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent) and cluster nodes built on LangChain (models, memory, tools, vector stores), an MCP client and an MCP server, Guardrails, [evaluations](https://docs.n8n.io/build/integrate-ai/test-and-improve-ai-workflows/understand-why-to-test), an AI assistant in the editor and code generation.
 
-**Применимость: низкая для конвейера; средняя как вспомогательная функция редактора в будущем.** LLM в горячем пути противоречит требованиям к задержке, детерминизму и, часто, к изоляции контура заказчика.
+**Applicability: low for the pipeline; medium as an auxiliary editor feature in the future.** An LLM on the hot path contradicts the requirements for latency, determinism and, often, isolation of the customer's network.
 
-**Как реализовать (опционально, этап 6).** «Предложить сопоставление»: по образцу алерта модель предлагает заполнение `map.event` и таблицы severity, пользователь проверяет на образцах (4.12) и принимает. Модель — подключаемая, допускающая локальное развёртывание; отключено по умолчанию; данные образцов маскируются перед отправкой.
+**How to implement (optional, stage 6).** "Suggest mapping": given a sample alert, the model proposes how to fill `map.event` and the severity table; the user checks it against the samples (4.12) and accepts it. The model is pluggable and can be deployed locally; disabled by default; sample data is masked before sending.
 
-### 4.23. Source control и окружения
+### 4.23. Source control and environments
 
-**В n8n.** ([Use source control and environments](https://docs.n8n.io/administer/use-source-control-and-environments)) Подключение Git-репозитория, push/pull workflow, credentials-заглушек, переменных, тегов; окружения как ветки или отдельные экземпляры; дифф перед push/pull; API для CI. Платная функция.
+**In n8n.** ([Use source control and environments](https://docs.n8n.io/administer/use-source-control-and-environments)) Connecting a Git repository, push/pull of workflows, credential stubs, variables, tags; environments as branches or separate instances; a diff before push/pull; an API for CI. A paid feature.
 
-**Зачем.** Перенос проверенной конфигурации с тестового стенда на рабочий; GitOps.
+**Why.** Moving a tested configuration from the test environment to production; GitOps.
 
-**Применимость: средняя / низкая** на ближайших этапах.
+**Applicability: medium / low** in the near-term stages.
 
-**Как реализовать.** Начать с экспорта/импорта (4.16) и API; затем — «конфигурация как код»: каталог YAML/JSON (коннекторы, справочники, фрагменты, заполнители учётных данных), команда `umbrella config apply --dry-run` с диффом, применение через API с правами сервисной учётной записи. Встроенная Git-интеграция в UI — после этого и только по запросу.
+**How to implement.** Start with export/import (4.16) and the API; then "configuration as code": a directory of YAML/JSON (connectors, lookup tables, fragments, credential placeholders), a `umbrella config apply --dry-run` command with a diff, applied via the API with a service account's rights. Built-in Git integration in the UI comes after that, and only on request.
 
-### 4.24. Журналы событий, аудит и аналитика
+### 4.24. Event logs, audit and analytics
 
-**В n8n.** [Log streaming](https://docs.n8n.io/administer/observe-and-log/stream-logs-to-external-systems) (события аудита и исполнения во внешние системы — syslog, webhook, Sentry), [Insights](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights) (число запусков, доля ошибок, время), [OpenTelemetry](https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/trace-executions-with-opentelemetry), [аудит безопасности](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/run-security-audits).
+**In n8n.** [Log streaming](https://docs.n8n.io/administer/observe-and-log/stream-logs-to-external-systems) (audit and execution events to external systems: syslog, webhook, Sentry), [Insights](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights) (number of executions, failure rate, time), [OpenTelemetry](https://docs.n8n.io/deploy/host-n8n/keep-n8n-running/trace-executions-with-opentelemetry), [security audit](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/run-security-audits).
 
-**Применимость: высокая** (статистика коннекторов), **средняя** (потоковая отправка аудита).
+**Applicability: high** (connector statistics), **medium** (streaming the audit log).
 
-**Как реализовать.** Страница коннектора: графики принятых/отфильтрованных/ошибочных/созданных событий, задержки, последняя активность, «тишина» источника (из `connector_stats`). Аудит — существующий журнал + экспорт в syslog/webhook по настройке. Использовать собственные компоненты графиков фронтенда, без встраивания внешних дашбордов в страницу коннектора.
+**How to implement.** A connector page: charts of accepted/filtered/failed/created events, latency, last activity, source "silence" (from `connector_stats`). Audit: the existing log + export to syslog/webhook when configured. Use the frontend's own chart components, without embedding external dashboards into the connector page.
 
-## 5. Сводная таблица применимости
+## 5. Applicability summary table
 
-| # | Возможность n8n | Применимость | Что берём (идея) | Сложность | Этап |
+| # | n8n feature | Applicability | What we take (the idea) | Complexity | Stage |
 | --- | --- | --- | --- | --- | --- |
-| 4.1 | Модель workflow, items, версии типов узлов | Высокая | Граф + реестр типов узлов с JSON Schema, компиляция при публикации, lineage записей | Средняя | 0 |
-| 4.2 | Binary data | Низкая | — | — | — |
-| 4.3 | Webhook-триггер | Высокая | Захват образцов, аутентификация, CIDR, лимиты, 202 после фиксации, HMAC | Средняя | 1 |
-| 4.4 | Расписание и опрос | Высокая | Durable-планировщик в PG, аренды, misfire, курсор в одной транзакции | Высокая | 3 |
-| 4.5 | Event-триггеры | Средняя | Подписки на шину/syslog/SNMP с захватом | Высокая | 6 |
-| 4.6 | Выражения | Высокая (UX) | Свой шаблонный язык + CEL, предпросмотр на сервере | Средняя | 0–1 |
-| 4.7 | Code node, task runners | Низкая | Песочница Starlark/WASM в отдельном процессе | Высокая | 6 |
-| 4.8 | IF/Switch/Filter/Merge/Loop/Wait | Высокая для Switch/Filter | `route.switch`, `filter`, `enrich.lookup`; без Loop/Wait/Merge | Низкая | 4 |
-| 4.9 | Обработка ошибок | Высокая | Политика ошибок узла, повторы, DLQ, встроенный самоконтроль вместо error workflow | Средняя | 1 + 3 + 4 |
-| 4.10 | Credentials | Высокая | Типы учётных данных, write-only, `credential:use` ≠ `credential:manage`, OAuth2 CC | Средняя | 1 |
-| 4.11 | История выполнений | Высокая | Сырые запросы + выборочные трассы + агрегаты, повторная обработка, маскирование | Средняя | 2 |
-| 4.12 | Pinned data, частичный запуск | Высокая | Образцы, dry-run до узла, закрепление, dirty-пометки, прогон всех образцов | Средняя | 2 |
-| 4.13 | Sub-workflows | Средняя | Справочники; позже — фрагменты с версией, встраиваемые при компиляции | Средняя | 4 |
-| 4.14 | Версии, публикация, согласование | Высокая | Автосохранение черновика, атомарная публикация, дифф, откат, блокировка редактирования | Средняя | 1 (база), 5 (дифф, согласование) |
-| 4.15 | Теги, папки | Низкая/средняя | Теги и фильтры | Низкая | 5 |
-| 4.16 | Шаблоны, импорт/экспорт | Высокая | Пресеты как шаблоны, заполнители учётных данных, мастер сопоставления | Средняя | 1 |
-| 4.17 | RBAC, проекты | Высокая | Scopes → роли → назначение пользователю/группе AD на команду | Средняя | 5 |
-| 4.18 | Переменные | Средняя | `vars.*` без секретов | Низкая | 4 |
-| 4.19 | Queue mode, масштабирование | Высокая (требования) | PG как очередь, SKIP LOCKED, противодавление, без Redis | Высокая | 1 (база), 3 |
-| 4.20 | Дедупликация | Высокая | Идемпотентность в ядре | Средняя | 1 |
-| 4.21 | Community nodes, SDK | Средняя (декларативные источники) | Декларативные описания источников без кода | Средняя | 5–6 |
-| 4.22 | AI-узлы | Низкая | Подсказка сопоставления в редакторе | Средняя | 6 |
-| 4.23 | Source control, окружения | Средняя/низкая | Конфигурация как код + dry-run apply | Средняя | 6 |
-| 4.24 | Log streaming, Insights | Высокая/средняя | Статистика коннектора, экспорт аудита | Низкая | 2–5 |
+| 4.1 | Workflow model, items, node type versions | High | Graph + node type registry with JSON Schema, compilation on publish, record lineage | Medium | 0 |
+| 4.2 | Binary data | Low | — | — | — |
+| 4.3 | Webhook trigger | High | Sample capture, authentication, CIDR, limits, 202 after recording, HMAC | Medium | 1 |
+| 4.4 | Schedule and polling | High | Durable scheduler in PG, leases, misfire, cursor in the same transaction | High | 3 |
+| 4.5 | Event triggers | Medium | Subscriptions to a bus/syslog/SNMP with claiming | High | 6 |
+| 4.6 | Expressions | High (UX) | Our own template language + CEL, server-side preview | Medium | 0–1 |
+| 4.7 | Code node, task runners | Low | Starlark/WASM sandbox in a separate process | High | 6 |
+| 4.8 | IF/Switch/Filter/Merge/Loop/Wait | High for Switch/Filter | `route.switch`, `filter`, `enrich.lookup`; no Loop/Wait/Merge | Low | 4 |
+| 4.9 | Error handling | High | Node error policy, retries, DLQ, built-in meta-monitoring instead of an error workflow | Medium | 1 + 3 + 4 |
+| 4.10 | Credentials | High | Credential types, write-only, `credential:use` ≠ `credential:manage`, OAuth2 CC | Medium | 1 |
+| 4.11 | Execution history | High | Raw requests + sampled traces + aggregates, reprocessing, masking | Medium | 2 |
+| 4.12 | Pinned data, partial execution | High | Samples, dry run up to a node, pinning, dirty marks, running all samples | Medium | 2 |
+| 4.13 | Sub-workflows | Medium | Lookup tables; later, versioned fragments inlined at compile time | Medium | 4 |
+| 4.14 | Versions, publishing, approval | High | Draft autosave, atomic publishing, diff, rollback, edit locking | Medium | 1 (basics), 5 (diff, approval) |
+| 4.15 | Tags, folders | Low/medium | Tags and filters | Low | 5 |
+| 4.16 | Templates, import/export | High | Presets as templates, credential placeholders, mapping wizard | Medium | 1 |
+| 4.17 | RBAC, projects | High | Scopes → roles → assignment to a user/AD group for a team | Medium | 5 |
+| 4.18 | Variables | Medium | `vars.*` without secrets | Low | 4 |
+| 4.19 | Queue mode, scaling | High (requirements) | PG as a queue, SKIP LOCKED, backpressure, no Redis | High | 1 (basics), 3 |
+| 4.20 | Deduplication | High | Idempotency in the core | Medium | 1 |
+| 4.21 | Community nodes, SDK | Medium (declarative sources) | Declarative source descriptions without code | Medium | 5–6 |
+| 4.22 | AI nodes | Low | Mapping suggestions in the editor | Medium | 6 |
+| 4.23 | Source control, environments | Medium/low | Configuration as code + dry-run apply | Medium | 6 |
+| 4.24 | Log streaming, Insights | High/medium | Connector statistics, audit export | Low | 2–5 |
 
-## 6. Приоритизированный план внедрения
+## 6. Prioritised implementation plan
 
-Оценки — в человеко-неделях для одного опытного разработчика полного стека, без учёта мастера первичной настройки (он идёт первым и задаёт базовые сущности: пользователи, LDAP, подключение к OpenBao). Внутри этапа пункты упорядочены по приоритету. Правило для всех этапов: в UI показываются только реализованные типы узлов и функции, без заглушек.
+Estimates are in person-weeks for one experienced full-stack developer, not counting the initial setup wizard (it comes first and sets up the base entities: users, LDAP, the OpenBao connection). Within a stage, items are ordered by priority. A rule for all stages: the UI shows only implemented node types and features, with no placeholders.
 
-### Этап 0. Фундамент движка и модели (3–4 нед., сложность средняя)
+### Stage 0. Engine and model foundation (3–4 weeks, medium complexity)
 
-1. Схема БД: `connectors`, `connector_drafts`, `connector_versions`, `ingest_requests` (секционирование по дням), `ingest_failures`, `connector_stats`.
-2. Формат графа (JSON) с `type_version` и стабильными идентификаторами узлов; валидатор графа.
-3. Реестр типов узлов в Go: JSON Schema параметров, входы/выходы, `Compile` → `Step`.
-4. Шаблонный язык `${…}` (расширенный) и интеграция CEL с лимитом стоимости; сервис предпросмотра выражений.
-5. Исполнитель скомпилированного конвейера по пакетам с `context`-таймаутами и lineage.
+1. Database schema: `connectors`, `connector_drafts`, `connector_versions`, `ingest_requests` (partitioned by day), `ingest_failures`, `connector_stats`.
+2. Graph format (JSON) with `type_version` and stable node IDs; a graph validator.
+3. Node type registry in Go: parameter JSON Schema, inputs/outputs, `Compile` → `Step`.
+4. The `${…}` template language (extended) and CEL integration with a cost limit; an expression preview service.
+5. An executor for the compiled pipeline, working in batches with `context` timeouts and lineage.
 
-*Риски:* перепроектировать модель позже дорого — закладывать версии типов узлов и формат экспорта сразу; соблазн «сделать как в n8n» с JS-выражениями.
+*Risks:* redesigning the model later is expensive, so build in node type versions and the export format right away; the temptation to "do it like n8n" with JS expressions.
 
-### Этап 1. MVP коннекторов на webhook (4–5 нед., сложность средняя)
+### Stage 1. Webhook connector MVP (4–5 weeks, medium complexity)
 
-1. Узлы: `trigger.webhook`, `parse.json` (выбор массива), `map.severity` (таблица), `enrich.labels`, `map.event` (с валидацией целевой схемы и ключом идемпотентности), `out.event`, `ack.response`.
-2. Приём: аутентификация (токен, Basic, HMAC), CIDR, лимиты размера и частоты, фиксация в `ingest_requests` → 202; обработчики на `SKIP LOCKED`; идемпотентность событий.
-3. Учётные данные: типы, write-only запись в OpenBao, ссылки `openbao://`, кеш с TTL.
-4. Черновик с автосохранением и блокировкой редактирования; публикация с компиляцией и атомарным переключением версии; статусы.
-5. Пресеты для Alertmanager, Grafana, Zabbix (webhook-режим), универсального webhook — как шаблоны со встроенными образцами; импорт/экспорт.
-6. DLQ ошибок разбора с ручной повторной обработкой; счётчики коннектора.
-7. Редактор @xyflow: палитра реализованных узлов, формы из JSON Schema, проверка графа.
+1. Nodes: `trigger.webhook`, `parse.json` (array selection), `map.severity` (table), `enrich.labels`, `map.event` (with target schema validation and an idempotency key), `out.event`, `ack.response`.
+2. Intake: authentication (token, Basic, HMAC), CIDR, size and rate limits, recording in `ingest_requests` → 202; handlers based on `SKIP LOCKED`; event idempotency.
+3. Credentials: types, write-only storage in OpenBao, `openbao://` references, a cache with TTL.
+4. A draft with autosave and edit locking; publishing with compilation and atomic version switching; statuses.
+5. Presets for Alertmanager, Grafana, Zabbix (webhook mode) and a generic webhook, as templates with built-in samples; import/export.
+6. A DLQ for parse errors with manual reprocessing; connector counters.
+7. The @xyflow editor: a palette of implemented nodes, forms generated from JSON Schema, graph validation.
 
-*Риски:* производительность записи в PostgreSQL в пиках — сразу нагрузочный тест; выбор поведения ответа источнику (202 до обработки) согласовать с требованиями источников.
+*Risks:* PostgreSQL write performance at peaks, so run a load test immediately; the choice of response behaviour towards the source (202 before processing) must be agreed against the sources' requirements.
 
-### Этап 2. Отладка в редакторе (3–4 нед., сложность средняя)
+### Stage 2. In-editor debugging (3–4 weeks, medium complexity)
 
-1. Образцы: захват с webhook, ручной ввод, из `ingest_requests`/DLQ, из пресетов.
-2. Тестовый прогон черновика до выбранного узла в режиме без побочных эффектов (включая dry-run привязки к КЕ).
-3. Панели входа/выхода (таблица, JSON, схема), перетаскивание поля в параметр, автодополнение путей в выражениях.
-4. Закрепление выхода узла, dirty-пометки на клиенте.
-5. Прогон всех образцов перед публикацией (таблица результатов).
-6. Выборочные трассы рабочих запросов, связь событие → запрос → трасса, маскирование, право на просмотр полезной нагрузки.
+1. Samples: capture from a webhook, manual entry, from `ingest_requests`/DLQ, from presets.
+2. A test run of the draft up to a selected node in side-effect-free mode (including a dry run of CI binding).
+3. Input/output panels (table, JSON, schema), dragging a field into a parameter, path autocompletion in expressions.
+4. Pinning a node's output, client-side dirty marks.
+5. Running all samples before publishing (a results table).
+6. Sampled traces of production requests, the event → request → trace link, masking, a right to view the payload.
 
-*Риски:* расхождение поведения тестового прогона и рабочего исполнения — использовать один и тот же скомпилированный код, различать только «приёмник» `out.event`; утечка секретов через образцы — маскирование при захвате.
+*Risks:* behaviour of the test run diverging from production execution: use the same compiled code and differ only in the `out.event` "sink"; secrets leaking through samples: mask them at capture time.
 
-### Этап 3. Опрос и надёжность (4–5 нед., сложность высокая)
+### Stage 3. Polling and reliability (4–5 weeks, high complexity)
 
-1. `trigger.poll`: HTTP-запрос с учётными данными, пагинация, курсор.
-2. Durable-планировщик: материализация, захват с арендой, «жнец», misfire-политика, jitter, таймауты, экспоненциальный откат.
-3. Курсор в одной транзакции с фиксацией результатов.
-4. Повторы и предохранитель для внешних вызовов.
-5. Противодавление и справедливость между коннекторами; graceful shutdown.
-6. Самоконтроль: внутренние события «коннектор деградировал / источник замолчал / ошибок больше порога» → инцидент → оповещение.
-7. Метрики Prometheus и OpenTelemetry; пресеты для опроса Zabbix API и OpenSearch.
+1. `trigger.poll`: an HTTP request with credentials, pagination, a cursor.
+2. Durable scheduler: materialisation, claiming with a lease, the "reaper", a misfire policy, jitter, timeouts, exponential backoff.
+3. The cursor in the same transaction as recording the results.
+4. Retries and a circuit breaker for external calls.
+5. Backpressure and fairness between connectors; graceful shutdown.
+6. Meta-monitoring: internal events "connector degraded / source went silent / errors above threshold" → incident → notification.
+7. Prometheus and OpenTelemetry metrics; presets for polling the Zabbix API and OpenSearch.
 
-*Риски:* двойной опрос при сбоях (at-least-once) — закрывается курсором в транзакции и идемпотентностью; часовые пояса и переход на летнее время в cron — тесты; шторм событий при «догоняющем» запуске — по умолчанию не догонять.
+*Risks:* double polling on failures (at-least-once), covered by the cursor-in-transaction and idempotency; time zones and daylight saving changes in cron, covered by tests; an event storm on a "catch-up" run, so by default do not catch up.
 
-### Этап 4. Логика и переиспользование (2–3 нед., сложность низкая/средняя)
+### Stage 4. Logic and reuse (2–3 weeks, low/medium complexity)
 
-1. `route.switch`, `filter` (со счётчиком отфильтрованного).
-2. Политика ошибок узла (`fail_record` / `skip` / `route_error`).
-3. `enrich.lookup` (CMDB, справочники).
-4. Справочники как редактируемые данные; переменные `vars.*`.
-5. Фрагменты с версиями (если справочников окажется недостаточно).
+1. `route.switch`, `filter` (with a filtered-out counter).
+2. Node error policy (`fail_record` / `skip` / `route_error`).
+3. `enrich.lookup` (CMDB, lookup tables).
+4. Lookup tables as editable data; `vars.*` variables.
+5. Versioned fragments (if lookup tables turn out not to be enough).
 
-*Риски:* рост сложности графов — ограничить число узлов и глубину, показывать предупреждения о стоимости CEL.
+*Risks:* growing graph complexity: limit the number of nodes and the depth, and show warnings about CEL cost.
 
-### Этап 5. Доступ и жизненный цикл (3–4 нед., сложность средняя)
+### Stage 5. Access and lifecycle (3–4 weeks, medium complexity)
 
-1. Scopes → роли → назначения пользователям и группам LDAP/AD; команды как владельцы коннекторов и секретов, префиксы и политики OpenBao на команду.
-2. История версий с диффом (структурным и на холсте), откат, именованные версии.
-3. Согласование публикации (4 глаза), с включением в снимок ссылок на учётные данные и версии справочников.
-4. Теги и фильтры; экспорт журнала аудита.
-5. Декларативные описания источников для пресетов.
+1. Scopes → roles → assignments to users and LDAP/AD groups; teams as owners of connectors and secrets, OpenBao prefixes and policies per team.
+2. Version history with a diff (structural and on the canvas), rollback, named versions.
+3. Publish approval (four eyes), with credential references and lookup table versions included in the snapshot.
+4. Tags and filters; audit log export.
+5. Declarative source descriptions for presets.
 
-*Риски:* сопоставление групп AD и ролей — требует решения заказчика по модели доступа; миграция существующих коннекторов при введении команд.
+*Risks:* mapping AD groups to roles requires a decision from the customer on the access model; migrating existing connectors when teams are introduced.
 
-### Этап 6. Опциональные расширения (по запросу)
+### Stage 6. Optional extensions (on request)
 
-| Пункт | Сложность | Основной риск |
+| Item | Complexity | Main risk |
 | --- | --- | --- |
-| Event-триггеры (шина сообщений, syslog, SNMP trap) | Высокая | Распределение подписок, порядок и коммит смещений |
-| Узел пользовательского кода в песочнице (Starlark/WASM, отдельный процесс) | Высокая | Безопасность, задержка, поддержка пользователей |
-| Конфигурация как код, затем Git-синхронизация | Средняя | Конфликты UI-правок и Git |
-| Брокер сообщений вместо PG-очереди | Высокая | Операционная сложность; делать только по измерениям |
-| Подсказка сопоставления с помощью LLM | Средняя | Изоляция контура, качество, маскирование данных |
-| Сценарии автоматизации (реакции на инциденты) как отдельный тип графа | Высокая | Размывание продукта в сторону iPaaS |
+| Event triggers (message bus, syslog, SNMP trap) | High | Distributing subscriptions, ordering and offset commits |
+| A sandboxed user code node (Starlark/WASM, separate process) | High | Security, latency, user support |
+| Configuration as code, then Git sync | Medium | Conflicts between UI edits and Git |
+| A message broker instead of the PG queue | High | Operational complexity; do it only based on measurements |
+| LLM-assisted mapping suggestions | Medium | Network isolation, quality, data masking |
+| Automation flows (reactions to incidents) as a separate graph type | High | The product drifting towards an iPaaS |
 
-**Итог по срокам:** этапы 0–3 (рабочий конструктор с webhook и опросом, отладкой и надёжностью) — порядка 14–18 человеко-недель; с этапами 4–5 — порядка 20–25.
+**Timeline summary:** stages 0–3 (a working builder with webhook and polling, debugging and reliability) take roughly 14–18 person-weeks; with stages 4–5, roughly 20–25.
 
-## 7. Что из n8n брать не стоит
+## 7. What not to take from n8n
 
-| Что | Почему |
+| What | Why |
 | --- | --- |
-| **Код, схемы узлов, тексты, иконки n8n** | Sustainable Use License запрещает коммерческое использование и распространение; `.ee`-файлы — отдельная коммерческая лицензия. Берём только идеи, реализуем с нуля и не открываем исходники n8n как образец при написании своего кода |
-| Каталог сотен интеграций | Umbrella — не iPaaS; поддерживать сотни узлов дорого. Достаточно универсальных webhook/опроса/шины + пресетов и декларативных описаний источников |
-| JavaScript в выражениях `{{ }}` | Риск выполнения произвольного кода (n8n потребовались годы и V8-изоляция), непредсказуемая задержка, сложность анализа. CEL + шаблоны закрывают задачи мониторинга |
-| Code node в горячем пути и «внутренний» режим исполнителя | По собственной документации n8n это даёт доступ к БД, ключам и секретам; для системы с токенами каналов оповещения и CMDB неприемлемо |
-| Сохранение каждого запуска со всеми данными по умолчанию | При потоке событий — раздувание БД и запись на каждом шаге; у нас сырые запросы + выборочные трассы + агрегаты |
-| Queue mode на Redis/Bull, отдельные webhook-процессы | Следствие модели Node.js; в Go достаточно горутин и PostgreSQL, лишний компонент — лишняя точка отказа |
-| Порядок исполнения веток по координатам на холсте | Перемещение узла меняет поведение — недопустимо для детерминированного конвейера; только топологический порядок |
-| Wait-узлы и долгоживущие запуски в конвейере приёма | Состояние, возобновление, таймеры — всё это убивает задержку; эскалации — задача встроенной системы оповещения |
-| Ссылки на узлы по имени (`$('Имя узла')`) | Переименование ломает выражения; у нас стабильные идентификаторы |
-| Loop / Split in Batches, общий Merge с множеством режимов | Конвейер пакетный по природе; объединение заменяется поиском-обогащением |
-| Error workflow как пользовательский сценарий | Мониторинг собственных коннекторов должен работать из коробки — встроенный самоконтроль через обычный путь инцидента |
-| Шифрование секретов ключом экземпляра в БД приложения | У нас OpenBao — единственное хранилище; хранить секреты в PostgreSQL даже зашифрованными — шаг назад |
-| Установка сторонних узлов из npm через UI | Цепочка поставок и полный доступ кода узла к процессу; вместо этого — декларативные описания без кода |
-| AI-агенты, LangChain-узлы, векторные хранилища, MCP-триггеры | Не задача конвейера мониторинга; недетерминизм и внешние зависимости |
-| Разделение функций по платным редакциям, телеметрия, лицензионные ключи | Не относится к нашей модели продукта |
-| Согласование, не покрывающее учётные данные и настройки | Ограничение n8n, которое прямо описано в документации; у нас снимок для согласования включает все зависимости |
-| Вычисление выражений в браузере для предпросмотра | Риск расхождения с сервером и исполнения недоверенного кода в браузере (n8n по умолчанию до сих пор использует неизолированный движок в редакторе); предпросмотр — на сервере |
+| **n8n code, node schemas, texts, icons** | The Sustainable Use License forbids commercial use and redistribution; `.ee` files are under a separate commercial licence. We take only ideas, implement them from scratch and do not open n8n sources as a template while writing our own code |
+| The catalogue of hundreds of integrations | Umbrella is not an iPaaS; maintaining hundreds of nodes is expensive. Generic webhook/polling/bus + presets and declarative source descriptions are enough |
+| JavaScript in `{{ }}` expressions | Risk of arbitrary code execution (it took n8n years and V8 isolation), unpredictable latency, hard to analyse. CEL + templates cover the monitoring use cases |
+| A Code node on the hot path and the executor's "internal" mode | By n8n's own documentation this gives access to the database, keys and secrets; unacceptable for a system holding notification channel tokens and a CMDB |
+| Saving every execution with all its data by default | With an event stream this bloats the database and writes at every step; we use raw requests + sampled traces + aggregates |
+| Queue mode on Redis/Bull, separate webhook processes | A consequence of the Node.js model; in Go goroutines and PostgreSQL are enough, and an extra component is an extra point of failure |
+| Branch execution order based on canvas coordinates | Moving a node changes behaviour, which is unacceptable for a deterministic pipeline; topological order only |
+| Wait nodes and long-lived executions in the ingest pipeline | State, resumption, timers all kill latency; escalations are the job of the built-in notification system |
+| Referencing nodes by name (`$('Node name')`) | Renaming breaks expressions; we have stable IDs |
+| Loop / Split in Batches, a generic Merge with many modes | The pipeline is batch-based by nature; merging is replaced by lookup enrichment |
+| Error workflow as a user-built workflow | Monitoring of our own connectors must work out of the box: built-in meta-monitoring through the normal incident path |
+| Encrypting secrets with an instance key in the application database | OpenBao is our only store; keeping secrets in PostgreSQL, even encrypted, would be a step back |
+| Installing third-party nodes from npm via the UI | Supply chain risk and full access of node code to the process; instead, declarative descriptions without code |
+| AI agents, LangChain nodes, vector stores, MCP triggers | Not a job for a monitoring pipeline; non-determinism and external dependencies |
+| Splitting features across paid editions, telemetry, licence keys | Not relevant to our product model |
+| Approval that does not cover credentials and settings | An n8n limitation that is stated explicitly in its documentation; our approval snapshot includes all dependencies |
+| Evaluating expressions in the browser for preview | Risk of diverging from the server and of running untrusted code in the browser (n8n still uses a non-isolated engine in the editor by default); preview runs on the server |
 
-## 8. Открытые вопросы
+## 8. Open questions
 
-1. Целевые показатели нагрузки: пиковая частота событий на экземпляр и допустимая задержка «приём → инцидент» (определяет, хватит ли PostgreSQL как очереди).
-2. Сроки хранения сырых запросов и трасс (требования ИБ и объём диска).
-3. Ответ источнику: всегда 202 после фиксации или для части источников нужен синхронный ответ с результатом?
-4. Нужен ли пользовательский код вообще, или достаточно CEL и справочников (определяет, планировать ли этап 6.2).
-5. Модель команд/проектов и соответствие группам AD — решение со стороны заказчика.
-6. Нужно ли переносить коннекторы прежней версии автоматически (конвертер старого формата в новый) или достаточно пресетов.
+1. Target load figures: peak event rate per instance and the acceptable "intake → incident" latency (this determines whether PostgreSQL is enough as a queue).
+2. Retention periods for raw requests and traces (information security requirements and disk space).
+3. Response to the source: always 202 after recording, or do some sources need a synchronous response with the result?
+4. Is user code needed at all, or are CEL and lookup tables enough (this determines whether to plan stage 6.2)?
+5. The team/project model and its mapping to AD groups is a decision for the customer.
+6. Should connectors from the previous version be migrated automatically (a converter from the old format to the new one), or are presets enough?
 
-## 9. Ссылки
+## 9. References
 
-Документация (docs.n8n.io):
+Documentation (docs.n8n.io):
 
-- Модель данных: [data structure](https://docs.n8n.io/build/work-with-data/understand-n8ns-data-structure), [item linking](https://docs.n8n.io/build/work-with-data/reference-data/link-data-items), [binary data](https://docs.n8n.io/build/work-with-data/handle-special-data-types/work-with-files-and-images)
-- Выражения и код: [expressions](https://docs.n8n.io/build/work-with-data/transform-data/expressions-for-data-transformation), [expression reference](https://docs.n8n.io/build/work-with-data/transform-data/expression-reference), [expression engine](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/expression-engine), [Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code), [task runners](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners), [hardening](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/harden-task-runners)
-- Триггеры: [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook), [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger), [durable scheduler](https://docs.n8n.io/deploy/host-n8n/configure-n8n/durable-scheduler)
-- Логика: [conditionals](https://docs.n8n.io/build/flow-logic/split-with-conditionals), [merge](https://docs.n8n.io/build/flow-logic/merge-data), [loop](https://docs.n8n.io/build/flow-logic/loop), [wait](https://docs.n8n.io/build/flow-logic/wait), [execution order](https://docs.n8n.io/build/flow-logic/understand-execution-order), [sub-workflows](https://docs.n8n.io/build/flow-logic/break-workflows-into-smaller-parts), [error handling](https://docs.n8n.io/build/flow-logic/handle-errors-gracefully), [Remove Duplicates](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.removeduplicates)
-- Исполнения и отладка: [executions](https://docs.n8n.io/build/understand-workflows/understand-executions), [types of executions](https://docs.n8n.io/build/understand-workflows/understand-executions/types-of-executions), [dirty nodes](https://docs.n8n.io/build/understand-workflows/understand-executions/understand-dirty-nodes), [debug executions](https://docs.n8n.io/build/understand-workflows/understand-executions/debug-executions), [pin and mock data](https://docs.n8n.io/build/work-with-data/pin-and-mock-data), [manage execution data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data), [redaction](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/redact-execution-data)
-- Жизненный цикл: [save and publish](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows), [change history](https://docs.n8n.io/build/manage-workflows/view-change-history), [reviews](https://docs.n8n.io/build/manage-workflows/workflow-reviews), [workflow settings](https://docs.n8n.io/build/manage-workflows/configure-workflow-settings), [tags](https://docs.n8n.io/build/manage-workflows/tag-workflows), [export/import](https://docs.n8n.io/build/manage-workflows/export-and-import), [packages](https://docs.n8n.io/build/manage-workflows/n8n-packages/export-a-package), [templates](https://docs.n8n.io/build/ways-of-building-workflows/use-templates)
-- Доступ и секреты: [RBAC](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac), [roles](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/see-available-roles), [projects](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects), [LDAP](https://docs.n8n.io/administer/manage-users-and-access/verify-user-identity/connect-ldap), [share credentials](https://docs.n8n.io/administer/manage-credentials/share-credentials-securely), [external secrets](https://docs.n8n.io/administer/manage-credentials/use-external-secret-stores), [key rotation](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/rotate-encryption-keys), [variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables)
-- Эксплуатация: [queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode), [concurrency](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/control-concurrency), [log streaming](https://docs.n8n.io/administer/observe-and-log/stream-logs-to-external-systems), [insights](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights), [source control](https://docs.n8n.io/administer/use-source-control-and-environments), [editions](https://docs.n8n.io/deploy/host-n8n/community-edition-features)
-- Расширение: [create nodes](https://docs.n8n.io/connect/create-nodes), [node building styles](https://docs.n8n.io/connect/create-nodes/plan-your-node/choose-a-node-building-style), [community nodes](https://docs.n8n.io/integrations/community-nodes), [community nodes risks](https://docs.n8n.io/integrations/community-nodes/risks), [AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent)
+- Data model: [data structure](https://docs.n8n.io/build/work-with-data/understand-n8ns-data-structure), [item linking](https://docs.n8n.io/build/work-with-data/reference-data/link-data-items), [binary data](https://docs.n8n.io/build/work-with-data/handle-special-data-types/work-with-files-and-images)
+- Expressions and code: [expressions](https://docs.n8n.io/build/work-with-data/transform-data/expressions-for-data-transformation), [expression reference](https://docs.n8n.io/build/work-with-data/transform-data/expression-reference), [expression engine](https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/use-environment-variables/expression-engine), [Code node](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code), [task runners](https://docs.n8n.io/deploy/host-n8n/configure-n8n/set-up-task-runners), [hardening](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/harden-task-runners)
+- Triggers: [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook), [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger), [durable scheduler](https://docs.n8n.io/deploy/host-n8n/configure-n8n/durable-scheduler)
+- Logic: [conditionals](https://docs.n8n.io/build/flow-logic/split-with-conditionals), [merge](https://docs.n8n.io/build/flow-logic/merge-data), [loop](https://docs.n8n.io/build/flow-logic/loop), [wait](https://docs.n8n.io/build/flow-logic/wait), [execution order](https://docs.n8n.io/build/flow-logic/understand-execution-order), [sub-workflows](https://docs.n8n.io/build/flow-logic/break-workflows-into-smaller-parts), [error handling](https://docs.n8n.io/build/flow-logic/handle-errors-gracefully), [Remove Duplicates](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.removeduplicates)
+- Executions and debugging: [executions](https://docs.n8n.io/build/understand-workflows/understand-executions), [types of executions](https://docs.n8n.io/build/understand-workflows/understand-executions/types-of-executions), [dirty nodes](https://docs.n8n.io/build/understand-workflows/understand-executions/understand-dirty-nodes), [debug executions](https://docs.n8n.io/build/understand-workflows/understand-executions/debug-executions), [pin and mock data](https://docs.n8n.io/build/work-with-data/pin-and-mock-data), [manage execution data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data), [redaction](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/redact-execution-data)
+- Lifecycle: [save and publish](https://docs.n8n.io/build/understand-workflows/save-and-publish-workflows), [change history](https://docs.n8n.io/build/manage-workflows/view-change-history), [reviews](https://docs.n8n.io/build/manage-workflows/workflow-reviews), [workflow settings](https://docs.n8n.io/build/manage-workflows/configure-workflow-settings), [tags](https://docs.n8n.io/build/manage-workflows/tag-workflows), [export/import](https://docs.n8n.io/build/manage-workflows/export-and-import), [packages](https://docs.n8n.io/build/manage-workflows/n8n-packages/export-a-package), [templates](https://docs.n8n.io/build/ways-of-building-workflows/use-templates)
+- Access and secrets: [RBAC](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac), [roles](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/see-available-roles), [projects](https://docs.n8n.io/administer/manage-users-and-access/set-permissions-and-roles-rbac/organize-work-in-projects), [LDAP](https://docs.n8n.io/administer/manage-users-and-access/verify-user-identity/connect-ldap), [share credentials](https://docs.n8n.io/administer/manage-credentials/share-credentials-securely), [external secrets](https://docs.n8n.io/administer/manage-credentials/use-external-secret-stores), [key rotation](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/rotate-encryption-keys), [variables](https://docs.n8n.io/build/code-in-n8n/define-custom-variables)
+- Operations: [queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode), [concurrency](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/control-concurrency), [log streaming](https://docs.n8n.io/administer/observe-and-log/stream-logs-to-external-systems), [insights](https://docs.n8n.io/administer/observe-and-log/track-usage-with-insights), [source control](https://docs.n8n.io/administer/use-source-control-and-environments), [editions](https://docs.n8n.io/deploy/host-n8n/community-edition-features)
+- Extension: [create nodes](https://docs.n8n.io/connect/create-nodes), [node building styles](https://docs.n8n.io/connect/create-nodes/plan-your-node/choose-a-node-building-style), [community nodes](https://docs.n8n.io/integrations/community-nodes), [community nodes risks](https://docs.n8n.io/integrations/community-nodes/risks), [AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent)
 
-Исходники (github.com/n8n-io/n8n, ветка master; только для понимания принципов):
+Source code (github.com/n8n-io/n8n, master branch; only for understanding the principles):
 
-- Лицензии: `LICENSE.md`, `LICENSE_EE.md`
-- Движок: `packages/core/src/execution-engine/workflow-execute.ts`, `packages/core/src/execution-engine/partial-execution-utils/`, `packages/core/src/execution-engine/routing-node.ts`, `packages/core/src/execution-engine/triggers-and-pollers.ts`
-- Модель и выражения: `packages/workflow/src/interfaces.ts`, `packages/workflow/src/expression.ts`, `packages/workflow/src/workflow-data-proxy.ts`, `packages/@n8n/expression-runtime/`
-- Код пользователя: `packages/@n8n/task-runner/`, `packages/@n8n/task-runner-python/`
-- Масштабирование и планировщик: `packages/cli/src/scaling/`, `packages/cli/src/concurrency/`, `packages/@n8n/scheduler/`, `packages/cli/src/services/pruning/`
-- Активация и история: `packages/cli/src/active-workflow-manager.ts`, `packages/cli/src/workflows/workflow-history/`
-- Секреты и доступ: `packages/core/src/encryption/`, `packages/cli/src/modules/external-secrets.ee/`, `packages/@n8n/permissions/`
-- Узлы: `packages/nodes-base/nodes/Webhook/`, `Schedule/`, `If/`, `Switch/`, `Merge/`, `SplitInBatches/`, `Wait/`, `Code/`, `ErrorTrigger/`, `ExecuteWorkflow/`, `Transform/RemoveDuplicates/`
-- Идемпотентность расписаний: `packages/@n8n/db/src/migrations/common/1778000000000-AddExecutionDeduplicationKey.ts`
+- Licences: `LICENSE.md`, `LICENSE_EE.md`
+- Engine: `packages/core/src/execution-engine/workflow-execute.ts`, `packages/core/src/execution-engine/partial-execution-utils/`, `packages/core/src/execution-engine/routing-node.ts`, `packages/core/src/execution-engine/triggers-and-pollers.ts`
+- Model and expressions: `packages/workflow/src/interfaces.ts`, `packages/workflow/src/expression.ts`, `packages/workflow/src/workflow-data-proxy.ts`, `packages/@n8n/expression-runtime/`
+- User code: `packages/@n8n/task-runner/`, `packages/@n8n/task-runner-python/`
+- Scaling and scheduler: `packages/cli/src/scaling/`, `packages/cli/src/concurrency/`, `packages/@n8n/scheduler/`, `packages/cli/src/services/pruning/`
+- Activation and history: `packages/cli/src/active-workflow-manager.ts`, `packages/cli/src/workflows/workflow-history/`
+- Secrets and access: `packages/core/src/encryption/`, `packages/cli/src/modules/external-secrets.ee/`, `packages/@n8n/permissions/`
+- Nodes: `packages/nodes-base/nodes/Webhook/`, `Schedule/`, `If/`, `Switch/`, `Merge/`, `SplitInBatches/`, `Wait/`, `Code/`, `ErrorTrigger/`, `ExecuteWorkflow/`, `Transform/RemoveDuplicates/`
+- Schedule idempotency: `packages/@n8n/db/src/migrations/common/1778000000000-AddExecutionDeduplicationKey.ts`

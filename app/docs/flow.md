@@ -1,41 +1,41 @@
-# Интеграция с Umbrella Flow
+# Integration with Umbrella Flow
 
-Umbrella Flow — соседнее приложение для анализа трафика по NetFlow, IPFIX и sFlow (в духе Akvorado и
-ElastiFlow). Интеграция двусторонняя и необязательная:
+Umbrella Flow is a companion application for traffic analysis over NetFlow, IPFIX and sFlow (in the spirit of Akvorado and
+ElastiFlow). The integration is two-way and optional:
 
-- **Flow → Umbrella.** Детектор Flow отправляет события трафика (загрузка каналов, DDoS, аномалии,
-  молчащие экспортёры) в коннектор из шаблона `network-flow`; Umbrella делает из них инциденты и ведёт
-  их как обычно: схлопывание, сервисные окна, маршрут, PagerDuty, резервное оповещение.
-- **Umbrella → Flow.** Карточки инцидента и КЕ получают ссылку «Трафик» на консоль Flow с фильтром по
-  КЕ и окном вокруг инцидента.
+- **Flow → Umbrella.** The Flow detector sends traffic events (link utilization, DDoS, anomalies,
+  silent exporters) to a connector built from the `network-flow` template; Umbrella turns them into incidents and handles
+  them as usual: collapsing, maintenance windows, route, PagerDuty, fallback notification.
+- **Umbrella → Flow.** Incident and CI cards get a "Traffic" link to the Flow console, filtered by the
+  CI and with a time window around the incident.
 
 ```mermaid
 sequenceDiagram
   participant F as Umbrella Flow
   participant U as Umbrella
-  participant P as Дежурный
-  F->>U: POST /api/ingest/<адрес> (Bearer-токен), события firing / resolved
-  U->>U: КЕ по source_ref, имени или IP; инцидент, маршрут, PagerDuty
-  P->>U: карточка инцидента → «Трафик»
-  U-->>P: 302 на <адрес Flow>/go/incident?ci=…&ip=…&ref=…&from=…&to=…
+  participant P as On-call engineer
+  F->>U: POST /api/ingest/<address> (Bearer token), firing / resolved events
+  U->>U: CI by source_ref, name or IP; incident, route, PagerDuty
+  P->>U: incident card → "Traffic"
+  U-->>P: 302 to <Flow address>/go/incident?ci=…&ip=…&ref=…&from=…&to=…
 ```
 
-## Flow → Umbrella: события
+## Flow → Umbrella: events
 
-### Подключение
+### Connecting
 
-1. В Umbrella: «Коннекторы» (или «Системы мониторинга») → **Подключить источник** → «Umbrella Flow» →
-   «Подключить». Umbrella создаст Bearer-токен, коннектор из шаблона `network-flow` и опубликует его.
-2. Скопируйте адрес приёма и токен (токен показывается один раз) в настройки Flow (раздел «Umbrella»);
-   Flow хранит токен в OpenBao.
-3. Кнопка «Отправить тестовое событие» проверит путь до инцидента и покажет маршрут.
+1. In Umbrella: "Connectors" (or "Monitoring systems") → **Connect a source** → "Umbrella Flow" →
+   "Connect". Umbrella creates a Bearer token and a connector from the `network-flow` template, and publishes it.
+2. Copy the intake address and the token (the token is shown once) into the Flow settings (the "Umbrella" section);
+   Flow stores the token in OpenBao.
+3. The "Send a test event" button checks the path to an incident and shows the route.
 
-То же через API: `POST /api/connectors/quick` с телом `{"preset": "network-flow"}` (права `connectors:edit`,
-`connectors:publish`, `credentials:edit`), см. [connectors.md](connectors.md#быстрое-подключение-источника).
+The same via the API: `POST /api/connectors/quick` with the body `{"preset": "network-flow"}` (permissions `connectors:edit`,
+`connectors:publish`, `credentials:edit`), see [connectors.md](connectors.md#quick-source-connection).
 
-### Формат события
+### Event format
 
-Один объект или массив объектов:
+A single object or an array of objects:
 
 ```json
 {
@@ -44,7 +44,7 @@ sequenceDiagram
   "signal": "use.link.utilization",
   "method": "USE",
   "severity": "warning",
-  "title": "Загрузка канала xe-0/0/1 на edge-01 — 93.5 %",
+  "title": "Link utilization xe-0/0/1 on edge-01 — 93.5 %",
   "ci": "edge-01",
   "source_ref": "inventory-db:dcim.device:100",
   "ip": "10.0.0.1",
@@ -56,73 +56,73 @@ sequenceDiagram
 }
 ```
 
-| Поле Flow | Поле события Umbrella | Примечание |
+| Flow field | Umbrella event field | Note |
 | --- | --- | --- |
-| `id` | внешний ID, ключ дедупликации | resolved с тем же `id` закрывает событие firing |
-| `status` | статус | `firing` или `resolved`; пусто — firing |
-| `signal` | сигнал | `use.link.utilization`, `use.link.commit`, `red.ddos.volumetric`, `red.ddos.syn`, `red.traffic.anomaly`, `red.traffic.drop`, `use.exporter.silent`, `sec.threat.contact` и другие |
-| `method` | метод RED / USE | без поля — по префиксу сигнала `red.` / `use.`; иначе «другое» |
-| `severity` | важность | `critical` (P1), `error` (P2), `warning` (P3), `low` (P4), `info` (P5) и синонимы; неизвестное — P3 |
-| `title` | заголовок | пусто — сигнал |
-| `ci`, затем `ip`, затем `source_ref` | имя КЕ в событии | см. «Как находится КЕ» |
-| `value` | значение | |
-| `labels` | метки | сохраняются как есть |
-| `source_ref`, `ip`, `links.flow` | метки `source_ref`, `ip`, `flow_url` | плюс метка `source=network-flow` |
-| `links.flow`, `ip`, `source_ref`, `starts_at`, `ends_at` | поля инцидента | «Трафик в Umbrella Flow», «IP», «Inventory DB», «Начало», «Окончание»; пустые не показываются |
+| `id` | external ID, deduplication key | resolved with the same `id` closes the firing event |
+| `status` | status | `firing` or `resolved`; empty — firing |
+| `signal` | signal | `use.link.utilization`, `use.link.commit`, `red.ddos.volumetric`, `red.ddos.syn`, `red.traffic.anomaly`, `red.traffic.drop`, `use.exporter.silent`, `sec.threat.contact` and others |
+| `method` | RED / USE method | without the field — by the signal prefix `red.` / `use.`; otherwise "other" |
+| `severity` | severity | `critical` (P1), `error` (P2), `warning` (P3), `low` (P4), `info` (P5) and synonyms; unknown — P3 |
+| `title` | title | empty — the signal |
+| `ci`, then `ip`, then `source_ref` | CI name in the event | see "How the CI is found" |
+| `value` | value | |
+| `labels` | labels | kept as is |
+| `source_ref`, `ip`, `links.flow` | labels `source_ref`, `ip`, `flow_url` | plus the label `source=network-flow` |
+| `links.flow`, `ip`, `source_ref`, `starts_at`, `ends_at` | incident fields | "Трафик в Umbrella Flow" (Traffic in Umbrella Flow), "IP", "Inventory DB", "Начало" (Start), "Окончание" (End) — the field names are fixed in the template in Russian; empty ones are not shown |
 
-### Как находится КЕ
+### How the CI is found
 
-1. Метка `source_ref` (из поля `source_ref`) совпадает со ссылкой Inventory DB ровно одной КЕ — берётся
-   она. Ссылка есть у КЕ, загруженных из Inventory DB ([inventory-db.md](inventory-db.md)).
-2. Иначе — обычный поиск по имени из поля `ci` (ID, имя, короткое имя, IP, DNS-имя, псевдонимы, ручные
-   привязки хостов).
-3. Имя не нашло КЕ (или нашло несколько) — метка `ip`, если это IP-адрес ровно одной КЕ.
+1. The `source_ref` label (from the `source_ref` field) matches the Inventory DB reference of exactly one CI — that CI
+   is taken. CIs loaded from Inventory DB have the reference ([inventory-db.md](inventory-db.md)).
+2. Otherwise — the usual name lookup by the `ci` field (ID, name, short name, IP, DNS name, aliases, manual
+   host links).
+3. The name found no CI (or found several) — the `ip` label, if it is the IP address of exactly one CI.
 
-Правила 1 и 3 работают для любого коннектора, который ставит метки `source_ref` и `ip`. Инцидент без
-КЕ ждёт её, как и другие: КЕ появилась (загрузка Inventory DB, создание из карточки) — инцидент к ней
-привязывается.
+Rules 1 and 3 work for any connector that sets the `source_ref` and `ip` labels. An incident without
+a CI waits for one, like the others: once the CI appears (an Inventory DB load, creation from the card), the incident is
+bound to it.
 
-## Umbrella → Flow: ссылка «Трафик»
+## Umbrella → Flow: the "Traffic" link
 
-«Настройки → Оповещения» → карточка **Адрес Umbrella Flow** (рядом с Grafana): публичный адрес Flow,
-например `https://flow.example.com`. Пока адрес не задан, ссылок нет нигде.
+"Settings → Alerting" → the **Umbrella Flow address** card (next to Grafana): the public address of Flow,
+for example `https://flow.example.com`. As long as the address is not set, there are no links anywhere.
 
-С адресом:
+With the address:
 
-- карточка инцидента — кнопка «Трафик» на `/go/incidents/{id}/flow`;
-- карточка КЕ — строка «Трафик» на `/go/cis/{id}/flow`;
-- PagerDuty (ссылка «Traffic in Umbrella Flow») и резервное оповещение (письмо, Telegram, Teams, Zoom —
-  ссылка «Трафик») — через публичный адрес Umbrella, как ссылка на Grafana.
+- incident card — the "Traffic" button to `/go/incidents/{id}/flow`;
+- CI card — the "Traffic" row to `/go/cis/{id}/flow`;
+- PagerDuty (the "Traffic in Umbrella Flow" link) and the fallback notification (e-mail, Telegram, Teams, Zoom —
+  the "Traffic" link) — via the public Umbrella address, like the Grafana link.
 
-Umbrella отвечает перенаправлением на консоль Flow:
+Umbrella answers with a redirect to the Flow console:
 
 ```
-<адрес Flow>/go/incident?ci=<имя КЕ>&ip=<IP>&ref=<source_ref>&from=<RFC 3339>&to=<RFC 3339>
+<Flow address>/go/incident?ci=<CI name>&ip=<IP>&ref=<source_ref>&from=<RFC 3339>&to=<RFC 3339>
 ```
 
-| Параметр | Инцидент | КЕ |
+| Parameter | Incident | CI |
 | --- | --- | --- |
-| `ci` | имя КЕ из каталога, без КЕ — имя из события | имя КЕ |
-| `ip` | первый адрес КЕ, без него — метка `ip` события | первый адрес КЕ |
-| `ref` | ссылка Inventory DB КЕ, без неё — метка `source_ref` события | ссылка Inventory DB КЕ |
-| `from` | за 30 минут до открытия инцидента | час назад |
-| `to` | сейчас; у решённого — 10 минут после решения (не позже текущего момента) | сейчас |
+| `ci` | CI name from the catalog; without a CI — the name from the event | CI name |
+| `ip` | the first address of the CI; without it — the `ip` label of the event | the first address of the CI |
+| `ref` | the Inventory DB reference of the CI; without it — the `source_ref` label of the event | the Inventory DB reference of the CI |
+| `from` | 30 minutes before the incident was opened | an hour ago |
+| `to` | now; for a resolved one — 10 minutes after resolution (no later than the current moment) | now |
 
-Пустые `ip` и `ref` не передаются. Доступ — как у ссылки на Grafana: вошедший пользователь с правом
-`incidents:view` и инцидентом в своей области видимости (для КЕ — право `cis:view`) уходит во Flow,
-остальные — на инцидент (`/incidents?id=…`) или КЕ (`/cis?id=…`) в Umbrella. Переход из PagerDuty, почты
-или мессенджера приходит без cookie сессии (SameSite=Strict): Umbrella отдаёт короткую страницу,
-которая повторяет запрос уже со своего адреса.
+Empty `ip` and `ref` are not passed. Access works like the Grafana link: a signed-in user with the
+`incidents:view` permission and the incident within their visibility scope (for a CI — the `cis:view` permission) goes to Flow,
+others go to the incident (`/incidents?id=…`) or the CI (`/cis?id=…`) in Umbrella. A click from PagerDuty, e-mail
+or a messenger arrives without the session cookie (SameSite=Strict): Umbrella returns a short page
+that repeats the request from its own address.
 
 ## API
 
-| Метод | Путь | Право | Назначение |
+| Method | Path | Permission | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/flow` | `settings.alerting:view` | `{url, updated_at, updated_by}` |
-| PUT | `/api/flow` | `settings.alerting:edit` | `{url}`: http или https без параметров, конечный `/` отбрасывается; пусто — выключить ссылки; ошибка `url_invalid` |
-| GET | `/go/incidents/{id}/flow` | вход + `incidents:view` | перенаправление на трафик инцидента |
-| GET | `/go/cis/{id}/flow` | вход + `cis:view` | перенаправление на трафик КЕ за последний час |
-| POST | `/api/connectors/quick` `{"preset":"network-flow"}` | `connectors:edit`, `connectors:publish`, `credentials:edit` | быстрое подключение Flow |
+| PUT | `/api/flow` | `settings.alerting:edit` | `{url}`: http or https without parameters, a trailing `/` is dropped; empty — turn the links off; error `url_invalid` |
+| GET | `/go/incidents/{id}/flow` | sign-in + `incidents:view` | redirect to the incident's traffic |
+| GET | `/go/cis/{id}/flow` | sign-in + `cis:view` | redirect to the CI's traffic for the last hour |
+| POST | `/api/connectors/quick` `{"preset":"network-flow"}` | `connectors:edit`, `connectors:publish`, `credentials:edit` | quick connection of Flow |
 
-Ответы `GET /api/incidents/{id}` и КЕ (`GET /api/cis`, `GET /api/cis/{id}`) содержат `flow_url` (путь
-`/go/…/flow`), когда адрес Flow задан. Изменение адреса пишется в журнал аудита (`settings.flow`).
+The responses of `GET /api/incidents/{id}` and of CIs (`GET /api/cis`, `GET /api/cis/{id}`) contain `flow_url` (the
+`/go/…/flow` path) when the Flow address is set. A change of the address is written to the audit log (`settings.flow`).

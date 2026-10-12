@@ -1,24 +1,24 @@
 # Grafana
 
-Grafana 13 в общей сети `umbrella` с готовой точкой контакта «Umbrella» и дашбордом контекста инцидента.
+Grafana 13 in the shared `umbrella` network with a ready "Umbrella" contact point and the incident context dashboard.
 
 ```sh
-cp .env.example .env   # задайте GRAFANA_ADMIN_PASSWORD и UMBRELLA_INGEST_TOKEN
+cp .env.example .env   # set GRAFANA_ADMIN_PASSWORD and UMBRELLA_INGEST_TOKEN
 docker compose up -d
 ```
 
-Интерфейс: http://localhost:3000, вход `admin` и пароль из `.env`. Если Grafana открывают по другому адресу, задайте его в `GRAFANA_ROOT_URL`: из него строятся ссылки в оповещениях.
+Interface: http://localhost:3000, sign in as `admin` with the password from `.env`. If Grafana is opened at a different address, set it in `GRAFANA_ROOT_URL`: the links in notifications are built from it.
 
-## Алерты Grafana → Umbrella
+## Grafana alerts → Umbrella
 
-Проще всего: в Umbrella **Коннекторы → Подключить источник → Grafana** — токен, коннектор и публикация делаются сразу, и показываются адрес и заголовок для точки контакта. Вручную:
+The easiest way: in Umbrella, **Connectors → Connect a source → Grafana** — the token, the connector and the publication are made at once, and the address and header for the contact point are shown. Manually:
 
-1. В Umbrella: **Автоматизация → Учётные данные** — создайте Bearer-токен. **Коннекторы** — создайте коннектор из шаблона «Grafana Alerting», выберите токен в узле webhook и опубликуйте.
-2. В `.env` Grafana: `UMBRELLA_INGEST_URL` — адрес приёма коннектора (`http://umbrella:8080/api/ingest/<slug>`, если Umbrella запущена из `deploy/umbrella` на этом хосте), `UMBRELLA_INGEST_TOKEN` — токен. Затем `docker compose up -d`.
-3. Точка контакта «Umbrella» создаётся из [`provisioning/alerting/umbrella.yaml`](provisioning/alerting/umbrella.yaml) с заголовком `Authorization: Bearer <токен>`. Выберите её в **Alerting → Notification policies** (политика по умолчанию или вложенная). Проверить доставку можно кнопкой **Test** в **Alerting → Contact points**.
+1. In Umbrella: **Automation → Credentials** — create a Bearer token. **Connectors** — create a connector from the "Grafana Alerting" template, choose the token in the webhook node and publish it.
+2. In the Grafana `.env`: `UMBRELLA_INGEST_URL` — the connector's intake address (`http://umbrella:8080/api/ingest/<slug>` if Umbrella is run from `deploy/umbrella` on this host), `UMBRELLA_INGEST_TOKEN` — the token. Then `docker compose up -d`.
+3. The "Umbrella" contact point is created from [`provisioning/alerting/umbrella.yaml`](provisioning/alerting/umbrella.yaml) with the header `Authorization: Bearer <token>`. Select it in **Alerting → Notification policies** (the default policy or a nested one). You can check delivery with the **Test** button in **Alerting → Contact points**.
 
-Пресет берёт важность из метки `severity` (или `priority`), КЕ — из `instance`, `host` или `service`, значение — из `valueString`. Задайте эти метки в правилах алертов.
+The preset takes the severity from the `severity` label (or `priority`), the CI from `instance`, `host` or `service`, and the value from `valueString`. Set these labels in your alert rules.
 
-## Контекст инцидента
+## Incident context
 
-Дашборд **Umbrella → Umbrella incident** принимает переменные, которые Umbrella подставляет в ссылку из инцидента: `incident`, `ci`, `ci_id`, `service`, `team`, `signal`. Скопируйте его, добавьте свои панели с фильтром по этим переменным и укажите адрес копии в Umbrella: **Настройки → Оповещения → Grafana** (например, `http://localhost:3000/d/umbrella-incident/umbrella-incident`).
+The **Umbrella → Umbrella incident** dashboard accepts the variables that Umbrella fills into the link from an incident: `incident`, `ci`, `ci_id`, `service`, `team`, `signal`. Copy it, add your own panels filtered by these variables and enter the copy's address in Umbrella: **Settings → Alerting → Grafana** (for example, `http://localhost:3000/d/umbrella-incident/umbrella-incident`).
