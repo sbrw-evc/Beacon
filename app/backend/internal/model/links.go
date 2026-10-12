@@ -16,3 +16,14 @@ func IncidentURL(base, id string) string {
 func GrafanaHopURL(base, id string) string {
 	return strings.TrimRight(base, "/") + "/go/incidents/" + url.PathEscape(id) + "/grafana"
 }
+
+// FlowHopURL is the link that opens the traffic of an incident in Umbrella Flow through
+// Umbrella, so the link stays right when the Flow address changes.
+func FlowHopURL(base, id string) string {
+	return strings.TrimRight(base, "/") + "/go/incidents/" + url.PathEscape(id) + "/flow"
+}
+
+// CIFlowHopURL opens the recent traffic of a configuration item in Umbrella Flow through Umbrella.
+func CIFlowHopURL(base, id string) string {
+	return strings.TrimRight(base, "/") + "/go/cis/" + url.PathEscape(id) + "/flow"
+}

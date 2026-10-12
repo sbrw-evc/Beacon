@@ -22,3 +22,12 @@ func TestIncidentLinks(t *testing.T) {
 		}
 	}
 }
+
+func TestFlowLinks(t *testing.T) {
+	if got := FlowHopURL("https://umbrella.example.com/", "INC 7"); got != "https://umbrella.example.com/go/incidents/INC%207/flow" {
+		t.Errorf("FlowHopURL = %q", got)
+	}
+	if got := CIFlowHopURL("", "CI/1"); got != "/go/cis/CI%2F1/flow" {
+		t.Errorf("CIFlowHopURL = %q", got)
+	}
+}

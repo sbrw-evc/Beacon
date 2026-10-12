@@ -12,13 +12,15 @@ const (
 	PDRegionEU = "eu"
 )
 
-// Alerting holds where alerts go: PagerDuty, backup notification and Grafana.
+// Alerting holds where alerts go: PagerDuty, backup notification, Grafana and Umbrella Flow.
 type Alerting struct {
 	// PublicURL is the address people and PagerDuty reach Umbrella at, for links and webhooks.
 	PublicURL string    `json:"public_url"`
 	PagerDuty PagerDuty `json:"pagerduty"`
 	Notify    Notify    `json:"notify"`
 	Grafana   Grafana   `json:"grafana"`
+	// Flow is where the traffic of an incident or an item is shown (Umbrella Flow).
+	Flow NetworkFlow `json:"flow"`
 	// Policy tunes the lifecycle of alerts; nil keeps the defaults of the alert engine.
 	Policy *AlertPolicy `json:"policy,omitempty"`
 }
@@ -251,6 +253,15 @@ type Grafana struct {
 	WindowMinute int        `json:"window_minutes"`
 	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
 	UpdatedBy    string     `json:"updated_by,omitempty"`
+}
+
+// NetworkFlow is Umbrella Flow, the NetFlow / IPFIX / sFlow console: the incident and item
+// cards link to its traffic around the incident through Umbrella (/go/incidents/{id}/flow).
+type NetworkFlow struct {
+	// URL is the public address of Umbrella Flow, without a trailing slash; empty: no links.
+	URL       string     `json:"url"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	UpdatedBy string     `json:"updated_by,omitempty"`
 }
 
 // AlertPolicy tunes the lifecycle of alerts. A zero field keeps the default of the alert

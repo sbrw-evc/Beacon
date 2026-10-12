@@ -111,6 +111,14 @@ function Body({ ci, editable, onChanged }: { ci: CI; editable: boolean; onChange
       t('ci.netbox.none')
     ),
   ])
+  if (ci.flow_url)
+    rows.push([
+      t('ci.field.traffic'),
+      <a key="f" href={ci.flow_url} target="_blank" rel="noopener noreferrer">
+        {t('ci.flow.open')}
+        <ExternalLink size={13} aria-hidden />
+      </a>,
+    ])
   if (ci.directory) rows.push([t('ci.field.directory'), <Directory key="d" ci={ci} />])
   if (ci.presence.length > 0) rows.push([t('ci.field.presence'), <PresenceList key="p" ci={ci} />])
   rows.push(

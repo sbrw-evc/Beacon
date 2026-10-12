@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SetupGuide } from '../../guide/SetupGuide'
+import { FlowCard } from './FlowCard'
 import { GrafanaCard } from './GrafanaCard'
 import { NotifyCard } from './NotifyCard'
 import { PagerDutyCard } from './PagerDutyCard'
@@ -18,6 +19,7 @@ export function AlertingSettings() {
       <PagerDutyCard reloadKey={epoch} />
       <NotifyCard key={epoch} />
       <GrafanaCard />
+      <FlowCard />
       <PolicyCard />
     </>
   )

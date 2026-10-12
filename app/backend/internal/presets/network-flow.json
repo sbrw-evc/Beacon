@@ -1,0 +1,389 @@
+{
+  "id": "network-flow",
+  "title": {
+    "en": "Umbrella Flow (NetFlow / IPFIX / sFlow)",
+    "ru": "Umbrella Flow (NetFlow / IPFIX / sFlow)"
+  },
+  "description": {
+    "en": "Traffic events of Umbrella Flow: link utilization and commit (USE), DDoS, anomalies and drops (RED), silent exporters. One object or an array; the item comes from the Inventory DB source reference, the name or the IP; the link to the traffic is kept in the incident.",
+    "ru": "События трафика Umbrella Flow: загрузка и коммит каналов (USE), DDoS, аномалии и провалы трафика (RED), молчащие экспортёры. Один объект или массив; КЕ — по ссылке Inventory DB (source_ref), имени или IP; ссылка на трафик сохраняется в инциденте."
+  },
+  "quick": {
+    "order": 5,
+    "name": {
+      "en": "Umbrella Flow",
+      "ru": "Umbrella Flow"
+    },
+    "steps": 2,
+    "snippet": {
+      "kind": "text",
+      "template": "Umbrella ingest URL: {{.URL}}\nUmbrella token: {{.Token}}\n"
+    },
+    "test_body": "{\"ci\":{{json .CI}},\"id\":\"umbrella-test-{{.Nonce}}\",\"method\":\"USE\",\"severity\":\"warning\",\"signal\":\"umbrella_test\",\"status\":\"firing\",\"title\":{{json .Title}}}"
+  },
+  "document": {
+    "format": "umbrella.connector",
+    "format_version": 1,
+    "name": "Umbrella Flow",
+    "tags": [
+      "flow",
+      "network"
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "webhook",
+          "type": "trigger.webhook",
+          "type_version": 1,
+          "params": {
+            "credential": ""
+          },
+          "position": {
+            "x": 0,
+            "y": 120
+          }
+        },
+        {
+          "id": "parse",
+          "type": "parse.json",
+          "type_version": 1,
+          "params": {},
+          "position": {
+            "x": 260,
+            "y": 120
+          }
+        },
+        {
+          "id": "severity",
+          "type": "map.severity",
+          "type_version": 1,
+          "params": {
+            "source": "${severity}",
+            "mapping": [
+              {
+                "from": "*",
+                "to": "warning"
+              }
+            ]
+          },
+          "position": {
+            "x": 520,
+            "y": 120
+          }
+        },
+        {
+          "id": "labels",
+          "type": "enrich.labels",
+          "type_version": 1,
+          "params": {
+            "labels": [
+              {
+                "key": "source",
+                "value": "network-flow"
+              },
+              {
+                "key": "source_ref",
+                "value": "${source_ref}"
+              },
+              {
+                "key": "ip",
+                "value": "${ip}"
+              },
+              {
+                "key": "flow_url",
+                "value": "${links.flow}"
+              }
+            ]
+          },
+          "position": {
+            "x": 780,
+            "y": 120
+          }
+        },
+        {
+          "id": "method",
+          "type": "route.switch",
+          "type_version": 1,
+          "params": {
+            "rules": [
+              {
+                "output": "red",
+                "condition": "(has(event.method) && string(event.method).upperAscii() == \"RED\") || (!has(event.method) && has(event.signal) && string(event.signal).startsWith(\"red.\"))"
+              },
+              {
+                "output": "use",
+                "condition": "(has(event.method) && string(event.method).upperAscii() == \"USE\") || (!has(event.method) && has(event.signal) && string(event.signal).startsWith(\"use.\"))"
+              }
+            ]
+          },
+          "position": {
+            "x": 1040,
+            "y": 120
+          }
+        },
+        {
+          "id": "map_red",
+          "type": "map.event",
+          "type_version": 1,
+          "params": {
+            "title": "${title|$signal}",
+            "ci": "${ci|$ip|$source_ref}",
+            "signal": "${signal}",
+            "method": "red",
+            "severity": "${severity}",
+            "status": "${status}",
+            "external_id": "${id}",
+            "value": "${value}",
+            "fields": [
+              {
+                "name": "Трафик в Umbrella Flow",
+                "value": "${links.flow}"
+              },
+              {
+                "name": "Сигнал",
+                "value": "${signal}"
+              },
+              {
+                "name": "Значение",
+                "value": "${value}"
+              },
+              {
+                "name": "IP",
+                "value": "${ip}"
+              },
+              {
+                "name": "Inventory DB",
+                "value": "${source_ref}"
+              },
+              {
+                "name": "Начало",
+                "value": "${starts_at}"
+              },
+              {
+                "name": "Окончание",
+                "value": "${ends_at}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 0
+          }
+        },
+        {
+          "id": "map_use",
+          "type": "map.event",
+          "type_version": 1,
+          "params": {
+            "title": "${title|$signal}",
+            "ci": "${ci|$ip|$source_ref}",
+            "signal": "${signal}",
+            "method": "use",
+            "severity": "${severity}",
+            "status": "${status}",
+            "external_id": "${id}",
+            "value": "${value}",
+            "fields": [
+              {
+                "name": "Трафик в Umbrella Flow",
+                "value": "${links.flow}"
+              },
+              {
+                "name": "Сигнал",
+                "value": "${signal}"
+              },
+              {
+                "name": "Значение",
+                "value": "${value}"
+              },
+              {
+                "name": "IP",
+                "value": "${ip}"
+              },
+              {
+                "name": "Inventory DB",
+                "value": "${source_ref}"
+              },
+              {
+                "name": "Начало",
+                "value": "${starts_at}"
+              },
+              {
+                "name": "Окончание",
+                "value": "${ends_at}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 120
+          }
+        },
+        {
+          "id": "map_other",
+          "type": "map.event",
+          "type_version": 1,
+          "params": {
+            "title": "${title|$signal}",
+            "ci": "${ci|$ip|$source_ref}",
+            "signal": "${signal}",
+            "method": "other",
+            "severity": "${severity}",
+            "status": "${status}",
+            "external_id": "${id}",
+            "value": "${value}",
+            "fields": [
+              {
+                "name": "Трафик в Umbrella Flow",
+                "value": "${links.flow}"
+              },
+              {
+                "name": "Сигнал",
+                "value": "${signal}"
+              },
+              {
+                "name": "Значение",
+                "value": "${value}"
+              },
+              {
+                "name": "IP",
+                "value": "${ip}"
+              },
+              {
+                "name": "Inventory DB",
+                "value": "${source_ref}"
+              },
+              {
+                "name": "Начало",
+                "value": "${starts_at}"
+              },
+              {
+                "name": "Окончание",
+                "value": "${ends_at}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 240
+          }
+        },
+        {
+          "id": "event",
+          "type": "out.event",
+          "type_version": 1,
+          "params": {},
+          "position": {
+            "x": 1560,
+            "y": 120
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "webhook",
+          "source_output": "main",
+          "target": "parse"
+        },
+        {
+          "id": "e2",
+          "source": "parse",
+          "source_output": "main",
+          "target": "severity"
+        },
+        {
+          "id": "e3",
+          "source": "severity",
+          "source_output": "main",
+          "target": "labels"
+        },
+        {
+          "id": "e4",
+          "source": "labels",
+          "source_output": "main",
+          "target": "method"
+        },
+        {
+          "id": "e5",
+          "source": "method",
+          "source_output": "red",
+          "target": "map_red"
+        },
+        {
+          "id": "e6",
+          "source": "method",
+          "source_output": "use",
+          "target": "map_use"
+        },
+        {
+          "id": "e7",
+          "source": "method",
+          "source_output": "else",
+          "target": "map_other"
+        },
+        {
+          "id": "e8",
+          "source": "map_red",
+          "source_output": "main",
+          "target": "event"
+        },
+        {
+          "id": "e9",
+          "source": "map_use",
+          "source_output": "main",
+          "target": "event"
+        },
+        {
+          "id": "e10",
+          "source": "map_other",
+          "source_output": "main",
+          "target": "event"
+        }
+      ]
+    },
+    "credentials": [
+      {
+        "slot": "webhook.credential",
+        "node": "webhook",
+        "param": "credential",
+        "types": [
+          "bearer",
+          "basic",
+          "header",
+          "hmac"
+        ]
+      }
+    ],
+    "samples": [
+      {
+        "name": "Firing: link utilization (USE)",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"id\":\"flow-7f3a1c\",\"status\":\"firing\",\"signal\":\"use.link.utilization\",\"method\":\"USE\",\"severity\":\"warning\",\"title\":\"Загрузка канала xe-0/0/1 на edge-01 — 93.5 %\",\"ci\":\"edge-01\",\"source_ref\":\"inventory-db:dcim.device:100\",\"ip\":\"10.0.0.1\",\"value\":93.5,\"labels\":{\"interface\":\"xe-0/0/1\",\"direction\":\"in\",\"unit\":\"%\"},\"links\":{\"flow\":\"https://flow.example.com/visualize?exporter=10.0.0.1&if=xe-0/0/1\"},\"starts_at\":\"2026-10-12T09:00:00Z\"}"
+      },
+      {
+        "name": "Firing: DDoS (RED), batch of two",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "[{\"id\":\"flow-d1\",\"status\":\"firing\",\"signal\":\"red.ddos.volumetric\",\"method\":\"RED\",\"severity\":\"critical\",\"title\":\"Объёмная атака на 203.0.113.10: 4.2 Гбит/с\",\"ip\":\"203.0.113.10\",\"value\":4.2,\"labels\":{\"dst_ip\":\"203.0.113.10\",\"unit\":\"Gbps\",\"proto\":\"udp\"},\"links\":{\"flow\":\"https://flow.example.com/visualize?dst=203.0.113.10\"},\"starts_at\":\"2026-10-12T09:10:00Z\"},{\"id\":\"flow-d2\",\"status\":\"firing\",\"signal\":\"red.ddos.syn\",\"severity\":\"error\",\"title\":\"SYN flood на web-01\",\"ci\":\"web-01\",\"ip\":\"203.0.113.11\",\"value\":72,\"labels\":{\"syn_ratio\":\"72 %\"},\"starts_at\":\"2026-10-12T09:11:00Z\"}]"
+      },
+      {
+        "name": "Resolved: link utilization",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"id\":\"flow-7f3a1c\",\"status\":\"resolved\",\"signal\":\"use.link.utilization\",\"method\":\"USE\",\"severity\":\"warning\",\"title\":\"Загрузка канала xe-0/0/1 на edge-01 — 93.5 %\",\"ci\":\"edge-01\",\"source_ref\":\"inventory-db:dcim.device:100\",\"ip\":\"10.0.0.1\",\"value\":41.0,\"labels\":{\"interface\":\"xe-0/0/1\"},\"links\":{\"flow\":\"https://flow.example.com/visualize?exporter=10.0.0.1&if=xe-0/0/1\"},\"starts_at\":\"2026-10-12T09:00:00Z\",\"ends_at\":\"2026-10-12T09:25:00Z\"}"
+      },
+      {
+        "name": "Firing: exporter silent",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"id\":\"flow-x9\",\"status\":\"firing\",\"signal\":\"use.exporter.silent\",\"method\":\"USE\",\"severity\":\"low\",\"title\":\"Нет потоков от экспортёра core-02 10 минут\",\"ci\":\"core-02\",\"ip\":\"10.0.0.2\",\"starts_at\":\"2026-10-12T09:30:00Z\"}"
+      }
+    ]
+  }
+}

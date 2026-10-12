@@ -54,8 +54,10 @@ func CIKeys(ci *model.ConfigItem) []string {
 // items and how events name them, services, teams, people and maintenance windows. It is a
 // copy, so the engine does not hold the store lock while it talks to the database.
 type world struct {
-	cis         map[string]model.ConfigItem
-	index       map[string][]string
+	cis   map[string]model.ConfigItem
+	index map[string][]string
+	// refs are the items by the source reference Inventory DB gives them (lower case).
+	refs        map[string][]string
 	hostLinks   map[string]string
 	services    []model.Service
 	teams       map[string]model.Team
@@ -65,7 +67,7 @@ type world struct {
 }
 
 func snapshot(st *store.Store) *world {
-	w := &world{cis: map[string]model.ConfigItem{}, index: map[string][]string{}, teams: map[string]model.Team{},
+	w := &world{cis: map[string]model.ConfigItem{}, index: map[string][]string{}, refs: map[string][]string{}, teams: map[string]model.Team{},
 		users: map[string]model.User{}, members: map[string][]string{}}
 	add := func(key, id string) {
 		if key = strings.ToLower(strings.TrimSpace(key)); key != "" && !slices.Contains(w.index[key], id) {
@@ -81,6 +83,11 @@ func snapshot(st *store.Store) *world {
 			add(ci.ID, id)
 			for _, k := range CIKeys(ci) {
 				add(k, id)
+			}
+			if ci.InventoryDB != nil {
+				if ref := strings.ToLower(strings.TrimSpace(ci.InventoryDB.Ref)); ref != "" && !slices.Contains(w.refs[ref], id) {
+					w.refs[ref] = append(w.refs[ref], id)
+				}
 			}
 		}
 		for _, s := range d.Services {
@@ -108,6 +115,9 @@ func snapshot(st *store.Store) *world {
 	for _, ids := range w.index {
 		slices.Sort(ids)
 	}
+	for _, ids := range w.refs {
+		slices.Sort(ids)
+	}
 	for _, ids := range w.members {
 		slices.Sort(ids)
 	}
@@ -122,12 +132,29 @@ func (w *world) resolve(name string, labels map[string]string) *model.ConfigItem
 	return ci
 }
 
-// resolveCI finds the configuration item an event is about: a ci label wins over the ci field.
+// Labels an event may carry besides the ci field to name its item more precisely.
+const (
+	// LabelSourceRef is the source reference of the item in Inventory DB
+	// (inventory-db:dcim.device:100), as Umbrella Flow sends it.
+	LabelSourceRef = "source_ref"
+	// LabelIP is an IP address of the item, tried when the ci field matches no item.
+	LabelIP = "ip"
+)
+
+// resolveCI finds the configuration item an event is about. A source_ref label that names the
+// Inventory DB reference of exactly one item wins. Otherwise a ci label wins over the ci field.
 // The hosts linked by hand on the monitoring systems page come first: a linked host resolves
 // to its item, a host marked as no item is excluded. Then the item is matched by ID, name,
 // short name, IP address or the DNS name of its computer object. An ambiguous name matches
-// nothing.
+// nothing. A name that matches no item (or several) falls back to the ip label, when it is an
+// IP address of exactly one item.
 func (w *world) resolveCI(name string, labels map[string]string) (ci *model.ConfigItem, excluded bool) {
+	if ref := strings.ToLower(strings.TrimSpace(labels[LabelSourceRef])); ref != "" {
+		if ids := w.refs[ref]; len(ids) == 1 {
+			c := w.cis[ids[0]]
+			return &c, false
+		}
+	}
 	name = eventCIName(name, labels)
 	if name == "" {
 		return nil, false
@@ -149,7 +176,13 @@ func (w *world) resolveCI(name string, labels map[string]string) (ci *model.Conf
 			return &c, false
 		}
 		if len(ids) > 1 {
-			return nil, false
+			break
+		}
+	}
+	if ip := strings.TrimSpace(labels[LabelIP]); net.ParseIP(ip) != nil {
+		if ids := w.index[strings.ToLower(ip)]; len(ids) == 1 {
+			c := w.cis[ids[0]]
+			return &c, false
 		}
 	}
 	return nil, false

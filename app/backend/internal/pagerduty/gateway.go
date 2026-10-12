@@ -178,7 +178,7 @@ func (g *Gateway) deliver(ctx context.Context, cmd alert.Command) {
 		g.report(cmd, routeName, routeID, &alert.DeliveryError{Code: "key_unavailable", Msg: "integration key", Detail: err.Error(), Err: err})
 		return
 	}
-	ev := Build(all.PublicURL, all.Grafana.DashboardURL != "", key, cmd)
+	ev := Build(all.PublicURL, all.Grafana.DashboardURL != "", all.Flow.URL != "", key, cmd)
 	backoff := g.Backoff
 	for attempt := 0; attempt < g.Retries; attempt++ {
 		if g.breakerOpen() {
@@ -340,7 +340,7 @@ func people(list []alert.Person) []string {
 }
 
 // Build makes the Events API v2 event of a command. Only trigger carries the payload.
-func Build(publicURL string, grafana bool, routingKey string, cmd alert.Command) Event {
+func Build(publicURL string, grafana, flow bool, routingKey string, cmd alert.Command) Event {
 	a := cmd.Alert
 	ev := Event{RoutingKey: routingKey, EventAction: string(cmd.Action), DedupKey: a.PD.Key, Client: "Umbrella"}
 	base := strings.TrimRight(publicURL, "/")
@@ -422,6 +422,9 @@ func Build(publicURL string, grafana bool, routingKey string, cmd alert.Command)
 		if grafana {
 			ev.Links = append(ev.Links, Link{Href: model.GrafanaHopURL(base, a.ID), Text: "Incident context in Grafana"})
 		}
+		if flow {
+			ev.Links = append(ev.Links, Link{Href: model.FlowHopURL(base, a.ID), Text: "Traffic in Umbrella Flow"})
+		}
 	}
 	return ev
 }
@@ -478,10 +481,10 @@ func (g *Gateway) SendTest(ctx context.Context, key string) error {
 	now := time.Now().UTC()
 	a := alert.Alert{ID: "TEST", PD: alert.PD{Key: fmt.Sprintf("umb-test-%d", now.Unix())}, Title: "Umbrella → PagerDuty connection test",
 		CIName: "umbrella", Severity: "info", Signal: "umbrella.test", OpenedAt: now, Sources: map[string]*alert.Source{}}
-	if err := g.post(ctx, set.Events(), Build("", false, key, alert.Command{Action: alert.PDTrigger, Alert: a})); err != nil {
+	if err := g.post(ctx, set.Events(), Build("", false, false, key, alert.Command{Action: alert.PDTrigger, Alert: a})); err != nil {
 		return err
 	}
-	return g.post(ctx, set.Events(), Build("", false, key, alert.Command{Action: alert.PDResolve, Alert: a}))
+	return g.post(ctx, set.Events(), Build("", false, false, key, alert.Command{Action: alert.PDResolve, Alert: a}))
 }
 
 // truncate cuts to n characters, as the Events API counts its limits.

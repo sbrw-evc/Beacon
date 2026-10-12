@@ -8,6 +8,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8080',
       '/healthz': 'http://localhost:8080',
+      '/go/': 'http://localhost:8080',
     },
   },
 })

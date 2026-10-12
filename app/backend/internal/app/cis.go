@@ -73,6 +73,9 @@ type CIView struct {
 	NotMonitored bool `json:"not_monitored"`
 	Editable     bool `json:"editable"`
 	Registrable  bool `json:"registrable"`
+	// FlowURL leads to the recent traffic of the item in Umbrella Flow through Umbrella
+	// (/go/cis/{id}/flow); empty while the Flow address is not set.
+	FlowURL string `json:"flow_url,omitempty"`
 }
 
 type CISummary struct {
@@ -143,6 +146,9 @@ func ciViewWith(d *store.Data, ci *model.ConfigItem, services map[string][]Servi
 	v.NotMonitored = len(sources) > 0 && notMonitored(ci, v.Monitoring)
 	v.Presence = presence(d, ci, v.Monitoring, sources)
 	v.Registrable = !ci.Imported() && ci.NetBox == nil && netboxKindOf[ci.Kind] != ""
+	if d.Settings.Alerting.Flow.URL != "" {
+		v.FlowURL = model.CIFlowHopURL("", ci.ID)
+	}
 	if v.IPs == nil {
 		v.IPs = []string{}
 	}

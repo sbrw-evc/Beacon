@@ -168,6 +168,8 @@ type Message struct {
 	PDMode string
 	// Links (empty when the public address is not set, Ack also when links are off).
 	Ack, Open, Grafana string
+	// Flow is the traffic of the incident in Umbrella Flow (empty while its address is not set).
+	Flow string
 	// Follow-up: Event is acknowledged or resolved.
 	Event                  string
 	AckedBy, AckedAt       string

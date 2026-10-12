@@ -9,4 +9,4 @@
 {{end}}{{html (t "opened")}}: {{html .Opened}}
 {{if ne .PDState "off"}}{{html (t "pd")}}: {{html (include "fallback.pd" .)}}
 {{end}}{{if or .Ack .Open}}
-{{end}}{{with .Ack}}<a href="{{html .}}">{{html (t "ack")}}</a>{{if $.Open}} · {{end}}{{end}}{{with .Open}}<a href="{{html .}}">{{html (t "open")}}</a>{{end}}{{with .Grafana}} · <a href="{{html .}}">Grafana</a>{{end}}
+{{end}}{{with .Ack}}<a href="{{html .}}">{{html (t "ack")}}</a>{{if $.Open}} · {{end}}{{end}}{{with .Open}}<a href="{{html .}}">{{html (t "open")}}</a>{{end}}{{with .Grafana}} · <a href="{{html .}}">Grafana</a>{{end}}{{with .Flow}} · <a href="{{html .}}">{{html (t "traffic")}}</a>{{end}}

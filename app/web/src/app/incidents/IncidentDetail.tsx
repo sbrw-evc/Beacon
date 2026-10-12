@@ -125,6 +125,12 @@ export function IncidentDetail({ id, actor, onClose, onChanged, onOpen }: Props)
             <ExternalLink size={14} aria-hidden />
           </a>
         )}
+        {d?.flow_url && (
+          <a className="btn btn-ghost" href={d.flow_url} target="_blank" rel="noopener noreferrer" title={t('inc.flow.hint')}>
+            {t('inc.flow')}
+            <ExternalLink size={14} aria-hidden />
+          </a>
+        )}
         {a?.pd.incident_url && (
           <a className="btn btn-ghost" href={a.pd.incident_url} target="_blank" rel="noopener noreferrer">
             {t('inc.pd.open')}

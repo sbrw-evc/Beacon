@@ -7,7 +7,7 @@
   },
   "order": 100,
   "quick": {
-    "order": 5,
+    "order": 6,
     "name": {"en": "Webhook", "ru": "Webhook"},
     "steps": 1,
     "snippet": {"kind": "shell", "template": "curl -X POST {{quote .URL}} \\\n  -H \"Authorization: Bearer {{.Token}}\" -H \"Content-Type: application/json\" \\\n  -d '{\"id\":\"1\",\"host\":\"db-01\",\"signal\":\"disk\",\"severity\":\"critical\",\"status\":\"firing\",\"title\":\"Disk is full\"}'\n"},

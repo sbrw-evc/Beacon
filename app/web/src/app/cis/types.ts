@@ -53,6 +53,8 @@ export type CI = {
   not_monitored: boolean
   editable: boolean
   registrable: boolean
+  // The recent traffic of the item in Umbrella Flow through Umbrella (/go/cis/{id}/flow).
+  flow_url?: string
   created_at: string
   created_by: string
   updated_at: string

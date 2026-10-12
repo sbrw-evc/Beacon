@@ -94,6 +94,9 @@ type incidentView struct {
 	Alert    alert.Alert   `json:"alert"`
 	Timeline []alert.Entry `json:"timeline"`
 	Grafana  string        `json:"grafana_url,omitempty"`
+	// Flow is the link to the traffic of the incident in Umbrella Flow through Umbrella
+	// (/go/incidents/{id}/flow); empty while the Flow address is not set.
+	Flow string `json:"flow_url,omitempty"`
 	// Connectors names the connectors of the sources.
 	Connectors map[string]string `json:"connectors"`
 	// CI, Services and Maintenance: what the catalog has on the item, the services (with their
@@ -118,6 +121,9 @@ func (a *App) getIncident(w http.ResponseWriter, r *http.Request) {
 	names := map[string]string{}
 	view := incidentView{Alert: al.Redacted(), Timeline: entries, Grafana: a.grafanaLink(al), Connectors: names}
 	a.deps.Store.Read(func(d *store.Data) {
+		if d.Settings.Alerting.Flow.URL != "" {
+			view.Flow = model.FlowHopURL("", al.ID)
+		}
 		incidentContext(d, al, &view)
 		for _, src := range al.Sources {
 			if c := d.Connectors[src.ConnectorID]; c != nil {

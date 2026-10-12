@@ -515,7 +515,7 @@ type link struct {
 // withLinks adds the links of a message in the language of the messages.
 func (c composed) withLinks(locale string, m Message) composed {
 	w := lang(locale)
-	for _, l := range []link{{w["ack"], m.Ack, true}, {w["open"], m.Open, false}, {"Grafana", m.Grafana, false}} {
+	for _, l := range []link{{w["ack"], m.Ack, true}, {w["open"], m.Open, false}, {"Grafana", m.Grafana, false}, {w["traffic"], m.Flow, false}} {
 		if l.url != "" {
 			c.links = append(c.links, l)
 		}
@@ -563,6 +563,9 @@ func (s *Service) incidentMessage(c config, a alert.Alert, tz *time.Location) Me
 		m.Open = model.IncidentURL(base, a.ID)
 		if c.set.Grafana.DashboardURL != "" && a.FollowUp == "" {
 			m.Grafana = model.GrafanaHopURL(base, a.ID)
+		}
+		if c.set.Flow.URL != "" && a.FollowUp == "" {
+			m.Flow = model.FlowHopURL(base, a.ID)
 		}
 	}
 	return m

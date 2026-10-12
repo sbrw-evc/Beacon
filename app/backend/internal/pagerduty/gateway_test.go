@@ -165,9 +165,31 @@ func TestWebhookOccurredAt(t *testing.T) {
 func TestBuildSeverity(t *testing.T) {
 	for sev, want := range map[string]string{"critical": "critical", "error": "error", "warning": "warning", "low": "info", "info": "info"} {
 		a := alert.Alert{ID: "INC-1", PD: alert.PD{Key: "umb-INC-1"}, Title: "Down", Severity: sev, Sources: map[string]*alert.Source{}}
-		ev := pagerduty.Build("", false, "key", alert.Command{Action: alert.PDTrigger, Alert: a})
+		ev := pagerduty.Build("", false, false, "key", alert.Command{Action: alert.PDTrigger, Alert: a})
 		if ev.Payload == nil || ev.Payload.Severity != want {
 			t.Errorf("%s: payload severity = %+v, want %s", sev, ev.Payload, want)
 		}
+	}
+}
+
+// With a public address the event links to the incident, and to Grafana and Umbrella Flow
+// when they are set up, all through Umbrella.
+func TestBuildLinks(t *testing.T) {
+	a := alert.Alert{ID: "INC-1", PD: alert.PD{Key: "umb-INC-1"}, Title: "Down", Severity: "critical", Sources: map[string]*alert.Source{}}
+	links := func(grafana, flow bool) []string {
+		var out []string
+		for _, l := range pagerduty.Build("https://umb.example/", grafana, flow, "key", alert.Command{Action: alert.PDTrigger, Alert: a}).Links {
+			out = append(out, l.Href)
+		}
+		return out
+	}
+	if got := links(false, false); len(got) != 1 || got[0] != "https://umb.example/incidents?id=INC-1" {
+		t.Errorf("links = %v", got)
+	}
+	if got := links(false, true); len(got) != 2 || got[1] != "https://umb.example/go/incidents/INC-1/flow" {
+		t.Errorf("links = %v", got)
+	}
+	if got := links(true, true); len(got) != 3 || got[1] != "https://umb.example/go/incidents/INC-1/grafana" {
+		t.Errorf("links = %v", got)
 	}
 }

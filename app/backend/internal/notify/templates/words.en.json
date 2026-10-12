@@ -46,6 +46,7 @@
   "test_body": "This is a test message. If you see it, the channel is set up.",
   "tg.acked": "Taken: {who}",
   "tg.resolved": "Resolved: {who}",
+  "traffic": "Traffic",
   "warning": "P3 · medium",
   "why": "You get this because you are in the team that owns the service or you are responsible for the CI."
 }

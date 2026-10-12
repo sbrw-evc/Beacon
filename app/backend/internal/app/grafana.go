@@ -144,26 +144,11 @@ func (a *App) grafanaRedirect(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fallback, http.StatusFound)
 		return
 	}
-	c, err := r.Cookie(CookieName)
-	if err != nil {
-		if r.URL.Query().Get(sameSiteHop) == "" {
-			hopPage(w, model.GrafanaHopURL("", id)+"?"+sameSiteHop+"=1")
-			return
-		}
-		http.Redirect(w, r, fallback, http.StatusFound)
+	u, ok := a.hopUser(w, r, model.GrafanaHopURL("", id), fallback)
+	if !ok {
 		return
 	}
-	ss := a.deps.Sessions.Get(c.Value)
-	var u *model.User
-	if ss != nil {
-		a.deps.Store.Read(func(d *store.Data) {
-			if x := d.Users[ss.UserID]; x != nil && !x.Disabled {
-				cp := *x
-				u = &cp
-			}
-		})
-	}
-	if u == nil || !a.access.Permissions(*u).Has("incidents:view") {
+	if !a.access.Permissions(*u).Has("incidents:view") {
 		http.Redirect(w, r, fallback, http.StatusFound)
 		return
 	}
@@ -178,6 +163,37 @@ func (a *App) grafanaRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, link, http.StatusFound)
+}
+
+// hopUser is the signed-in user of a request to a /go/ link (hop is its path). Without the
+// session cookie the first request gets the hop page and the second goes to the fallback; a
+// session that is gone or a disabled user goes to the fallback too. ok is false when the
+// response is written.
+func (a *App) hopUser(w http.ResponseWriter, r *http.Request, hop, fallback string) (*model.User, bool) {
+	c, err := r.Cookie(CookieName)
+	if err != nil {
+		if r.URL.Query().Get(sameSiteHop) == "" {
+			hopPage(w, hop+"?"+sameSiteHop+"=1")
+			return nil, false
+		}
+		http.Redirect(w, r, fallback, http.StatusFound)
+		return nil, false
+	}
+	ss := a.deps.Sessions.Get(c.Value)
+	var u *model.User
+	if ss != nil {
+		a.deps.Store.Read(func(d *store.Data) {
+			if x := d.Users[ss.UserID]; x != nil && !x.Disabled {
+				cp := *x
+				u = &cp
+			}
+		})
+	}
+	if u == nil {
+		http.Redirect(w, r, fallback, http.StatusFound)
+		return nil, false
+	}
+	return u, true
 }
 
 // sameSiteHop marks the request made again from Umbrella's own page.

@@ -29,7 +29,7 @@ func pipeline(t *testing.T, p Preset) *flow.Pipeline {
 
 // Every preset compiles once a credential is chosen, and its samples produce events without failures.
 func TestPresets(t *testing.T) {
-	if len(All()) != 5 {
+	if len(All()) != 6 {
 		t.Fatalf("presets = %d", len(All()))
 	}
 	for _, p := range All() {
@@ -52,14 +52,14 @@ func TestOrder(t *testing.T) {
 	for _, p := range All() {
 		ids = append(ids, p.ID)
 	}
-	if strings.Join(ids, ",") != "grafana,graylog,alertmanager,zabbix,webhook" {
+	if strings.Join(ids, ",") != "grafana,graylog,alertmanager,network-flow,zabbix,webhook" {
 		t.Errorf("catalog = %v", ids)
 	}
 	ids = nil
 	for _, p := range QuickAll() {
 		ids = append(ids, p.ID)
 	}
-	if strings.Join(ids, ",") != "zabbix,alertmanager,grafana,graylog,webhook" {
+	if strings.Join(ids, ",") != "zabbix,alertmanager,grafana,graylog,network-flow,webhook" {
 		t.Errorf("quick = %v", ids)
 	}
 }

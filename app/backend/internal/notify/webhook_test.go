@@ -88,7 +88,7 @@ func TestTeamsAndZoomBackupNotification(t *testing.T) {
 			ack = act["url"].(string)
 		}
 	}
-	if strings.Join(titles, ",") != "Подтвердить,Открыть в Umbrella,Grafana" {
+	if strings.Join(titles, ",") != "Подтвердить,Открыть в Umbrella,Grafana,Трафик" {
 		t.Fatalf("actions: %v", titles)
 	}
 	// The acknowledgement link names the channel, redacted.
