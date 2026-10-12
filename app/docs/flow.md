@@ -199,12 +199,28 @@ Authorization: Bearer umb_…
 
 `deploy/grafana/flow-ci-traffic.json` — the "CI traffic" dashboard (uid `flow-ci-traffic`) on the Flow ClickHouse
 datasource (`grafana-clickhouse-datasource`, uid `flow-clickhouse`) with the variables `ci`, `ci_id`, `ip`, `ref`:
-traffic in / out of the CI (`SrcCI` / `DstCI` = `ref` or `SrcAddr` / `DstAddr` = `ip`), top talkers, top ports and
-applications, top interfaces, and a long-range panel over `flows_1m` / `flows_5m` / `flows_1h`. Setting it up and the
+traffic in / out of the CI (`SrcCI` / `DstCI` = `ref` or `SrcAddr` / `DstAddr` = `ip`, else the host name `ci`), top
+talkers, top ports and applications, top interfaces, a long-range panel over `flows_1m` / `flows_5m` / `flows_1h`, and,
+for a CI that exports flows itself (a router with an interface utilization incident), the traffic it carried per
+interface (`ExporterRef` = `ref` or `ExporterAddress` = `ip`). The file is identical in both repositories. Setting it up and the
 environment of the datasource: [deploy/grafana/README.md](../../deploy/grafana/README.md#umbrella-flow-ci-traffic).
 Set its address in **Settings → Alerting → Grafana**: the incident link fills `ci`, `ci_id`, `ip` (the first
 address of the CI, else the `ip` label of the events) and `ref` (the Inventory DB reference of the CI, else the
 `source_ref` label), next to the variables of the incident dashboard.
+
+## Verified end to end
+
+On one host with Umbrella Flow, Inventory DB, OpenBao and PostgreSQL, wired only through the APIs above: the
+`network-flow` quick connect received Flow's link-utilization events, which opened an incident on the exporter's CI
+(found by the Inventory DB `source_ref` of a CI loaded from Inventory DB) and resolved it when the condition cleared;
+the incident's "Traffic" link (`/go/incidents/{id}/flow`) and the CI's (`/go/cis/{id}/flow`) opened Flow filtered on
+the CI; a service account with `integrations.flow:read` and `cmdb:propose` served the scope of a user with one chosen
+service (Flow showed that user only the flows of that service's CI) and delivered a dependency proposal whose implied
+service dependency appears on the CMDB map.
+
+![Incident with the Traffic link](screens/flow-incident-traffic-e2e.png)
+
+![Proposed dependencies on the CMDB map](screens/cmdb-proposals-e2e.png)
 
 ## API
 

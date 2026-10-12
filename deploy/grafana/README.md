@@ -36,23 +36,29 @@ is `docs/integrations.md` §3.5 there.
   image yourself and set `GRAFANA_PLUGINS=`).
 - **Variables** — `ci` (name, shown in titles), `ci_id` (Umbrella CI ID), `ip` (an address of the item), `ref` (its
   Inventory DB reference, e.g. `inventory-db:dcim.device:100`), `rollup` (the aggregated table of the long-range panel:
-  `flows_1m`, `flows_5m`, `flows_1h`). Umbrella's incident link fills `ci`, `ci_id`, `ip` and `ref` (the first address
-  and the Inventory DB reference of the CI, or the `ip` and `source_ref` labels of the events).
+  `flows_1m`, `flows_5m`, `flows_1h`), and the hidden constant `db` (the Flow ClickHouse database, `flow`; change it
+  in the dashboard when Flow uses another one). Umbrella's incident link fills `ci`, `ci_id`, `ip` and `ref` (the first
+  address and the Inventory DB reference of the CI, or the `ip` and `source_ref` labels of the events).
 - **Panels** — totals in / out, peers and flows; traffic in / out in bit/s (raw `flows`, matched by
-  `DstCI` / `SrcCI` = `ref` or `DstAddr` / `SrcAddr` = `ip`); the long-range traffic by reference from the chosen
-  aggregate (the aggregates keep no addresses or ports); top talkers (peer address, host, Inventory DB reference); top
-  ports and applications (protocol, the lower port, the application Flow detected); top interfaces (exporter, input
-  and output interface). `Bytes` in Flow are already multiplied by the sampling rate. The raw table is kept 15 days
-  by default, `flows_1m` 30 days, `flows_5m` 90 days, `flows_1h` two years.
+  `DstCI` / `SrcCI` = `ref` or `DstAddr` / `SrcAddr` = `ip`; with both empty, by the host name `ci`); the long-range
+  traffic by reference from the chosen aggregate (the aggregates keep no addresses or ports; buckets are at least the
+  aggregate's step); top talkers (peer address, host, Inventory DB reference); top ports and applications (protocol,
+  the lower port, the application Flow detected); top interfaces (exporter, input and output interface). For an item
+  that exports flows itself (a router or a switch: interface utilization incidents) two more panels show what it
+  carried, matched by `ExporterRef` = `ref` or `ExporterAddress` = `ip`: bit/s per input interface (top 10) and every
+  interface with its speed and utilization. `Bytes` in Flow are already multiplied by the sampling rate. The raw table
+  is kept 15 days by default, `flows_1m` 30 days, `flows_5m` 90 days, `flows_1h` two years.
+- **Verified** against a real ClickHouse filled by Flow's demo exporter and cloud flow logs: every panel's SQL with
+  the variables of a host CI (`ref` + `ip`), a router CI, `ip` only and `ci` only.
 
 Environment (`.env`):
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `FLOW_CLICKHOUSE_HOST` | host of the Flow ClickHouse HTTP interface (port 8123) as Grafana reaches it | `flow-clickhouse` |
-| `FLOW_CLICKHOUSE_USER` | ClickHouse user; a read-only user is enough | `flow` |
-| `FLOW_CLICKHOUSE_PASSWORD` | its password (`CLICKHOUSE_PASSWORD` of the Flow deployment) | — |
-| `FLOW_CLICKHOUSE_DATABASE` | Flow database | `flow` |
+| `FLOW_CLICKHOUSE_USER` | ClickHouse user: the read-only user `grafana` the Flow deployment creates (`SELECT` on `flow.*`) | `grafana` |
+| `FLOW_CLICKHOUSE_PASSWORD` | its password (`CLICKHOUSE_GRAFANA_PASSWORD` of the Flow deployment) | — |
+| `FLOW_CLICKHOUSE_DATABASE` | default database of the datasource (the dashboard names its tables through `db`) | `flow` |
 | `GRAFANA_PLUGINS` | plugins installed on start | `grafana-clickhouse-datasource` |
 
 The port (8123), the protocol (HTTP) and TLS (off) are set in the datasource file; change them there for HTTPS or the
