@@ -1,0 +1,25 @@
+.src-explain { margin: 4px 0 0; max-width: 80ch; }
+.src-explain a { white-space: nowrap; }
+.src-copy { flex-wrap: nowrap; gap: 8px; }
+.src-copy .input { flex: 1; min-width: 0; }
+.src-h { font-size: 15px; margin: 4px 0 0; }
+.src-steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.src-snippet pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  font-size: 12px;
+  white-space: pre;
+}
+.src-test { padding: 14px; }
+.src-route { margin: 4px 0 6px; padding-left: 18px; }
+.mon-system { padding: 16px; display: grid; gap: 12px; }
+.mon-system-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.mon-system-head h2 { font-size: 17px; margin: 0; }
+.mon-system-body { display: grid; gap: 10px; }
+.mon-kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+.mon-kv dt { color: var(--muted, #888); }
+.mon-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }

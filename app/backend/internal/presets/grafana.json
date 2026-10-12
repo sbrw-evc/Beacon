@@ -1,0 +1,260 @@
+{
+  "id": "grafana",
+  "title": {
+    "en": "Grafana Alerting",
+    "ru": "Grafana Alerting"
+  },
+  "description": {
+    "en": "Grafana contact point of type webhook, or polling of the Grafana Alerting API from Monitoring systems: one record per alert instance. Long descriptions (stack traces) are cleaned and shortened, the title is one line, the full text is kept in the incident.",
+    "ru": "Точка контакта Grafana типа webhook или опрос Grafana Alerting API из «Систем мониторинга»: запись на каждый экземпляр алерта. Длинные описания (стектрейсы) очищаются и сокращаются, заголовок — одна строка, полный текст сохраняется в инциденте."
+  },
+  "quick": {
+    "order": 3,
+    "name": {
+      "en": "Grafana",
+      "ru": "Grafana"
+    },
+    "monitoring_kinds": [
+      "grafana",
+      "prometheus"
+    ],
+    "steps": 2,
+    "snippet": {
+      "kind": "text",
+      "template": "Integration: Webhook\nURL: {{.URL}}\nHTTP Method: POST\nAuthorization Header - Scheme: Bearer\nAuthorization Header - Credentials: {{.Token}}\n"
+    },
+    "test_body": "{\"alerts\":[{\"annotations\":{\"summary\":{{json .Title}}},\"fingerprint\":\"umbrella-test-{{.Nonce}}\",\"labels\":{\"alertname\":\"UmbrellaTest\",\"instance\":{{json .CI}},\"severity\":\"warning\"},\"status\":\"firing\"}],\"receiver\":\"umbrella\",\"status\":\"firing\"}"
+  },
+  "document": {
+    "format": "umbrella.connector",
+    "format_version": 1,
+    "name": "Grafana Alerting",
+    "tags": [
+      "grafana"
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "webhook",
+          "type": "trigger.webhook",
+          "type_version": 1,
+          "params": {
+            "credential": ""
+          },
+          "position": {
+            "x": 0,
+            "y": 120
+          }
+        },
+        {
+          "id": "parse",
+          "type": "parse.json",
+          "type_version": 1,
+          "params": {
+            "items": "alerts",
+            "root_as": "batch"
+          },
+          "position": {
+            "x": 260,
+            "y": 120
+          }
+        },
+        {
+          "id": "text",
+          "type": "transform.text",
+          "type_version": 1,
+          "params": {
+            "source": "${annotations.description|$annotations.message|$batch.message}",
+            "target": "details",
+            "unescape": true,
+            "strip_ansi": true,
+            "strip_html": false,
+            "blank_lines": "squeeze",
+            "trim": true,
+            "head_lines": 60.0,
+            "tail_lines": 20.0,
+            "skip_marker": "… {n} lines skipped …",
+            "max_chars": 0.0,
+            "summary_target": "summary",
+            "summary": "error_line",
+            "summary_max": 200.0
+          },
+          "position": {
+            "x": 520,
+            "y": 120
+          }
+        },
+        {
+          "id": "severity",
+          "type": "map.severity",
+          "type_version": 1,
+          "params": {
+            "source": "${labels.severity|$labels.priority}",
+            "mapping": [
+              {
+                "from": "*",
+                "to": "warning"
+              }
+            ]
+          },
+          "position": {
+            "x": 780,
+            "y": 120
+          }
+        },
+        {
+          "id": "labels",
+          "type": "enrich.labels",
+          "type_version": 1,
+          "params": {
+            "labels": [
+              {
+                "key": "source",
+                "value": "grafana"
+              },
+              {
+                "key": "folder",
+                "value": "${labels.grafana_folder}"
+              },
+              {
+                "key": "dashboard",
+                "value": "${dashboardURL}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1040,
+            "y": 120
+          }
+        },
+        {
+          "id": "map",
+          "type": "map.event",
+          "type_version": 1,
+          "params": {
+            "title": "${annotations.summary|$summary|$labels.alertname|firstline|truncate:200}",
+            "ci": "${labels.instance|$labels.host|$labels.hostname|$labels.service|$labels.grafana_folder}",
+            "signal": "${labels.alertname}",
+            "method": "other",
+            "severity": "${severity}",
+            "status": "${status}",
+            "external_id": "${fingerprint}",
+            "value": "${valueString|oneline|truncate:200}",
+            "description": "${details}",
+            "fields": [
+              {
+                "name": "Правило",
+                "value": "${labels.alertname}"
+              },
+              {
+                "name": "Папка",
+                "value": "${labels.grafana_folder}"
+              },
+              {
+                "name": "Значение",
+                "value": "${valueString}"
+              },
+              {
+                "name": "Правило в Grafana",
+                "value": "${generatorURL}"
+              },
+              {
+                "name": "Дашборд",
+                "value": "${panelURL|$dashboardURL}"
+              },
+              {
+                "name": "Runbook",
+                "value": "${annotations.runbook_url}"
+              },
+              {
+                "name": "Начало",
+                "value": "${startsAt}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 120
+          }
+        },
+        {
+          "id": "event",
+          "type": "out.event",
+          "type_version": 1,
+          "params": {},
+          "position": {
+            "x": 1560,
+            "y": 120
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "webhook",
+          "source_output": "main",
+          "target": "parse"
+        },
+        {
+          "id": "e2",
+          "source": "parse",
+          "source_output": "main",
+          "target": "text"
+        },
+        {
+          "id": "e3",
+          "source": "text",
+          "source_output": "main",
+          "target": "severity"
+        },
+        {
+          "id": "e4",
+          "source": "severity",
+          "source_output": "main",
+          "target": "labels"
+        },
+        {
+          "id": "e5",
+          "source": "labels",
+          "source_output": "main",
+          "target": "map"
+        },
+        {
+          "id": "e6",
+          "source": "map",
+          "source_output": "main",
+          "target": "event"
+        }
+      ]
+    },
+    "credentials": [
+      {
+        "slot": "webhook.credential",
+        "node": "webhook",
+        "param": "credential",
+        "types": [
+          "bearer",
+          "basic",
+          "header",
+          "hmac"
+        ]
+      }
+    ],
+    "samples": [
+      {
+        "name": "Firing: API latency",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"receiver\":\"umbrella\",\"status\":\"firing\",\"orgId\":1,\"alerts\":[{\"status\":\"firing\",\"labels\":{\"alertname\":\"API latency\",\"grafana_folder\":\"Payments\",\"service\":\"payments-api\",\"severity\":\"error\"},\"annotations\":{\"summary\":\"p95 latency of payments-api is above 800 ms\"},\"startsAt\":\"2026-10-05T10:00:00Z\",\"generatorURL\":\"http://grafana/alerting/grafana/abc/view\",\"fingerprint\":\"b7d0e5f4a3c21908\",\"dashboardURL\":\"http://grafana/d/payments\",\"valueString\":\"[ var='A' labels={service=payments-api} value=912 ]\"}],\"groupLabels\":{\"alertname\":\"API latency\"},\"commonLabels\":{\"alertname\":\"API latency\"},\"title\":\"[FIRING:1] API latency\",\"state\":\"alerting\",\"message\":\"p95 latency is high\"}"
+      },
+      {
+        "name": "Firing: stack trace in the description",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"receiver\": \"umbrella\", \"status\": \"firing\", \"orgId\": 1, \"alerts\": [{\"status\": \"firing\", \"labels\": {\"alertname\": \"Payments errors\", \"grafana_folder\": \"Payments\", \"instance\": \"pay-01\", \"severity\": \"critical\"}, \"annotations\": {\"description\": \"java.lang.IllegalStateException: Connection pool exhausted\\\\n\\\\tat com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:155)\\\\n\\\\tat org.springframework.frame1.Invoke.call(Invoke.java:1)\\\\n\\\\tat org.springframework.frame2.Invoke.call(Invoke.java:2)\\\\n\\\\tat org.springframework.frame3.Invoke.call(Invoke.java:3)\\\\n\\\\tat org.springframework.frame4.Invoke.call(Invoke.java:4)\\\\n\\\\tat org.springframework.frame5.Invoke.call(Invoke.java:5)\\\\n\\\\tat org.springframework.frame6.Invoke.call(Invoke.java:6)\\\\n\\\\tat org.springframework.frame7.Invoke.call(Invoke.java:7)\\\\n\\\\tat org.springframework.frame8.Invoke.call(Invoke.java:8)\\\\n\\\\tat org.springframework.frame9.Invoke.call(Invoke.java:9)\\\\n\\\\tat org.springframework.frame10.Invoke.call(Invoke.java:10)\\\\n\\\\tat org.springframework.frame11.Invoke.call(Invoke.java:11)\\\\n\\\\tat org.springframework.frame12.Invoke.call(Invoke.java:12)\\\\n\\\\tat org.springframework.frame13.Invoke.call(Invoke.java:13)\\\\n\\\\tat org.springframework.frame14.Invoke.call(Invoke.java:14)\\\\n\\\\tat org.springframework.frame15.Invoke.call(Invoke.java:15)\\\\n\\\\tat org.springframework.frame16.Invoke.call(Invoke.java:16)\\\\n\\\\tat org.springframework.frame17.Invoke.call(Invoke.java:17)\\\\n\\\\tat org.springframework.frame18.Invoke.call(Invoke.java:18)\\\\n\\\\tat org.springframework.frame19.Invoke.call(Invoke.java:19)\\\\n\\\\tat org.springframework.frame20.Invoke.call(Invoke.java:20)\\\\n\\\\tat org.springframework.frame21.Invoke.call(Invoke.java:21)\\\\n\\\\tat org.springframework.frame22.Invoke.call(Invoke.java:22)\\\\n\\\\tat org.springframework.frame23.Invoke.call(Invoke.java:23)\\\\n\\\\tat org.springframework.frame24.Invoke.call(Invoke.java:24)\\\\n\\\\tat org.springframework.frame25.Invoke.call(Invoke.java:25)\\\\n\\\\tat org.springframework.frame26.Invoke.call(Invoke.java:26)\\\\n\\\\tat org.springframework.frame27.Invoke.call(Invoke.java:27)\\\\n\\\\tat org.springframework.frame28.Invoke.call(Invoke.java:28)\\\\n\\\\tat org.springframework.frame29.Invoke.call(Invoke.java:29)\\\\n\\\\tat org.springframework.frame30.Invoke.call(Invoke.java:30)\\\\n\\\\tat org.springframework.frame31.Invoke.call(Invoke.java:31)\\\\n\\\\tat org.springframework.frame32.Invoke.call(Invoke.java:32)\\\\n\\\\tat org.springframework.frame33.Invoke.call(Invoke.java:33)\\\\n\\\\tat org.springframework.frame34.Invoke.call(Invoke.java:34)\\\\n\\\\tat org.springframework.frame35.Invoke.call(Invoke.java:35)\\\\n\\\\tat org.springframework.frame36.Invoke.call(Invoke.java:36)\\\\n\\\\tat org.springframework.frame37.Invoke.call(Invoke.java:37)\\\\n\\\\tat org.springframework.frame38.Invoke.call(Invoke.java:38)\\\\n\\\\tat org.springframework.frame39.Invoke.call(Invoke.java:39)\\\\n\\\\tat org.springframework.frame40.Invoke.call(Invoke.java:40)\\\\n\\\\tat org.springframework.frame41.Invoke.call(Invoke.java:41)\\\\n\\\\tat org.springframework.frame42.Invoke.call(Invoke.java:42)\\\\n\\\\tat org.springframework.frame43.Invoke.call(Invoke.java:43)\\\\n\\\\tat org.springframework.frame44.Invoke.call(Invoke.java:44)\\\\n\\\\tat org.springframework.frame45.Invoke.call(Invoke.java:45)\\\\n\\\\tat org.springframework.frame46.Invoke.call(Invoke.java:46)\\\\n\\\\tat org.springframework.frame47.Invoke.call(Invoke.java:47)\\\\n\\\\tat org.springframework.frame48.Invoke.call(Invoke.java:48)\\\\n\\\\tat org.springframework.frame49.Invoke.call(Invoke.java:49)\\\\n\\\\tat org.springframework.frame50.Invoke.call(Invoke.java:50)\\\\n\\\\tat org.springframework.frame51.Invoke.call(Invoke.java:51)\\\\n\\\\tat org.springframework.frame52.Invoke.call(Invoke.java:52)\\\\n\\\\tat org.springframework.frame53.Invoke.call(Invoke.java:53)\\\\n\\\\tat org.springframework.frame54.Invoke.call(Invoke.java:54)\\\\n\\\\tat org.springframework.frame55.Invoke.call(Invoke.java:55)\\\\n\\\\tat org.springframework.frame56.Invoke.call(Invoke.java:56)\\\\n\\\\tat org.springframework.frame57.Invoke.call(Invoke.java:57)\\\\n\\\\tat org.springframework.frame58.Invoke.call(Invoke.java:58)\\\\n\\\\tat org.springframework.frame59.Invoke.call(Invoke.java:59)\\\\n\\\\tat org.springframework.frame60.Invoke.call(Invoke.java:60)\\\\n\\\\tat org.springframework.frame61.Invoke.call(Invoke.java:61)\\\\n\\\\tat org.springframework.frame62.Invoke.call(Invoke.java:62)\\\\n\\\\tat org.springframework.frame63.Invoke.call(Invoke.java:63)\\\\n\\\\tat org.springframework.frame64.Invoke.call(Invoke.java:64)\\\\n\\\\tat org.springframework.frame65.Invoke.call(Invoke.java:65)\\\\n\\\\tat org.springframework.frame66.Invoke.call(Invoke.java:66)\\\\n\\\\tat org.springframework.frame67.Invoke.call(Invoke.java:67)\\\\n\\\\tat org.springframework.frame68.Invoke.call(Invoke.java:68)\\\\n\\\\tat org.springframework.frame69.Invoke.call(Invoke.java:69)\\\\n\\\\tat org.springframework.frame70.Invoke.call(Invoke.java:70)\\\\n\\\\tat org.springframework.frame71.Invoke.call(Invoke.java:71)\\\\n\\\\tat org.springframework.frame72.Invoke.call(Invoke.java:72)\\\\n\\\\tat org.springframework.frame73.Invoke.call(Invoke.java:73)\\\\n\\\\tat org.springframework.frame74.Invoke.call(Invoke.java:74)\\\\n\\\\tat org.springframework.frame75.Invoke.call(Invoke.java:75)\\\\n\\\\tat org.springframework.frame76.Invoke.call(Invoke.java:76)\\\\n\\\\tat org.springframework.frame77.Invoke.call(Invoke.java:77)\\\\n\\\\tat org.springframework.frame78.Invoke.call(Invoke.java:78)\\\\n\\\\tat org.springframework.frame79.Invoke.call(Invoke.java:79)\\\\n\\\\tat org.springframework.frame80.Invoke.call(Invoke.java:80)\\\\n\\\\tat org.springframework.frame81.Invoke.call(Invoke.java:81)\\\\n\\\\tat org.springframework.frame82.Invoke.call(Invoke.java:82)\\\\n\\\\tat org.springframework.frame83.Invoke.call(Invoke.java:83)\\\\n\\\\tat org.springframework.frame84.Invoke.call(Invoke.java:84)\\\\n\\\\tat org.springframework.frame85.Invoke.call(Invoke.java:85)\\\\n\\\\tat org.springframework.frame86.Invoke.call(Invoke.java:86)\\\\n\\\\tat org.springframework.frame87.Invoke.call(Invoke.java:87)\\\\n\\\\tat org.springframework.frame88.Invoke.call(Invoke.java:88)\\\\n\\\\tat org.springframework.frame89.Invoke.call(Invoke.java:89)\\\\n\\\\tat org.springframework.frame90.Invoke.call(Invoke.java:90)\\\\n\\\\tat org.springframework.frame91.Invoke.call(Invoke.java:91)\\\\n\\\\tat org.springframework.frame92.Invoke.call(Invoke.java:92)\\\\n\\\\tat org.springframework.frame93.Invoke.call(Invoke.java:93)\\\\n\\\\tat org.springframework.frame94.Invoke.call(Invoke.java:94)\\\\n\\\\tat org.springframework.frame95.Invoke.call(Invoke.java:95)\\\\n\\\\tat org.springframework.frame96.Invoke.call(Invoke.java:96)\\\\n\\\\tat org.springframework.frame97.Invoke.call(Invoke.java:97)\\\\n\\\\tat org.springframework.frame98.Invoke.call(Invoke.java:98)\\\\n\\\\tat org.springframework.frame99.Invoke.call(Invoke.java:99)\\\\n\\\\tat org.springframework.frame100.Invoke.call(Invoke.java:100)\\\\n\\\\tat org.springframework.frame101.Invoke.call(Invoke.java:101)\\\\n\\\\tat org.springframework.frame102.Invoke.call(Invoke.java:102)\\\\n\\\\tat org.springframework.frame103.Invoke.call(Invoke.java:103)\\\\n\\\\tat org.springframework.frame104.Invoke.call(Invoke.java:104)\\\\n\\\\tat org.springframework.frame105.Invoke.call(Invoke.java:105)\\\\n\\\\tat org.springframework.frame106.Invoke.call(Invoke.java:106)\\\\n\\\\tat org.springframework.frame107.Invoke.call(Invoke.java:107)\\\\n\\\\tat org.springframework.frame108.Invoke.call(Invoke.java:108)\\\\n\\\\tat org.springframework.frame109.Invoke.call(Invoke.java:109)\\\\n\\\\tat org.springframework.frame110.Invoke.call(Invoke.java:110)\\\\n\\\\tat org.springframework.frame111.Invoke.call(Invoke.java:111)\\\\n\\\\tat org.springframework.frame112.Invoke.call(Invoke.java:112)\\\\n\\\\tat org.springframework.frame113.Invoke.call(Invoke.java:113)\\\\n\\\\tat org.springframework.frame114.Invoke.call(Invoke.java:114)\\\\n\\\\tat org.springframework.frame115.Invoke.call(Invoke.java:115)\\\\n\\\\tat org.springframework.frame116.Invoke.call(Invoke.java:116)\\\\n\\\\tat org.springframework.frame117.Invoke.call(Invoke.java:117)\\\\n\\\\tat org.springframework.frame118.Invoke.call(Invoke.java:118)\\\\n\\\\tat org.springframework.frame119.Invoke.call(Invoke.java:119)\\\\nCaused by: java.net.SocketTimeoutException: connect timed out\\\\n\\\\tat java.base/java.net.Socket.connect(Socket.java:633)\"}, \"startsAt\": \"2026-10-05T10:00:00Z\", \"generatorURL\": \"http://grafana/alerting/grafana/def/view\", \"fingerprint\": \"0a1b2c3d4e5f6071\", \"valueString\": \"[ var='A' labels={instance=pay-01} value=42 ]\"}], \"title\": \"[FIRING:1] Payments errors\", \"state\": \"alerting\", \"message\": \"\"}"
+      }
+    ]
+  }
+}

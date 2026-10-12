@@ -1,0 +1,1 @@
+{"alerts":[{"annotations":{"summary":"Тестовое событие Umbrella"},"fingerprint":"umbrella-test-abc123","labels":{"alertname":"UmbrellaTest","instance":"db-01 \"x\"\u003c\u0026\u003e","severity":"warning"},"status":"firing"}],"receiver":"umbrella","status":"firing"}

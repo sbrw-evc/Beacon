@@ -1,0 +1,47 @@
+name: umbrella-openbao
+
+services:
+  openbao:
+    image: ${OPENBAO_IMAGE:-openbao/openbao:2.7.1}
+    restart: unless-stopped
+    entrypoint: ["bao", "server", "-config=/openbao/config/openbao.hcl"]
+    volumes:
+      - ./config/openbao.hcl:/openbao/config/openbao.hcl:ro
+      - openbao-data:/openbao/file
+    ports:
+      - "${OPENBAO_BIND:-127.0.0.1}:${OPENBAO_PORT:-8200}:8200"
+    networks: [umbrella]
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  openbao-init:
+    image: ${OPENBAO_IMAGE:-openbao/openbao:2.7.1}
+    restart: unless-stopped
+    user: "0"
+    entrypoint: ["/bin/sh", "-c", "tr -d '\\r' < /config/init.sh > /tmp/init.sh && exec /bin/sh /tmp/init.sh"]
+    environment:
+      BAO_ADDR: http://openbao:8200
+      WATCH: ${OPENBAO_AUTO_UNSEAL:-true}
+    volumes:
+      - ./init.sh:/config/init.sh:ro
+      - ./config/umbrella-policy.hcl:/config/umbrella-policy.hcl:ro
+      - ./secrets/openbao:/state
+      - ./secrets/umbrella:/umbrella
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/openbao-ready"]
+      interval: 3s
+      retries: 100
+      start_period: 5s
+    depends_on: [openbao]
+    networks: [umbrella]
+    logging: *logging
+
+networks:
+  umbrella:
+    name: umbrella
+
+volumes:
+  openbao-data:

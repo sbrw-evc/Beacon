@@ -1,0 +1,50 @@
+{
+  "id": "de",
+  "name": "Deutsch",
+  "dateLocale": "de-DE",
+  "messages": {
+    "menu": {
+      "groups": {
+        "overview": "Übersicht",
+        "collect": "Datenerfassung",
+        "process": "Verarbeitung",
+        "admin": "Verwaltung"
+      },
+      "items": {
+        "ops": "Leitstand",
+        "incidents": "Vorfälle",
+        "cmdb": "CMDB-Karte",
+        "connectors": "Konnektoren",
+        "events": "Ereignisse",
+        "parseErrors": "Parserfehler",
+        "rules": "RED/USE-Regeln",
+        "maintenance": "Wartungsfenster",
+        "selfcheck": "Selbsttest",
+        "audit": "Audit-Protokoll",
+        "roles": "Rollen und Gruppen",
+        "settings": "Einstellungen"
+      }
+    },
+    "common": {
+      "status": {
+        "open": "Offen",
+        "acknowledged": "Bestätigt",
+        "resolved": "Gelöst"
+      },
+      "layout": {
+        "searchIncidents": "Vorfälle suchen",
+        "online": "Online",
+        "scope": "Sichtbereich",
+        "language": "Sprache"
+      },
+      "words": {
+        "allTeams": "Alle Teams"
+      }
+    },
+    "incidents": {
+      "header": {
+        "title": "Vorfälle"
+      }
+    }
+  }
+}

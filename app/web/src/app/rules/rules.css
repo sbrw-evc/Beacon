@@ -1,0 +1,75 @@
+.rl-head {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rl-empty {
+  padding: 20px;
+  margin: 0;
+}
+
+.rl-table td {
+  vertical-align: top;
+}
+
+.rl-name {
+  min-width: 220px;
+}
+
+.rl-name .cn-name {
+  text-align: left;
+  white-space: normal;
+}
+
+.rl-sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+}
+
+.rl-cond {
+  white-space: nowrap;
+}
+
+.rl-method {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.rl-red {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.rl-use {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.modal:has(.rl-editor) {
+  width: min(820px, 100%);
+}
+
+.rl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.rl-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.rl-query {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 13px;
+}
+
+.rl-preview table {
+  font-size: 13px;
+}
+
+.rl-match td:first-child {
+  font-weight: 700;
+  color: var(--error);
+}

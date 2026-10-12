@@ -1,0 +1,10 @@
+{{t (print "fu." .Event)}}
+
+{{.ID}} · {{.Title}}
+{{include "followup.detail" .}}
+{{with .Open}}
+{{t "open"}}: {{.}}
+{{end}}
+{{"-- "}}
+{{t "fu.why"}}
+

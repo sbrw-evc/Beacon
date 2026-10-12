@@ -1,0 +1,181 @@
+.mw-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.mw-empty {
+  padding: 20px;
+  margin: 0;
+}
+
+.mw-table td {
+  vertical-align: top;
+}
+
+.mw-title {
+  min-width: 200px;
+}
+
+.mw-title .cn-name {
+  text-align: left;
+  white-space: normal;
+}
+
+.mw-sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+}
+
+.mw-period {
+  white-space: nowrap;
+}
+
+.mw-actions {
+  width: 1%;
+}
+
+.mw-actions > * {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.mw-targets {
+  min-width: 180px;
+}
+
+.mw-targets span[title] {
+  overflow-wrap: anywhere;
+}
+
+.pill-planned {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.mw-finished td {
+  opacity: 0.7;
+}
+
+.modal:has(.mw-editor) {
+  width: min(680px, 100%);
+}
+
+.mw-period-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.mw-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -6px;
+}
+
+.mw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mw-search {
+  position: relative;
+}
+
+.mw-search .input {
+  padding-left: 34px;
+  width: 100%;
+}
+
+.mw-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.mw-results {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  max-height: 220px;
+  overflow: auto;
+  margin-top: -6px;
+}
+
+.mw-results-head {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 6px 8px 2px;
+}
+
+.mw-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mw-result:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.mw-result:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mw-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mw-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  background: var(--info-soft);
+}
+
+.mw-tag-cis {
+  background: var(--surface-2);
+}
+
+.mw-tag button {
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+}
+
+.mw-tag button:hover {
+  color: var(--text);
+}
+
+/* The window an incident card links to. */
+.mw-table tr.mw-shown td {
+  background: var(--accent-soft);
+}

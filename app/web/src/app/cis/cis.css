@@ -1,0 +1,109 @@
+.ci-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ci-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.ci-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+button.ci-tile {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+button.ci-tile:hover {
+  border-color: var(--accent);
+}
+
+.ci-tile.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.ci-tile-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ci-tile-flag.warn .ci-tile-value {
+  color: var(--warn);
+}
+
+.ci-source-netbox {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.ci-source-local {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.ci-owners {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ci-dir {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ci-dn code {
+  word-break: break-all;
+}
+
+.ci-monitors {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ci-monitors a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ci-table .cn-name {
+  text-align: left;
+}
+
+.ci-presence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ci-absent {
+  background: var(--surface-2);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.ci-aliases .hint {
+  margin-top: 4px;
+}

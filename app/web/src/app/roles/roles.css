@@ -1,0 +1,210 @@
+.roles-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roles-item {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.roles-item:hover {
+  background: var(--surface-2);
+}
+
+.roles-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.roles-item-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+
+.roles-item-name,
+.roles-item-meta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.roles-item.active .roles-item-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.roles-item-meta {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.roles-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+  flex: none;
+}
+
+.roles-fields {
+  align-items: start;
+}
+
+.perm-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.perm-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perm-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.perm-page.granted {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.perm-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.perm-page-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.perm-all .switch-row label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.perm-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.perm-chip {
+  padding-left: 6px;
+  color: var(--muted);
+}
+
+.perm-chip:disabled {
+  opacity: 1;
+}
+
+.perm-chip.view {
+  font-weight: 600;
+}
+
+.perm-tick {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--check-border);
+  background: var(--check-bg);
+  color: var(--check-mark);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.perm-chip.on .perm-tick {
+  background: var(--check-on);
+  border-color: var(--check-on);
+}
+
+.roles-savebar {
+  position: sticky;
+  bottom: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2;
+}
+
+.roles-diff ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 13px;
+}
+
+.roles-diff-add {
+  color: var(--ok);
+}
+
+.roles-diff-remove {
+  color: var(--error);
+}
+
+.roles-savebar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .roles-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.roles-newusers {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.roles-newusers .muted {
+  flex: 1 1 260px;
+  font-size: 13px;
+}

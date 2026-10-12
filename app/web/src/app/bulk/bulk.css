@@ -1,0 +1,75 @@
+.bulk-check {
+  width: 28px;
+}
+
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bulk-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bulk-table-wrap {
+  max-height: 46vh;
+  overflow: auto;
+}
+
+.bulk-table td {
+  vertical-align: top;
+}
+
+.bulk-note,
+.bulk-error {
+  margin-top: 2px;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.bulk-error {
+  color: var(--error);
+}
+
+.bulk-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.bulk-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-radius);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.bulk-option:hover {
+  border-color: var(--input-border-hover);
+}
+
+.bulk-option.active {
+  border-color: var(--chip-on-border);
+  background: var(--chip-on-bg);
+  box-shadow: 0 0 0 1px var(--chip-on-border);
+}
+
+.bulk-option .muted {
+  margin-left: auto;
+}
+
+.svc-bind-list li > input[type='checkbox'] {
+  flex: none;
+}

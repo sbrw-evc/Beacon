@@ -1,0 +1,129 @@
+.al-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px 28px;
+  align-items: start;
+}
+
+.al-col {
+  min-width: 0;
+}
+
+
+.al-sub {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.al-route {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.al-route-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.al-route-order {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+
+.al-test-row {
+  display: flex;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.al-test-row .input {
+  flex: 1;
+}
+
+.al-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.al-section > .hint {
+  margin: -6px 0 0;
+}
+
+.al-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.al-inline > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.al-inline > .btn {
+  margin-top: 24px;
+}
+
+.al-error {
+  color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .al-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .al-inline > .btn {
+    margin-top: 0;
+  }
+}
+
+.al-tpl > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.al-tpl > fieldset {
+  margin-top: 10px;
+}
+
+.al-tpl-code .textarea,
+.al-tpl-pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.al-tpl-pre {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.al-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}

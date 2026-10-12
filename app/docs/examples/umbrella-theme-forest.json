@@ -1,0 +1,176 @@
+{
+  "$schema": "umbrella-theme/v1",
+  "$help": {
+    "about": "Fill in the colors and upload the file in Settings > Themes. Any CSS color works: #rrggbb, rgb(), rgba(), hsl(). \"base\" (light or dark) supplies every color you leave out.",
+    "groups": {
+      "app": "Page background, cards and panels, main and secondary text, links, borders, focus ring",
+      "accent": "Primary buttons, active tab underline, selected items, focus",
+      "rail": "Left navigation rail: background, icons, active and hovered items, logo",
+      "topbar": "Top bar with search, scope, language and theme switches",
+      "sideList": "Secondary list panel left of a page: saved views, CI list",
+      "button": "Regular and danger buttons",
+      "input": "Text inputs, selects, text areas",
+      "table": "Table header, row separators, hovered and selected rows",
+      "severity": "Severity colors (solid for dots and bars, Soft for chip backgrounds, Text for chip text)",
+      "status": "Incident status chips and connector running state",
+      "pagerduty": "PagerDuty delivery state chips and fallback marker",
+      "tag": "Small tags (labels, methods, links)",
+      "graph": "CMDB graph and connector canvas: background, grid, edges, nodes",
+      "blocks": "Connector builder block categories",
+      "chart": "Charts: empty bar background",
+      "overlay": "Drawer and modal backdrop, popup menus, shadows",
+      "toast": "Notifications in the corner",
+      "code": "JSON and raw payload boxes"
+    }
+  },
+  "id": "forest",
+  "name": "Лес",
+  "base": "light",
+  "colors": {
+    "app": {
+      "background": "#f4f6f9",
+      "surface": "#ffffff",
+      "surfaceAlt": "#f7f8fa",
+      "text": "#1d2530",
+      "textMuted": "#6b7685",
+      "textSoft": "#465260",
+      "link": "#15803d",
+      "border": "#e4e8ee",
+      "borderSoft": "#eef1f5",
+      "focusRing": "rgba(21,128,61,.25)",
+      "scrollbar": "#cdd4dd"
+    },
+    "accent": {
+      "primary": "#15803d",
+      "primaryHover": "#166534",
+      "primaryText": "#ffffff",
+      "soft": "#e7f6ec",
+      "softText": "#14532d"
+    },
+    "rail": {
+      "background": "#0f2a1d",
+      "border": "#0f2a1d",
+      "icon": "#9cc7ad",
+      "iconActive": "#ffffff",
+      "text": "#d6eadc",
+      "groupTitle": "#7fa892",
+      "itemHover": "#173a29",
+      "itemActive": "#1f4d35",
+      "logoBackground": "#1f4d35",
+      "logoMark": "#7ee2a8"
+    },
+    "topbar": {
+      "background": "#ffffff",
+      "border": "#e8ebf0",
+      "text": "#1d2530",
+      "searchBackground": "#f2f4f7"
+    },
+    "sideList": {
+      "background": "#ffffff",
+      "border": "#e8ebf0",
+      "itemHover": "#f4f6f9",
+      "itemActive": "#eaf1ff",
+      "itemActiveText": "#1a46b8",
+      "countBackground": "#eef1f5",
+      "countText": "#5b6675"
+    },
+    "button": {
+      "background": "#ffffff",
+      "border": "#dce1e8",
+      "text": "#1d2530",
+      "hover": "#f4f6f9",
+      "dangerBackground": "#e03e47",
+      "dangerHover": "#c9343c",
+      "dangerText": "#ffffff"
+    },
+    "input": {
+      "background": "#ffffff",
+      "border": "#dce1e8",
+      "text": "#1d2530",
+      "placeholder": "#98a2b0"
+    },
+    "table": {
+      "headerBackground": "#ffffff",
+      "headerText": "#6b7685",
+      "rowBorder": "#eef1f5",
+      "rowHover": "#f7f9fc",
+      "rowSelected": "#eef4ff",
+      "detailBackground": "#f7f8fa"
+    },
+    "severity": {
+      "critical": "#e03e47",
+      "error": "#ef6c2a",
+      "warning": "#e9a812",
+      "info": "#3b82f6",
+      "ok": "#1f9d62",
+      "criticalSoft": "#fdecee",
+      "errorSoft": "#fef0e7",
+      "warningSoft": "#fdf5df",
+      "infoSoft": "#eaf2fe",
+      "okSoft": "#e5f5ec",
+      "criticalText": "#b4232c",
+      "errorText": "#b14812",
+      "warningText": "#8a6200",
+      "infoText": "#1f5fc7",
+      "okText": "#16774a"
+    },
+    "status": {
+      "openBackground": "#fdecee",
+      "openText": "#b4232c",
+      "acknowledgedBackground": "#fdf5df",
+      "acknowledgedText": "#8a6200",
+      "resolvedBackground": "#e5f5ec",
+      "resolvedText": "#16774a",
+      "runningBackground": "#e5f5ec",
+      "runningText": "#16774a",
+      "mutedBackground": "#eef1f5",
+      "mutedText": "#5b6675"
+    },
+    "pagerduty": {
+      "acceptedText": "#16774a",
+      "ackedText": "#8a6200",
+      "failedBackground": "#e03e47",
+      "failedText": "#ffffff",
+      "fallbackBackground": "#4338ca",
+      "fallbackText": "#ffffff"
+    },
+    "tag": {
+      "background": "#eef1f5",
+      "text": "#465260",
+      "linkBackground": "#eaf1ff",
+      "linkText": "#1a46b8"
+    },
+    "graph": {
+      "canvas": "#f7f8fa",
+      "grid": "#e1e6ec",
+      "edge": "#a3adba",
+      "nodeBackground": "#ffffff",
+      "nodeBorder": "#e1e6ec",
+      "selection": "#15803d"
+    },
+    "blocks": {
+      "trigger": "#7c5cff",
+      "fetch": "#2f80ed",
+      "parse": "#0d9e9e",
+      "transform": "#ef8a2a",
+      "ack": "#1f9d62",
+      "output": "#c9970a"
+    },
+    "chart": {
+      "emptyBar": "#eef1f5"
+    },
+    "overlay": {
+      "backdrop": "rgba(17, 24, 39, 0.28)",
+      "popupBackground": "#ffffff",
+      "shadow": "rgba(17, 24, 39, 0.10)"
+    },
+    "toast": {
+      "background": "#1d2530",
+      "text": "#ffffff"
+    },
+    "code": {
+      "background": "#f6f8fa",
+      "text": "#33404e"
+    }
+  }
+}

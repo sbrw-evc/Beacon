@@ -1,57 +1,74 @@
-# Интеграция с Inventory DB
+# Integration with Inventory DB (architecture)
 
-[Inventory DB](https://github.com/sbrw-evc/Inventory-DB) — приложение учёта инвентаря ЦОД в духе NetBox: площадки, стойки, устройства, интерфейсы, кабели, IP-адреса и VLAN. Umbrella и Inventory DB обмениваются данными в обе стороны, и описанное здесь одинаково для MVP (поток П-11) и целевой архитектуры (поток П-13). Новых контейнеров интеграция не требует: обе стороны собираются блоками low-code конструктора.
+[Inventory DB](https://github.com/sbrw-evc/Inventory-DB) is a NetBox-style data-centre inventory application: sites, racks,
+devices, interfaces, cables, IP addresses and VLANs. Umbrella and Inventory DB exchange data in both directions; what is
+described here is the same for the MVP (flow P-11) and the target architecture (flow P-13). The integration needs no new
+containers: both sides are built from blocks of the low-code builder.
 
-| Направление | Что передаётся | Как |
+The implemented, optional integration in the application is documented in [app/docs/inventory-db.md](../app/docs/inventory-db.md).
+
+| Direction | What is sent | How |
 | --- | --- | --- |
-| Inventory DB → Umbrella | Площадки, стойки и устройства как КЕ карты CMDB: имена, IP-адреса, DNS-имена, серийные номера, связи «находится в» (устройство → стойка → площадка) и «соединён с» (по кабелям) | Инвентарь-коннектор CMDB Discovery раз в 15 минут читает ленту КЕ `GET /api/v1/integrations/{id}/umbrella/ci` с токеном API |
-| Umbrella → Inventory DB | Изменения тревог по устройствам: статус, severity, заголовок, сигнал, ссылки на инцидент и контекст в Grafana | Коннектор статусов Connector Runtime подписан на alerts.changed и отправляет `POST /api/v1/integrations/{id}/umbrella/alerts` с подписью HMAC |
+| Inventory DB → Umbrella | Sites, racks and devices as CIs of the CMDB map: names, IP addresses, DNS names, serial numbers, "located in" relations (device → rack → site) and "connected to" (by cables) | The CMDB Discovery inventory connector reads the CI feed `GET /api/v1/integrations/{id}/umbrella/ci` with an API token every 15 minutes |
+| Umbrella → Inventory DB | Alert changes on devices: status, severity, title, signal, links to the incident and the Grafana context | The Connector Runtime status connector subscribes to alerts.changed and sends `POST /api/v1/integrations/{id}/umbrella/alerts` signed with HMAC |
 
 ```mermaid
 flowchart LR
   subgraph INV[Inventory DB]
-    DCIM[DCIM и IPAM] --> FEED[Лента КЕ]
-    HOOK[Приём статусов] --> ST[(Статусы устройств)]
+    DCIM[DCIM and IPAM] --> FEED[CI feed]
+    HOOK[Status intake] --> ST[(Device statuses)]
   end
   subgraph UMB[Umbrella]
-    IC[Инвентарь-коннектор] --> CD[CMDB Discovery] -->|cmdb.changed| AE[Alert Engine]
-    AE -->|alerts.changed| SC[Коннектор статусов]
+    IC[Inventory connector] --> CD[CMDB Discovery] -->|cmdb.changed| AE[Alert Engine]
+    AE -->|alerts.changed| SC[Status connector]
   end
-  FEED -- "HTTPS 443, xc-token, раз в 15 мин" --> IC
-  SC -- "HTTPS 443, подпись HMAC" --> HOOK
+  FEED -- "HTTPS 443, xc-token, every 15 min" --> IC
+  SC -- "HTTPS 443, HMAC signature" --> HOOK
 ```
 
-Схемы draw.io в `mvp/diagrams` и `target/diagrams` эту интеграцию пока не показывают; при следующей правке генератора Inventory DB добавляется на схемы контекста, потоков и интеграций.
+The draw.io diagrams of the architecture sets (kept outside this repository) do not show this integration yet; the next
+generator change adds Inventory DB to the context, flow and integration diagrams.
 
-## Роли систем
+## Roles of the systems
 
-- **Inventory DB — мастер физических КЕ.** Umbrella не ведёт учёт оборудования, IP-адресов и кабелей, а берёт их из Inventory DB как из доверенного источника: добавления применяются сразу, удаления и конфликты идут на ревью карты.
-- **Umbrella — мастер состояния мониторинга.** Inventory DB не считает тревоги сама, а показывает в карточке и в списках устройств то, что прислала Umbrella.
-- Логические КЕ (сервисы, поды, облачные группы) по-прежнему строятся из данных мониторинга; физическое устройство из Inventory DB и хост из системы мониторинга склеиваются по hostname, FQDN и IP.
+- **Inventory DB is the master of physical CIs.** Umbrella does not keep records of equipment, IP addresses and cables;
+  it takes them from Inventory DB as a trusted source: additions apply immediately, removals and conflicts go to map
+  review.
+- **Umbrella is the master of monitoring state.** Inventory DB does not compute alerts itself; it shows on the device
+  card and in device lists what Umbrella sent.
+- Logical CIs (services, pods, cloud groups) are still built from monitoring data; a physical device from Inventory DB
+  and a host from a monitoring system are glued together by hostname, FQDN and IP.
 
-## Настройка
+## Setup
 
-1. В Inventory DB владелец интеграции создаёт её: `POST /api/v1/integrations` с телом `{"kind":"umbrella","title":"Umbrella","umbrellaUrl":"https://umbrella.corp","inventoryUrl":"https://inventory.corp"}`. Ответ содержит `integration.id` и секрет подписи `secret`; секрет показывается один раз.
-2. В Inventory DB создаётся сервисный пользователь только на чтение и его токен API (`POST /api/v1/tokens`). Лента содержит то, что этот пользователь видит через API DCIM и IPAM.
-3. Токен и секрет кладутся в OpenBao; в коннекторах только ссылки на них.
-4. В конструкторе Umbrella собирается **инвентарь-коннектор**:
-   - триггер «расписание», 15 минут;
-   - HTTP REST `GET {inventoryUrl}/api/v1/integrations/{id}/umbrella/ci?offset=‹offset›&limit=1000`, авторизация «токен» в заголовке `xc-token`;
-   - пагинация по `offset`, пока `next_offset` не станет null;
-   - маппинг элемента `items[]` в объект инвентаря: `source_ref` → source_refs, `type`, `name`, `identities`, `logical_group`, `status`, `relations` (тип, направление, `target_ref`), `monitored` и `url` → атрибуты КЕ;
-   - выход «объект инвентаря»; в правилах обнаружения источник Inventory DB помечается доверенным.
-5. Собирается **коннектор статусов**:
-   - триггер «подписка на очередь» alerts.changed;
-   - фильтр: у КЕ тревоги есть source_ref с префиксом `inventory-db:` или КЕ типа «хост»;
-   - шаблон тела по контракту ниже;
-   - HTTP REST `POST {inventoryUrl}/api/v1/integrations/{id}/umbrella/alerts`, авторизация «подпись запроса HMAC»;
-   - повтор с backoff на ответы 5xx и таймауты; ответ 4xx пишется в журнал коннектора без повтора.
-6. Правило подавления: тревоги по КЕ с атрибутом `monitored = false` (устройства planned, offline, inventory, decommissioning) не уходят в PagerDuty и резервные каналы, но видны на дашборде инцидентов.
-7. В шаблон события добавляется ссылка на карточку устройства в Inventory DB из атрибута `url`.
+1. In Inventory DB the integration owner creates it: `POST /api/v1/integrations` with the body
+   `{"kind":"umbrella","title":"Umbrella","umbrellaUrl":"https://umbrella.corp","inventoryUrl":"https://inventory.corp"}`.
+   The response contains `integration.id` and the signing secret `secret`; the secret is shown once.
+2. In Inventory DB a read-only service user and its API token are created (`POST /api/v1/tokens`). The feed contains what
+   this user can see through the DCIM and IPAM API.
+3. The token and the secret are put into OpenBao; connectors hold only references to them.
+4. The **inventory connector** is built in Umbrella's builder:
+   - "schedule" trigger, 15 minutes;
+   - HTTP REST `GET {inventoryUrl}/api/v1/integrations/{id}/umbrella/ci?offset=‹offset›&limit=1000`, "token"
+     authorization in the `xc-token` header;
+   - paging by `offset` until `next_offset` is null;
+   - mapping of each `items[]` element to an inventory object: `source_ref` → source_refs, `type`, `name`, `identities`,
+     `logical_group`, `status`, `relations` (type, direction, `target_ref`), `monitored` and `url` → CI attributes;
+   - output "inventory object"; in the discovery rules the Inventory DB source is marked as trusted.
+5. The **status connector** is built:
+   - "queue subscription" trigger on alerts.changed;
+   - filter: the alert's CI has a source_ref with the `inventory-db:` prefix, or the CI is of type "host";
+   - body template per the contract below;
+   - HTTP REST `POST {inventoryUrl}/api/v1/integrations/{id}/umbrella/alerts`, "HMAC request signature" authorization;
+   - retry with backoff on 5xx responses and timeouts; a 4xx response is written to the connector log without retry.
+6. Suppression rule: alerts on CIs with the attribute `monitored = false` (planned, offline, inventory, decommissioning
+   devices) are not sent to PagerDuty or the fallback channels, but are visible on the incidents dashboard.
+7. A link to the device card in Inventory DB from the `url` attribute is added to the event template.
 
-## Лента КЕ
+## CI feed
 
-`GET /api/v1/integrations/{id}/umbrella/ci?offset=0&limit=1000` возвращает полный снимок; разницу между снимками считает CMDB Discovery, поэтому курсор изменений не нужен.
+`GET /api/v1/integrations/{id}/umbrella/ci?offset=0&limit=1000` returns a full snapshot; CMDB Discovery computes the
+difference between snapshots, so no change cursor is needed.
 
 ```json
 {
@@ -73,18 +90,18 @@ flowchart LR
 }
 ```
 
-| Поле | Значение |
+| Field | Meaning |
 | --- | --- |
-| source_ref | устойчивая ссылка `inventory-db:‹тип›:‹id›`, тип — dcim.site, dcim.rack или dcim.device |
+| source_ref | stable reference `inventory-db:‹type›:‹id›`, type is dcim.site, dcim.rack or dcim.device |
 | type | site, rack, device |
-| identities | hostname (имя устройства в нижнем регистре), fqdn (DNS-имена его IP-адресов), ip (адреса интерфейсов, основной и OOB), serial, asset_tag |
-| logical_group | виртуальное шасси или кластер устройства; используется для склейки, как облачная группа |
-| status, monitored | статус жизненного цикла по NetBox; monitored = false для planned, offline, inventory, decommissioning |
-| relations | located_in: устройство → стойка (или площадка без стойки), стойка → площадка; connected_to: устройство → устройство на другом конце кабеля |
+| identities | hostname (device name in lower case), fqdn (DNS names of its IP addresses), ip (interface addresses, primary and OOB), serial, asset_tag |
+| logical_group | the device's virtual chassis or cluster; used for gluing, like a cloud group |
+| status, monitored | NetBox lifecycle status; monitored = false for planned, offline, inventory, decommissioning |
+| relations | located_in: device → rack (or site without a rack), rack → site; connected_to: device → device at the other end of a cable |
 
-## Статусы тревог
+## Alert statuses
 
-`POST /api/v1/integrations/{id}/umbrella/alerts`; тело — одно событие или массив до 500.
+`POST /api/v1/integrations/{id}/umbrella/alerts`; the body is one event or an array of up to 500.
 
 ```json
 {
@@ -97,25 +114,34 @@ flowchart LR
 }
 ```
 
-- `status`: open, acknowledged, resolved, closed; `severity`: critical, error, warning, info — те же значения, что у тревоги Umbrella. В целевой архитектуре `links.incident` ведёт на инцидент, в который входит тревога.
-- **Подпись.** Заголовки `x-umbrella-timestamp: ‹unix-время в секундах›` и `x-umbrella-signature: v1=‹hex HMAC-SHA256(секрет, "‹timestamp›.‹тело запроса›")›`. Запросы старше 5 минут отклоняются. При ротации секрета заголовок может нести две подписи через запятую.
-- **Привязка к устройству.** Сначала по source_ref `inventory-db:`; если его нет, по hostname, FQDN и его короткому имени, имени КЕ и IP без учёта регистра. Тревоги без совпадения видны владельцу интеграции в Inventory DB (`GET /api/v1/integrations/{id}/umbrella/unmatched`), чтобы поправить имена или адреса.
-- **Идемпотентность.** Повтор с тем же alert_id перезаписывает состояние; обновление с более старым `updated_at`, чем сохранённое, отбрасывается, поэтому повторы и доставка не по порядку безопасны.
-- **Ответы.** 202 с результатом привязки по каждому событию; 400 — тело не по контракту; 401 — неверная или устаревшая подпись, неизвестная или выключенная интеграция.
+- `status`: open, acknowledged, resolved, closed; `severity`: critical, error, warning, info — the same values as an
+  Umbrella alert. In the target architecture `links.incident` points to the incident the alert belongs to.
+- **Signature.** Headers `x-umbrella-timestamp: ‹unix time in seconds›` and
+  `x-umbrella-signature: v1=‹hex HMAC-SHA256(secret, "‹timestamp›.‹request body›")›`. Requests older than 5 minutes are
+  rejected. During secret rotation the header may carry two comma-separated signatures.
+- **Device matching.** First by the `inventory-db:` source_ref; without it, by hostname, FQDN and its short name, CI
+  name and IP, case-insensitively. Alerts without a match are visible to the integration owner in Inventory DB
+  (`GET /api/v1/integrations/{id}/umbrella/unmatched`) so names or addresses can be fixed.
+- **Idempotency.** A repeat with the same alert_id overwrites the state; an update with an older `updated_at` than the
+  stored one is dropped, so retries and out-of-order delivery are safe.
+- **Responses.** 202 with the matching result for each event; 400 — the body does not follow the contract; 401 — wrong
+  or stale signature, unknown or disabled integration.
 
-В Inventory DB статус устройства — худшая severity среди открытых и подтверждённых тревог или ok. Он показывается цветным чипом в списках и в боковой панели устройства по тем же цветам, что легенда Umbrella, со списком тревог и ссылками на инцидент и Grafana.
+In Inventory DB a device's status is the worst severity among open and acknowledged alerts, or ok. It is shown as a
+coloured chip in lists and in the device side panel, in the same colours as Umbrella's legend, with the list of alerts
+and links to the incident and Grafana.
 
-## Безопасность
+## Security
 
-| Риск | Мера |
+| Risk | Measure |
 | --- | --- |
-| Подмена статусов | подпись HMAC с меткой времени, окно 5 минут; один ответ 401 для неизвестной, выключенной интеграции и неверной подписи |
-| Утечка токена Inventory DB | токен сервисного пользователя только на чтение, в OpenBao; ротация в Inventory DB без перепубликации коннектора |
-| Утечка секрета подписи | секрет в OpenBao на стороне Umbrella и зашифрован (AES-256-GCM) на стороне Inventory DB; ротация через `POST /api/v1/integrations/{id}/rotate-secret` |
-| Лишние данные в Inventory DB | коннектор статусов отправляет только поля из контракта: заголовок, сигнал, severity, ссылки; сырые события и метки не передаются |
+| Spoofed statuses | HMAC signature with a timestamp, 5-minute window; one 401 answer for an unknown or disabled integration and a wrong signature |
+| Inventory DB token leak | read-only service-user token, in OpenBao; rotation in Inventory DB without republishing the connector |
+| Signing secret leak | secret in OpenBao on Umbrella's side and encrypted (AES-256-GCM) on Inventory DB's side; rotation through `POST /api/v1/integrations/{id}/rotate-secret` |
+| Extra data in Inventory DB | the status connector sends only the contract fields: title, signal, severity, links; raw events and labels are not sent |
 
-## Сетевые доступы
+## Network access
 
-| Откуда | Куда | Порт / протокол |
+| From | To | Port / protocol |
 | --- | --- | --- |
-| CMDB Discovery (инвентарь-коннектор), Connector Runtime (коннектор статусов) | Inventory DB REST API (внутренняя сеть) | 443 HTTPS |
+| CMDB Discovery (inventory connector), Connector Runtime (status connector) | Inventory DB REST API (internal network) | 443 HTTPS |

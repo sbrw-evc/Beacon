@@ -1,0 +1,4 @@
+{{- /* Parts the messages share. A template file ends with one newline that is not part of it. */ -}}
+{{define "fallback.head"}}{{if or (eq .PDState "off") (eq .PDState "skipped") (eq .PDState "standby") (eq .PDMode "backup") (eq .PDMode "parallel")}}{{t "head_new"}}{{else}}{{t "head"}}{{end}}{{end}}
+{{- define "fallback.pd"}}{{if eq .PDState "standby"}}{{t "pd_standby"}}{{else if eq .PDMode "parallel"}}{{t "pd_parallel"}}{{else if eq .PDState "skipped"}}{{t "pd_skipped"}}{{else if eq .PDState "failed"}}{{t "pd_failed"}}{{with t (print "err." .PDErrorCode)}}: {{.}}{{else}}{{with $.PDError}}: {{.}}{{end}}{{end}}{{else}}{{t "pd_pending"}}{{end}}{{end}}
+{{- define "followup.detail"}}{{if eq .Event "acknowledged"}}{{t "fu.ack.by" "who" .AckedBy "at" .AckedAt}}{{else if .ResolvedBy}}{{t "fu.res.by" "who" .ResolvedBy "at" .ResolvedAt}}{{else}}{{t "fu.res.auto" "who" "" "at" .ResolvedAt}}{{end}}{{end}}

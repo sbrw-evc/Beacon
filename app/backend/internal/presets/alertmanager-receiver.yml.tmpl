@@ -1,0 +1,11 @@
+route:
+  receiver: umbrella
+receivers:
+  - name: umbrella
+    webhook_configs:
+      - url: {{quote .URL}}
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: {{quote .Token}}

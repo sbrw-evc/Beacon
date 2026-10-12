@@ -1,0 +1,98 @@
+name: umbrella-zabbix
+
+services:
+  zabbix-db:
+    image: ${ZABBIX_DB_IMAGE:-postgres:17.11-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?set ZABBIX_DB_PASSWORD in .env}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - zabbix-db:/var/lib/postgresql/data
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [umbrella]
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  zabbix-server:
+    image: ${ZABBIX_SERVER_IMAGE:-zabbix/zabbix-server-pgsql:alpine-7.0.31}
+    restart: unless-stopped
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      ZBX_STARTALERTERS: "3"
+      ZBX_WEBSERVICEURL: ""
+    ports:
+      - "${ZABBIX_BIND:-127.0.0.1}:${ZABBIX_TRAPPER_PORT:-10051}:10051"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "10051"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+    networks: [umbrella]
+    logging: *logging
+
+  zabbix-web:
+    image: ${ZABBIX_WEB_IMAGE:-zabbix/zabbix-web-nginx-pgsql:alpine-7.0.31}
+    restart: unless-stopped
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_NAME: Umbrella Zabbix
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      PHP_TZ: ${TZ:-UTC}
+    ports:
+      - "${ZABBIX_BIND:-127.0.0.1}:${ZABBIX_WEB_PORT:-8081}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    depends_on:
+      zabbix-server:
+        condition: service_healthy
+    networks: [umbrella]
+    logging: *logging
+
+  zabbix-agent:
+    image: ${ZABBIX_AGENT_IMAGE:-zabbix/zabbix-agent2:alpine-7.0.31}
+    restart: unless-stopped
+    hostname: ${ZABBIX_AGENT_HOSTNAME:-zabbix-agent}
+    environment:
+      ZBX_HOSTNAME: ${ZABBIX_AGENT_HOSTNAME:-zabbix-agent}
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_ACTIVE: zabbix-server
+    healthcheck:
+      test: ["CMD", "zabbix_agent2", "-t", "agent.ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    depends_on: [zabbix-server]
+    networks: [umbrella]
+    logging: *logging
+
+networks:
+  umbrella:
+    name: umbrella
+
+volumes:
+  zabbix-db:

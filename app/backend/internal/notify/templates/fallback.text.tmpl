@@ -1,0 +1,20 @@
+{{include "fallback.head" .}}
+
+{{.ID}} · {{.Title}}
+
+{{t "severity"}}: {{t .Severity}}
+{{t "ci"}}: {{.CI}}
+{{if and .Signal (ne .Signal .Title)}}{{t "signal"}}: {{.Signal}}
+{{end}}{{if .Services}}{{t "service"}}: {{join .Services ", "}}
+{{end}}{{with .Team}}{{t "team"}}: {{.Name}}
+{{end}}{{t "opened"}}: {{.Opened}}
+{{if ne .PDState "off"}}{{t "pd"}}: {{include "fallback.pd" .}}
+{{end}}{{if or .Ack .Open}}
+{{end}}{{with .Ack}}{{t "ack"}}: {{.}}
+{{end}}{{with .Open}}{{t "open"}}: {{.}}
+{{end}}{{with .Grafana}}Grafana: {{.}}
+{{end}}{{with .Flow}}{{t "traffic"}}: {{.}}
+{{end}}
+{{"-- "}}
+{{t "why"}}
+

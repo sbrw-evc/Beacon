@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru" class="theme-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark light">
+<title>Umbrella TV</title>
+<link rel="stylesheet" href="/tv/assets/tv.css">
+</head>
+<body class="is-loading">
+<div id="app" class="app">
+  <header class="hdr">
+    <div class="hdr-title">
+      <h1 id="title" class="title"></h1>
+      <div id="desc" class="desc"></div>
+    </div>
+    <div id="counters" class="counters" aria-live="polite" aria-atomic="true"></div>
+    <div class="hdr-time">
+      <div id="clock" class="clock">--:--</div>
+      <div class="conn-line">
+        <span id="conn" class="conn" role="status"><span class="conn-dot" aria-hidden="true"></span><span id="conn-text"></span></span>
+        <span id="updated" class="updated"></span>
+      </div>
+    </div>
+  </header>
+  <div id="lost" class="lost" role="alert" hidden></div>
+  <main id="body" class="body">
+    <div id="list" class="list" role="list"></div>
+    <div id="state" class="state" hidden></div>
+  </main>
+  <footer class="ftr">
+    <div id="more" class="more"></div>
+    <div id="pager" class="pager" aria-hidden="true"></div>
+  </footer>
+</div>
+<div id="denied" class="denied" hidden></div>
+<script src="/tv/assets/tv.js"></script>
+</body>
+</html>

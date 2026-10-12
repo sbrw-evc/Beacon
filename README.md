@@ -1,28 +1,29 @@
-# Umbrella — архитектура зонтичного мониторинга
+# Umbrella — umbrella monitoring
 
-Umbrella — веб-приложение зонтичного мониторинга: собирает события из любых систем мониторинга и облаков через low-code конструктор, подтверждает получение источнику, нормализует и схлопывает дубли, строит карту CMDB, формирует алерты по RED и USE и передаёт их в PagerDuty. Если PagerDuty недоступен, дежурных оповещают резервные каналы. Дашборд инцидентов с фильтрами и поиском открывает по клику динамический дашборд инцидента в Grafana. Доступ к функциям и предустановкам дашборда настраивается ролевой моделью через группы корпоративного каталога (AD).
+Umbrella is an umbrella monitoring web application: it receives events from monitoring systems and clouds through a low-code connector builder, acknowledges receipt to the source, normalizes events and collapses duplicates into incidents by CI and signal, keeps a catalog of CIs and business services with a CMDB map, raises alerts by RED and USE rules and hands incidents over to PagerDuty. If PagerDuty has not accepted an incident, the responsible people are notified through fallback channels (e-mail and Telegram). From an incident, a link opens a context dashboard in Grafana with the incident's variables. Access to pages and functions is configured with roles; roles and teams can be assigned by corporate directory groups (LDAP / AD or Microsoft Entra ID).
 
-Документация разделена на два самостоятельных набора по девять документов.
+The application code (Go and React) is in [app](app/README.md): it describes what already works and how to run it, and has [screenshots](app/README.md#screenshots).
 
-| Набор | С чего начать | Схемы |
-| --- | --- | --- |
-| MVP | [mvp/docs/01-overview.md](mvp/docs/01-overview.md) | 45 схем в [mvp/diagrams](mvp/diagrams) |
-| Целевая архитектура | [target/docs/01-overview.md](target/docs/01-overview.md) | 48 схем в [target/diagrams](target/diagrams) |
+![Incidents](app/docs/screens/incidents-light-ru.png)
 
-Интеграции, общие для обоих наборов: [Inventory DB](integrations/inventory-db.md) — инвентарь ЦОД как источник КЕ для карты CMDB и статусы тревог обратно в карточки устройств.
+The screenshot was taken in one of the earlier versions of the interface.
 
-Документы каждого набора: 1 Обзор, 2 Функциональная архитектура, 3 C4 и компоненты, 4 Инфраструктура и технологии, 5 Ресурсно-сервисная модель, 6 Бизнес-процессы, 7 Информационная безопасность, 8 Управление архитектурой, 9 Глоссарий. У каждой схемы есть легенда.
+## Test environment
 
-## Схемы
+[deploy](deploy) holds separate Docker Compose sets that join the shared `umbrella` network. Each one is started from its own folder with `docker compose up -d` after copying `.env.example` to `.env`:
 
-Исходники схем — файлы draw.io `mvp/diagrams/umbrella-mvp.drawio` и `target/diagrams/umbrella-target.drawio` (открываются в diagrams.net). Они генерируются кодом из папки `generator`, поэтому правки лучше вносить в генератор, иначе их перезапишет следующая сборка.
+| Folder | What it brings up |
+| --- | --- |
+| [deploy/umbrella](deploy/umbrella) | the application itself: the image is built from `app`, data in the `/data` volume, port `8080` |
+| [deploy/postgres](deploy/postgres) | PostgreSQL 17 with `pg_stat_statements` (database `umbrella`) and pgAdmin |
+| [deploy/openbao](deploy/openbao) | OpenBao 2.7 with file storage; an init container unseals it, enables KV v2 `umbrella/` and AppRole `umbrella` and puts `role_id` and `secret_id` into `secrets/umbrella` |
+| [deploy/ad](deploy/ad) | a Samba AD domain controller (LDAP 389, LDAPS 636) with test users, the `svc-umbrella` service account and Umbrella groups, plus LDAP Account Manager |
+| [deploy/zabbix](deploy/zabbix/README.md) | Zabbix 7.0 LTS (server, web interface, PostgreSQL, agent 2) and the Umbrella media type |
+| [deploy/netbox](deploy/netbox/README.md) | NetBox 4.7 with the background worker, PostgreSQL and Valkey; an administrator and an API token are created on the first start |
+| [deploy/grafana](deploy/grafana/README.md) | Grafana 13 with the "Umbrella" contact point and the incident context dashboard |
 
-Сборка схем (нужны Python 3, Node.js и Chromium):
+How to connect Zabbix, NetBox and Grafana to Umbrella is described in the README files in their folders. There is no script in the repository that installs the whole test environment with a single command.
 
-```bash
-cd generator
-npm install
-./build.sh            # оба набора; ./build.sh mvp или ./build.sh target
-```
+## Architecture documentation
 
-Если Chromium установлен не через Playwright, укажите путь к нему в переменной `CHROME_PATH`.
+Architecture documents (MVP and target architecture) and their diagrams are kept separately from this repository; the architecture of the Inventory DB integration is in [integrations/inventory-db.md](integrations/inventory-db.md). This repository holds the application documentation ([app/README.md](app/README.md) and [app/docs](app/docs)) and an analysis of n8n capabilities for the connector builder ([n8n.md](n8n.md)).

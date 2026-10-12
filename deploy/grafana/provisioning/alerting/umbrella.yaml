@@ -1,0 +1,16 @@
+apiVersion: 1
+
+# Contact point that posts Grafana alerts to the Umbrella connector (Grafana Alerting preset).
+# Pick it in Alerting → Notification policies (default policy or a nested one).
+contactPoints:
+  - orgId: 1
+    name: Umbrella
+    receivers:
+      - uid: umbrella-webhook
+        type: webhook
+        disableResolveMessage: false
+        settings:
+          url: ${UMBRELLA_INGEST_URL}
+          httpMethod: POST
+          authorization_scheme: Bearer
+          authorization_credentials: ${UMBRELLA_INGEST_TOKEN}

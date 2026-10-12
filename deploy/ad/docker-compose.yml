@@ -1,0 +1,78 @@
+name: umbrella-ad
+
+services:
+  dc:
+    build: .
+    image: ${AD_IMAGE:-umbrella-lab-samba-dc:1}
+    pull_policy: build
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    hostname: ${AD_HOST_NAME:-dc1}
+    domainname: ${AD_DNS_DOMAIN:-corp.umbrella.lab}
+    environment:
+      REALM: ${AD_REALM:-CORP.UMBRELLA.LAB}
+      DOMAIN: ${AD_DOMAIN:-CORP}
+      HOST_NAME: ${AD_HOST_NAME:-dc1}
+      DNS_FORWARDER: ${AD_DNS_FORWARDER:-1.1.1.1}
+      ADMIN_PASSWORD: ${AD_ADMIN_PASSWORD:?set AD_ADMIN_PASSWORD in .env}
+      SERVICE_PASSWORD: ${AD_SERVICE_PASSWORD:?set AD_SERVICE_PASSWORD in .env}
+      USER_PASSWORD: ${AD_USER_PASSWORD:?set AD_USER_PASSWORD in .env}
+    volumes:
+      - samba-data:/var/lib/samba
+      - samba-etc:/etc/samba
+      - ./certs:/export
+    ports:
+      - "${AD_BIND:-127.0.0.1}:${AD_LDAP_PORT:-389}:389"
+      - "${AD_BIND:-127.0.0.1}:${AD_LDAPS_PORT:-636}:636"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/636"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+    networks:
+      umbrella:
+        aliases:
+          - ${AD_HOST_NAME:-dc1}.${AD_DNS_DOMAIN:-corp.umbrella.lab}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  lam:
+    image: ${LAM_IMAGE:-ldapaccountmanager/lam:stable}
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c", "tr -d '\\r' < /prepare.sh > /tmp/prepare.sh && exec /bin/sh /tmp/prepare.sh"]
+    environment:
+      LDAP_SERVER: ldaps://${AD_HOST_NAME:-dc1}.${AD_DNS_DOMAIN:-corp.umbrella.lab}:636
+      LDAP_DOMAIN: ${AD_DNS_DOMAIN:-corp.umbrella.lab}
+      LDAP_BASE_DN: ${AD_BASE_DN:-DC=corp,DC=umbrella,DC=lab}
+      LDAP_USERS_DN: OU=Umbrella,${AD_BASE_DN:-DC=corp,DC=umbrella,DC=lab}
+      LDAP_GROUPS_DN: OU=Umbrella,${AD_BASE_DN:-DC=corp,DC=umbrella,DC=lab}
+      LDAP_USER: CN=Administrator,CN=Users,${AD_BASE_DN:-DC=corp,DC=umbrella,DC=lab}
+      LAM_LANG: ${LAM_LANG:-ru_RU}
+      LAM_PASSWORD: ${LAM_PASSWORD:?set LAM_PASSWORD in .env}
+    volumes:
+      - ./lam/prepare.sh:/prepare.sh:ro
+      - ./certs/ca.pem:/certs/ca.pem:ro
+    ports:
+      - "${AD_BIND:-127.0.0.1}:${LAM_PORT:-8090}:80"
+    depends_on:
+      dc:
+        condition: service_healthy
+    networks: [umbrella]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  umbrella:
+    name: umbrella
+
+volumes:
+  samba-data:
+  samba-etc:

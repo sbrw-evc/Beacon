@@ -1,0 +1,60 @@
+zabbix_export:
+  version: '7.0'
+  media_types:
+    - name: Umbrella
+      type: WEBHOOK
+      parameters:
+        - name: event_id
+          value: '{EVENT.ID}'
+        - name: host
+          value: '{HOST.HOST}'
+        - name: host_group
+          value: '{TRIGGER.HOSTGROUP.NAME}'
+        - name: item_key
+          value: '{ITEM.KEY1}'
+        - name: severity
+          value: '{EVENT.NSEVERITY}'
+        - name: status
+          value: '{EVENT.VALUE}'
+        - name: token
+          value: {{yaml .Token}}
+        - name: trigger
+          value: '{EVENT.NAME}'
+        - name: url
+          value: {{yaml .URL}}
+        - name: value
+          value: '{ITEM.LASTVALUE1}'
+      script: |
+        var p = JSON.parse(value);
+        var fields = ['event_id', 'host', 'host_group', 'trigger', 'item_key', 'severity', 'status', 'value'];
+        var body = {};
+        fields.forEach(function (f) {
+            // Unresolved macros come through literally; send them as empty.
+            body[f] = /^\{[A-Z.0-9]+\}$/.test(p[f] || '') ? '' : (p[f] || '');
+        });
+        var req = new HttpRequest();
+        req.addHeader('Content-Type: application/json');
+        if (p.token && p.token.charAt(0) !== '<') {
+            req.addHeader('Authorization: Bearer ' + p.token);
+        }
+        var resp = req.post(p.url, JSON.stringify(body));
+        var code = req.getStatus();
+        if (code < 200 || code >= 300) {
+            throw 'Umbrella answered ' + code + ': ' + resp;
+        }
+        return 'OK';
+      timeout: 10s
+      description: 'Sends trigger events to an Umbrella connector built from the Zabbix preset. Set url to the connector ingest address and token to its bearer token.'
+      message_templates:
+        - event_source: TRIGGERS
+          operation_mode: PROBLEM
+          subject: 'Problem: {EVENT.NAME}'
+          message: '{EVENT.NAME}'
+        - event_source: TRIGGERS
+          operation_mode: RECOVERY
+          subject: 'Resolved: {EVENT.NAME}'
+          message: '{EVENT.NAME}'
+        - event_source: TRIGGERS
+          operation_mode: UPDATE
+          subject: 'Updated: {EVENT.NAME}'
+          message: '{EVENT.NAME}'

@@ -1,0 +1,68 @@
+{
+  "id": "zabbix",
+  "title": {"en": "Zabbix (webhook media type)", "ru": "Zabbix (тип оповещения webhook)"},
+  "description": {
+    "en": "A Zabbix webhook media type that posts the event as JSON: severity 0–5, status 1 for a problem and 0 for recovery.",
+    "ru": "Тип оповещения Zabbix webhook, отправляющий событие в JSON: severity 0–5, статус 1 для проблемы и 0 для восстановления."
+  },
+  "quick": {
+    "order": 1,
+    "name": {"en": "Zabbix", "ru": "Zabbix"},
+    "monitoring_kinds": ["zabbix"],
+    "steps": 3,
+    "attachment": {"kind": "yaml", "name": "umbrella-mediatype.yaml", "template_file": "zabbix-mediatype.yaml.tmpl"},
+    "test_body": "{\"event_id\":\"umbrella-test-{{.Nonce}}\",\"host\":{{json .CI}},\"host_group\":\"Umbrella\",\"item_key\":\"umbrella.test\",\"severity\":\"2\",\"status\":\"1\",\"trigger\":{{json .Title}},\"value\":\"\"}"
+  },
+  "document": {
+    "format": "umbrella.connector",
+    "format_version": 1,
+    "name": "Zabbix",
+    "tags": ["zabbix"],
+    "graph": {
+      "nodes": [
+        {"id": "webhook", "type": "trigger.webhook", "type_version": 1, "params": {"credential": ""}, "position": {"x": 0, "y": 120}},
+        {"id": "parse", "type": "parse.json", "type_version": 1, "params": {}, "position": {"x": 260, "y": 120}},
+        {"id": "severity", "type": "map.severity", "type_version": 1, "params": {
+          "source": "${severity}",
+          "mapping": [
+            {"from": "5", "to": "critical"},
+            {"from": "4", "to": "error"},
+            {"from": "3", "to": "warning"},
+            {"from": "2", "to": "low"},
+            {"from": "1", "to": "info"},
+            {"from": "0", "to": "info"}
+          ]
+        }, "position": {"x": 520, "y": 120}},
+        {"id": "labels", "type": "enrich.labels", "type_version": 1, "params": {
+          "labels": [
+            {"key": "source", "value": "zabbix"},
+            {"key": "host_group", "value": "${host_group}"}
+          ]
+        }, "position": {"x": 780, "y": 120}},
+        {"id": "map", "type": "map.event", "type_version": 1, "params": {
+          "title": "${trigger}",
+          "ci": "${host}",
+          "signal": "${item_key|$trigger}",
+          "method": "other",
+          "severity": "${severity}",
+          "status": "${status}",
+          "external_id": "${event_id}",
+          "value": "${value}"
+        }, "position": {"x": 1040, "y": 120}},
+        {"id": "event", "type": "out.event", "type_version": 1, "params": {}, "position": {"x": 1300, "y": 120}}
+      ],
+      "edges": [
+        {"id": "e1", "source": "webhook", "source_output": "main", "target": "parse"},
+        {"id": "e2", "source": "parse", "source_output": "main", "target": "severity"},
+        {"id": "e3", "source": "severity", "source_output": "main", "target": "labels"},
+        {"id": "e4", "source": "labels", "source_output": "main", "target": "map"},
+        {"id": "e5", "source": "map", "source_output": "main", "target": "event"}
+      ]
+    },
+    "credentials": [{"slot": "webhook.credential", "node": "webhook", "param": "credential", "types": ["bearer", "basic", "header", "hmac"]}],
+    "samples": [
+      {"name": "Problem: high CPU", "headers": {"content-type": "application/json"}, "body": "{\"event_id\":\"10234\",\"host\":\"app-01\",\"host_group\":\"Linux servers\",\"trigger\":\"High CPU utilization on app-01\",\"item_key\":\"system.cpu.util\",\"severity\":\"4\",\"status\":\"1\",\"value\":\"97.2 %\"}"},
+      {"name": "Recovery: high CPU", "headers": {"content-type": "application/json"}, "body": "{\"event_id\":\"10234\",\"host\":\"app-01\",\"host_group\":\"Linux servers\",\"trigger\":\"High CPU utilization on app-01\",\"item_key\":\"system.cpu.util\",\"severity\":\"4\",\"status\":\"0\",\"value\":\"12.5 %\"}"}
+    ]
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "id": "graylog",
+  "title": {
+    "en": "Graylog Events",
+    "ru": "События Graylog"
+  },
+  "description": {
+    "en": "A Graylog HTTP notification on event definitions, or polling of the Graylog events API from Monitoring systems: an alert per event definition and key (its group-by values). Graylog events do not resolve by themselves; polling resolves an alert once its events stop coming.",
+    "ru": "HTTP-уведомление Graylog на определениях событий или опрос API событий Graylog из «Систем мониторинга»: алерт на каждое определение события и ключ (значения группировки). События Graylog сами не закрываются; опрос закрывает алерт, когда его события перестают приходить."
+  },
+  "quick": {
+    "order": 4,
+    "name": {
+      "en": "Graylog",
+      "ru": "Graylog"
+    },
+    "monitoring_kinds": [
+      "graylog"
+    ],
+    "steps": 3,
+    "snippet": {
+      "kind": "text",
+      "template": "Notification Type: HTTP Notification\nURL: {{.URL}}\nAPI Key: Authorization\nAPI Secret: Bearer {{.Token}}\nSend API Key/Secret as Header: on\n"
+    },
+    "test_body": "{\"event_definition_id\":\"umbrella-test-{{.Nonce}}\",\"event_definition_type\":\"aggregation-v1\",\"event_definition_title\":{{json .Title}},\"event_definition_description\":\"\",\"event\":{\"id\":\"umbrella-test-{{.Nonce}}\",\"event_definition_id\":\"umbrella-test-{{.Nonce}}\",\"timestamp\":\"2026-01-01T00:00:00.000Z\",\"message\":{{json .Title}},\"source\":\"graylog\",\"key\":\"\",\"priority\":2,\"alert\":true,\"fields\":{},\"group_by_fields\":{\"source\":{{json .CI}}}},\"backlog\":[]}"
+  },
+  "document": {
+    "format": "umbrella.connector",
+    "format_version": 1,
+    "name": "Graylog Events",
+    "tags": [
+      "graylog"
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "webhook",
+          "type": "trigger.webhook",
+          "type_version": 1,
+          "params": {
+            "credential": ""
+          },
+          "position": {
+            "x": 0,
+            "y": 120
+          }
+        },
+        {
+          "id": "parse",
+          "type": "parse.json",
+          "type_version": 1,
+          "params": {},
+          "position": {
+            "x": 260,
+            "y": 120
+          }
+        },
+        {
+          "id": "text",
+          "type": "transform.text",
+          "type_version": 1,
+          "params": {
+            "source": "${event_definition_description|$event.message}",
+            "target": "details",
+            "unescape": true,
+            "strip_ansi": true,
+            "strip_html": false,
+            "blank_lines": "squeeze",
+            "trim": true,
+            "head_lines": 60.0,
+            "tail_lines": 20.0,
+            "skip_marker": "… {n} lines skipped …",
+            "max_chars": 0.0,
+            "summary_target": "summary",
+            "summary": "first_line",
+            "summary_max": 200.0
+          },
+          "position": {
+            "x": 520,
+            "y": 120
+          }
+        },
+        {
+          "id": "severity",
+          "type": "map.severity",
+          "type_version": 1,
+          "params": {
+            "source": "${event.priority}",
+            "mapping": [
+              {
+                "from": "4",
+                "to": "critical"
+              },
+              {
+                "from": "3",
+                "to": "error"
+              },
+              {
+                "from": "2",
+                "to": "warning"
+              },
+              {
+                "from": "1",
+                "to": "low"
+              },
+              {
+                "from": "*",
+                "to": "warning"
+              }
+            ]
+          },
+          "position": {
+            "x": 780,
+            "y": 120
+          }
+        },
+        {
+          "id": "labels",
+          "type": "enrich.labels",
+          "type_version": 1,
+          "params": {
+            "labels": [
+              {
+                "key": "source",
+                "value": "graylog"
+              },
+              {
+                "key": "event_definition",
+                "value": "${event_definition_title}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1040,
+            "y": 120
+          }
+        },
+        {
+          "id": "map",
+          "type": "map.event",
+          "type_version": 1,
+          "params": {
+            "title": "${event_definition_title|$event.message|firstline|truncate:200}",
+            "ci": "${event.group_by_fields.source|$event.fields.source|$event.group_by_fields.host|$event.fields.host|$event.group_by_fields.hostname|$event.fields.hostname|$backlog[0].source|$event.key|$event.source}",
+            "signal": "${event_definition_title|$event.event_definition_id}",
+            "method": "other",
+            "severity": "${severity}",
+            "status": "${status|firing}",
+            "external_id": "${event_definition_id|$event.event_definition_id}${event.key}",
+            "value": "${event.message|oneline|truncate:200}",
+            "description": "${details}",
+            "fields": [
+              {
+                "name": "Определение события",
+                "value": "${event_definition_title}"
+              },
+              {
+                "name": "Ключ",
+                "value": "${event.key}"
+              },
+              {
+                "name": "Сообщение события",
+                "value": "${event.message}"
+              },
+              {
+                "name": "Пример сообщения",
+                "value": "${backlog[0].message|oneline|truncate:500}"
+              },
+              {
+                "name": "Приоритет",
+                "value": "${event.priority}"
+              },
+              {
+                "name": "Время события",
+                "value": "${event.timestamp}"
+              },
+              {
+                "name": "Узел Graylog",
+                "value": "${event.source}"
+              }
+            ]
+          },
+          "position": {
+            "x": 1300,
+            "y": 120
+          }
+        },
+        {
+          "id": "event",
+          "type": "out.event",
+          "type_version": 1,
+          "params": {},
+          "position": {
+            "x": 1560,
+            "y": 120
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "webhook",
+          "source_output": "main",
+          "target": "parse"
+        },
+        {
+          "id": "e2",
+          "source": "parse",
+          "source_output": "main",
+          "target": "text"
+        },
+        {
+          "id": "e3",
+          "source": "text",
+          "source_output": "main",
+          "target": "severity"
+        },
+        {
+          "id": "e4",
+          "source": "severity",
+          "source_output": "main",
+          "target": "labels"
+        },
+        {
+          "id": "e5",
+          "source": "labels",
+          "source_output": "main",
+          "target": "map"
+        },
+        {
+          "id": "e6",
+          "source": "map",
+          "source_output": "main",
+          "target": "event"
+        }
+      ]
+    },
+    "credentials": [
+      {
+        "slot": "webhook.credential",
+        "node": "webhook",
+        "param": "credential",
+        "types": [
+          "bearer",
+          "basic",
+          "header",
+          "hmac"
+        ]
+      }
+    ],
+    "samples": [
+      {
+        "name": "Event: too many 5xx",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"event_definition_id\": \"6720a1b2c3d4e5f601234567\", \"event_definition_type\": \"aggregation-v1\", \"event_definition_title\": \"Too many 5xx on nginx\", \"event_definition_description\": \"More than 50 responses with status 5xx in 5 minutes\", \"job_definition_id\": \"6720a1b2c3d4e5f601234568\", \"job_trigger_id\": \"6720a1b2c3d4e5f601234569\", \"event\": {\"id\": \"01J9ZK3M4N5P6Q7R8S9T0V1W2X\", \"event_definition_type\": \"aggregation-v1\", \"event_definition_id\": \"6720a1b2c3d4e5f601234567\", \"origin_context\": \"urn:graylog:message:es:graylog_12:5f3c0e2a\", \"timestamp\": \"2026-10-07T10:00:00.000Z\", \"timestamp_processing\": \"2026-10-07T10:00:03.120Z\", \"timerange_start\": \"2026-10-07T09:55:00.000Z\", \"timerange_end\": \"2026-10-07T10:00:00.000Z\", \"streams\": [\"000000000000000000000001\"], \"source_streams\": [\"000000000000000000000001\"], \"message\": \"Too many 5xx on nginx: count()=73.0\", \"source\": \"graylog-01\", \"key_tuple\": [\"web-01\"], \"key\": \"web-01\", \"priority\": 3, \"alert\": true, \"fields\": {\"service\": \"shop\"}, \"group_by_fields\": {\"source\": \"web-01\"}}, \"backlog\": [{\"index\": \"graylog_12\", \"message\": \"upstream timed out (110: Connection timed out) while reading response header from upstream\", \"timestamp\": \"2026-10-07T09:59:58.000Z\", \"source\": \"web-01\", \"stream_ids\": [\"000000000000000000000001\"], \"fields\": {\"http_status\": 504}, \"id\": \"5f3c0e2a\"}]}"
+      },
+      {
+        "name": "Resolved by the poll: database errors",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": "{\"event_definition_id\": \"6720a1b2c3d4e5f60123456a\", \"event_definition_type\": \"aggregation-v1\", \"event_definition_title\": \"Database errors\", \"event_definition_description\": \"\", \"event\": {\"id\": \"01J9ZK3M4N5P6Q7R8S9T0V1W2Y\", \"event_definition_type\": \"aggregation-v1\", \"event_definition_id\": \"6720a1b2c3d4e5f60123456a\", \"timestamp\": \"2026-10-07T10:20:00.000Z\", \"message\": \"Database errors\", \"source\": \"graylog-01\", \"key\": \"db-01\", \"priority\": 4, \"alert\": true, \"fields\": {}, \"group_by_fields\": {\"source\": \"db-01\"}}, \"backlog\": [], \"status\": \"resolved\"}"
+      }
+    ]
+  }
+}

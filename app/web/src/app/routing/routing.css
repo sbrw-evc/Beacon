@@ -1,0 +1,25 @@
+.rt-preview {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.rt-rule {
+  font-size: 12px;
+  margin: 0;
+}
+
+.rt-warn {
+  color: var(--warn, #b26b00);
+}
+
+.rt-elsewhere ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.rt-elsewhere p {
+  margin: 0 0 4px;
+}

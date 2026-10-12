@@ -1,0 +1,79 @@
+name: umbrella-postgres
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    restart: unless-stopped
+    command: postgres -c shared_preload_libraries=pg_stat_statements
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-umbrella}
+      POSTGRES_USER: ${POSTGRES_USER:-umbrella}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: ${TZ:-UTC}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [umbrella]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postgres-init:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-umbrella}
+      POSTGRES_USER: ${POSTGRES_USER:-umbrella}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    command: >
+      sh -c "
+      psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SHOW shared_preload_libraries;' &&
+      psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements;' &&
+      psql -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT extname, extversion FROM pg_extension WHERE extname='pg_stat_statements';\"
+      "
+    networks: [umbrella]
+
+  pgadmin:
+    image: ${PGADMIN_IMAGE:-dpage/pgadmin4:9}
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@umbrella.lab}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?set PGADMIN_PASSWORD in .env}
+      PGADMIN_DISABLE_POSTFIX: "true"
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+      PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED: "False"
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_BIND:-127.0.0.1}:${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [umbrella]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  umbrella:
+    name: umbrella
+
+volumes:
+  postgres-data:
+  pgadmin-data:

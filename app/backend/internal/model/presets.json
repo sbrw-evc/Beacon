@@ -1,0 +1,47 @@
+[
+  {
+    "id": "preset-viewer",
+    "name": {"en": "Viewer", "ru": "Наблюдатель"},
+    "description": {
+      "en": "Sees incidents, the CMDB map, configuration items, services, maintenance windows and TV wallboards; changes nothing.",
+      "ru": "Видит инциденты, карту CMDB, КЕ, сервисы, сервисные окна и ТВ-панели; ничего не меняет."
+    },
+    "permissions": ["incidents:view", "cmdb:view", "cis:view", "services:view", "maintenance:view", "wallboards:view"]
+  },
+  {
+    "id": "preset-oncall",
+    "name": {"en": "On-call engineer", "ru": "Дежурный инженер"},
+    "description": {
+      "en": "Viewer who also acknowledges, resolves and comments incidents and plans maintenance windows.",
+      "ru": "Наблюдатель, который также подтверждает, решает и комментирует инциденты и планирует сервисные окна."
+    },
+    "permissions": ["incidents:view", "response:view", "cmdb:view", "cis:view", "services:view", "maintenance:view", "wallboards:view", "incidents:ack", "maintenance:edit"]
+  },
+  {
+    "id": "preset-service-owner",
+    "name": {"en": "Service owner", "ru": "Владелец сервиса"},
+    "description": {
+      "en": "Sees and acknowledges incidents of their services. Give it with the scope «services of my teams».",
+      "ru": "Видит и подтверждает инциденты своих сервисов. Выдавайте вместе с областью «сервисы моих команд»."
+    },
+    "permissions": ["incidents:view", "incidents:ack", "cmdb:view", "cis:view", "services:view", "maintenance:view"]
+  },
+  {
+    "id": "preset-integrations",
+    "name": {"en": "Integration administrator", "ru": "Администратор интеграций"},
+    "description": {
+      "en": "Viewer who connects sources: connectors, credentials, RED/USE rules, monitoring systems, NetBox, configuration items and services.",
+      "ru": "Наблюдатель, который подключает источники: коннекторы, учётные данные, правила RED/USE, системы мониторинга, NetBox, КЕ и сервисы."
+    },
+    "permissions": ["incidents:view", "response:view", "response:test", "response:edit", "cmdb:view", "cis:view", "services:view", "maintenance:view", "wallboards:view", "connectors:edit", "connectors:publish", "connectors:payload", "credentials:edit", "rules:edit", "monitoring:test", "monitoring:edit", "monitoring:sync", "monitoring:link", "netbox:test", "netbox:edit", "netbox:sync", "cis:edit", "services:edit", "status:view"]
+  },
+  {
+    "id": "preset-noc-lead",
+    "name": {"en": "NOC lead", "ru": "Руководитель NOC"},
+    "description": {
+      "en": "On-call engineer who also manages teams, users (except administrators), TV wallboards and checks alerting.",
+      "ru": "Дежурный инженер, который также управляет командами, пользователями (кроме администраторов), ТВ-панелями и проверяет оповещения."
+    },
+    "permissions": ["incidents:view", "response:view", "response:test", "response:edit", "cmdb:view", "cis:view", "services:view", "maintenance:view", "wallboards:view", "incidents:ack", "maintenance:edit", "teams:edit", "users:view", "users:edit", "users:lock", "wallboards:edit", "settings.alerting:view", "settings.alerting:test", "status:view"]
+  }
+]

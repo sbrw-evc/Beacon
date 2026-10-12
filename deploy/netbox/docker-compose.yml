@@ -1,0 +1,113 @@
+name: umbrella-netbox
+
+x-netbox-env: &netbox-env
+  DB_HOST: netbox-db
+  DB_NAME: netbox
+  DB_USER: netbox
+  DB_PASSWORD: ${NETBOX_DB_PASSWORD:?set NETBOX_DB_PASSWORD in .env}
+  REDIS_HOST: netbox-redis
+  REDIS_PASSWORD: ${NETBOX_REDIS_PASSWORD:?set NETBOX_REDIS_PASSWORD in .env}
+  REDIS_DATABASE: "0"
+  REDIS_CACHE_HOST: netbox-redis
+  REDIS_CACHE_PASSWORD: ${NETBOX_REDIS_PASSWORD}
+  REDIS_CACHE_DATABASE: "1"
+  SECRET_KEY: ${NETBOX_SECRET_KEY:?set NETBOX_SECRET_KEY in .env}
+  API_TOKEN_PEPPER_1: ${NETBOX_API_TOKEN_PEPPER:?set NETBOX_API_TOKEN_PEPPER in .env}
+  ALLOWED_HOSTS: "*"
+  TIME_ZONE: ${TZ:-UTC}
+
+services:
+  netbox-db:
+    image: ${NETBOX_DB_IMAGE:-postgres:17.11-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: netbox
+      POSTGRES_USER: netbox
+      POSTGRES_PASSWORD: ${NETBOX_DB_PASSWORD}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - netbox-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netbox -d netbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [umbrella]
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  netbox-redis:
+    image: ${NETBOX_REDIS_IMAGE:-valkey/valkey:9.0.6-alpine}
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes", "--requirepass", "${NETBOX_REDIS_PASSWORD}"]
+    environment:
+      REDISCLI_AUTH: ${NETBOX_REDIS_PASSWORD}
+    volumes:
+      - netbox-redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [umbrella]
+    logging: *logging
+
+  netbox:
+    image: ${NETBOX_IMAGE:-netboxcommunity/netbox:v4.7.2-5.1.1}
+    restart: unless-stopped
+    # The image listens on [::] only, which fails on hosts with IPv6 turned off; listen on IPv4.
+    command: ["bash", "-c", "sed 's/--host \"::\"/--host \"0.0.0.0\"/' /opt/netbox/launch-netbox.sh > /tmp/launch-netbox.sh && exec bash /tmp/launch-netbox.sh"]
+    environment:
+      <<: *netbox-env
+      SKIP_SUPERUSER: "false"
+      SUPERUSER_NAME: ${NETBOX_ADMIN_USER:-admin}
+      SUPERUSER_EMAIL: ${NETBOX_ADMIN_EMAIL:-admin@umbrella.lab}
+      SUPERUSER_PASSWORD: ${NETBOX_ADMIN_PASSWORD:?set NETBOX_ADMIN_PASSWORD in .env}
+      SUPERUSER_API_KEY: ${NETBOX_API_KEY:-}
+      SUPERUSER_API_TOKEN: ${NETBOX_API_TOKEN:-}
+    volumes:
+      - netbox-media:/opt/netbox/netbox/media
+    ports:
+      - "${NETBOX_BIND:-127.0.0.1}:${NETBOX_PORT:-8000}:8080"
+    healthcheck:
+      test: ["CMD", "/opt/netbox/health.sh"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 180s
+    depends_on:
+      netbox-db:
+        condition: service_healthy
+      netbox-redis:
+        condition: service_healthy
+    networks: [umbrella]
+    logging: *logging
+
+  netbox-worker:
+    image: ${NETBOX_IMAGE:-netboxcommunity/netbox:v4.7.2-5.1.1}
+    restart: unless-stopped
+    command: ["/opt/netbox/venv/bin/python", "/opt/netbox/netbox/manage.py", "rqworker"]
+    environment:
+      <<: *netbox-env
+    healthcheck:
+      test: ["CMD-SHELL", "ps -o args= -p 1 | grep -q rqworker"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      netbox:
+        condition: service_healthy
+    networks: [umbrella]
+    logging: *logging
+
+networks:
+  umbrella:
+    name: umbrella
+
+volumes:
+  netbox-db:
+  netbox-redis:
+  netbox-media:

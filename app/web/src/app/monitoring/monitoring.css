@@ -1,0 +1,215 @@
+.mon-kind {
+  margin-right: 6px;
+}
+
+.mon-kind-zabbix {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.mon-kind-prometheus {
+  background: var(--warn-soft, var(--surface-2));
+  color: var(--warn);
+}
+
+.mon-warn {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.mon-error {
+  margin-top: 4px;
+  max-width: 320px;
+  font-size: 12.5px;
+  color: var(--error);
+  overflow-wrap: anywhere;
+}
+
+.mon-table td {
+  vertical-align: top;
+}
+
+.mon-table .cn-name a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mon-ci {
+  min-width: 200px;
+}
+
+.mon-actions {
+  margin-top: 4px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mon-actions .btn {
+  padding: 2px 8px;
+  min-height: 0;
+  font-size: 13px;
+}
+
+.mon-source-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mon-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--control-radius);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.mon-option:hover {
+  border-color: var(--input-border-hover);
+}
+
+.mon-option.active {
+  border-color: var(--chip-on-border);
+  background: var(--chip-on-bg);
+  box-shadow: 0 0 0 1px var(--chip-on-border);
+}
+
+.mon-link-search {
+  flex: none;
+}
+
+.mon-url {
+  min-width: 200px;
+}
+
+.mon-url code {
+  overflow-wrap: anywhere;
+}
+
+.mon-sync .btn {
+  white-space: nowrap;
+}
+
+.mon-kind-grafana {
+  background: var(--accent-soft, var(--surface-2));
+  color: var(--accent);
+}
+
+.mon-poll {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.mon-poll h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+/* Graphs and logs of the incident card. */
+.ctx-explain {
+  margin: 0;
+}
+
+.ctx-card {
+  padding: 16px;
+}
+
+.ctx-card h3,
+.ctx-sub {
+  margin: 0;
+}
+
+.ctx-head {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ctx-panels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ctx-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ctx-panel textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  min-height: 0;
+}
+
+.ctx-panel-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ctx-panel-row .input:first-child {
+  flex: 1;
+}
+
+.ctx-unit {
+  width: 110px;
+}
+
+.ctx-actions {
+  flex-wrap: wrap;
+}
+
+.ctx-spacer {
+  flex: 1;
+}
+
+.ctx-off {
+  margin-left: 6px;
+}
+
+.ctx-test {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.ctx-test > :first-child {
+  flex: 1;
+}
+
+.ctx-query,
+.ctx-line {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ctx-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: -2px;
+}
+
+.mon-kind-graylog {
+  background: var(--ok-soft, var(--surface-2));
+  color: var(--ok);
+}

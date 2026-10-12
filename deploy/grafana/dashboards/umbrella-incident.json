@@ -1,0 +1,101 @@
+{
+  "uid": "umbrella-incident",
+  "title": "Umbrella incident",
+  "tags": [
+    "umbrella"
+  ],
+  "timezone": "",
+  "schemaVersion": 41,
+  "editable": true,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "incident",
+        "label": "Incident",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "ci",
+        "label": "CI",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "ci_id",
+        "label": "CI ID",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "service",
+        "label": "Service",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "team",
+        "label": "Team",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "type": "textbox",
+        "name": "signal",
+        "label": "Signal",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Incident context",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 7
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Umbrella opens this dashboard from an incident with the time window around it and these variables.\n\n| Variable | Value |\n|---|---|\n| `incident` | ${incident} |\n| `ci` | ${ci} |\n| `ci_id` | ${ci_id} |\n| `service` | ${service} |\n| `team` | ${team} |\n| `signal` | ${signal} |\n\nCopy it and add panels that filter by `$ci`, `$service` or `$signal`, then set its address in Umbrella → Settings → Alerting → Grafana."
+      }
+    }
+  ]
+}

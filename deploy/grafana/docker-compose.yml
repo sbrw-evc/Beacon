@@ -1,0 +1,50 @@
+name: umbrella-grafana
+
+services:
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:13.2.3}
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: ${TZ:-UTC}
+      # The ClickHouse datasource of the Umbrella Flow "CI traffic" dashboard.
+      GF_PLUGINS_PREINSTALL: ${GRAFANA_PLUGINS:-grafana-clickhouse-datasource}
+      FLOW_CLICKHOUSE_HOST: ${FLOW_CLICKHOUSE_HOST:-flow-clickhouse}
+      FLOW_CLICKHOUSE_USER: ${FLOW_CLICKHOUSE_USER:-grafana}
+      FLOW_CLICKHOUSE_PASSWORD: ${FLOW_CLICKHOUSE_PASSWORD:-}
+      FLOW_CLICKHOUSE_DATABASE: ${FLOW_CLICKHOUSE_DATABASE:-flow}
+      UMBRELLA_INGEST_URL: ${UMBRELLA_INGEST_URL:-http://umbrella:8080/api/ingest/grafana}
+      UMBRELLA_INGEST_TOKEN: ${UMBRELLA_INGEST_TOKEN:?set UMBRELLA_INGEST_TOKEN in .env}
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/var/lib/grafana/umbrella-dashboards:ro
+      - ./flow-ci-traffic.json:/var/lib/grafana/flow-dashboards/flow-ci-traffic.json:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health | grep -q '\"database\": *\"ok\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks: [umbrella]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  umbrella:
+    name: umbrella
+
+volumes:
+  grafana-data:

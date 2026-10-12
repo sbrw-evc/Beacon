@@ -1,0 +1,975 @@
+{
+  "$schema": "umbrella-locale/v1",
+  "$help": "Translate every string in \"messages\". Keep keys and {placeholders} as they are. Plural forms use CLDR categories (one, few, many, other). Set \"id\" to a language tag (de, kk, uz-Latn) and \"dateLocale\" to a locale for dates (de-DE). Missing strings fall back to English.",
+  "id": "xx",
+  "name": "Language name",
+  "dateLocale": "xx-XX",
+  "messages": {
+    "common": {
+      "app": {
+        "brand": "Umbrella",
+        "tagline": "зонтичный мониторинг"
+      },
+      "actions": {
+        "save": "Сохранить",
+        "cancel": "Отмена",
+        "close": "Закрыть",
+        "create": "Создать",
+        "delete": "Удалить",
+        "edit": "Изменить",
+        "apply": "Применить",
+        "reset": "Сбросить",
+        "search": "Поиск",
+        "download": "Скачать",
+        "upload": "Загрузить",
+        "refresh": "Обновить",
+        "export": "Экспорт",
+        "more": "Ещё",
+        "back": "Назад",
+        "open": "Открыть",
+        "copy": "Копировать",
+        "yes": "Да",
+        "no": "Нет"
+      },
+      "words": {
+        "all": "Все",
+        "none": "—",
+        "total": "Всего",
+        "loading": "Загрузка…",
+        "empty": "Нет данных",
+        "error": "Ошибка",
+        "name": "Название",
+        "team": "Команда",
+        "allTeams": "Все команды",
+        "author": "Автор",
+        "created": "Создан",
+        "updated": "Изменён",
+        "description": "Описание",
+        "type": "Тип",
+        "status": "Статус",
+        "severity": "Важность",
+        "source": "Источник",
+        "time": "Время",
+        "yes": "да",
+        "no": "нет"
+      },
+      "severity": {
+        "critical": "Critical",
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info",
+        "ok": "OK"
+      },
+      "status": {
+        "open": "Открыта",
+        "acknowledged": "Подтверждена",
+        "resolved": "Решена"
+      },
+      "pd": {
+        "pending": "В очереди",
+        "accepted": "Принят",
+        "acked": "Ack",
+        "failed": "Не принят",
+        "skipped": "Не отправлялся",
+        "fallback": "Резерв",
+        "fallbackHint": "Отправлено по резервным каналам"
+      },
+      "ciType": {
+        "business_service": "Бизнес-услуга",
+        "it_service": "ИТ-сервис",
+        "host": "Хост",
+        "database": "База данных",
+        "cloud_group": "Облачная группа",
+        "deployment": "Deployment",
+        "network": "Сетевое устройство"
+      },
+      "method": {
+        "red": "RED",
+        "use": "USE",
+        "other": "—"
+      },
+      "time": {
+        "lessMinute": "< 1 мин",
+        "min": "{m} мин",
+        "hourMin": "{h} ч {m} мин",
+        "dayHour": "{d} д {h} ч",
+        "hours": {
+          "one": "{n} час",
+          "few": "{n} часа",
+          "many": "{n} часов",
+          "other": "{n} часа"
+        },
+        "days": {
+          "one": "{n} день",
+          "few": "{n} дня",
+          "many": "{n} дней",
+          "other": "{n} дня"
+        }
+      },
+      "layout": {
+        "scope": "Область видимости",
+        "searchIncidents": "Поиск инцидентов",
+        "online": "Онлайн",
+        "offline": "Нет связи",
+        "onlineHint": "Живые обновления подключены",
+        "offlineHint": "Нет соединения с сервером",
+        "signInAs": "Войти как",
+        "demoSignIn": "демо-вход, OIDC позже",
+        "expandMenu": "Развернуть меню",
+        "collapseMenu": "Свернуть меню",
+        "collapse": "Свернуть",
+        "themeLight": "Светлая тема",
+        "themeDark": "Тёмная тема",
+        "language": "Язык",
+        "settings": "Настройки"
+      }
+    },
+    "menu": {
+      "groups": {
+        "overview": "Обзор",
+        "collect": "Сбор данных",
+        "process": "Обработка",
+        "admin": "Администрирование"
+      },
+      "items": {
+        "ops": "Оперативный центр",
+        "incidents": "Инциденты",
+        "cmdb": "Карта CMDB",
+        "connectors": "Коннекторы",
+        "events": "События",
+        "parseErrors": "Ошибки разбора",
+        "rules": "Правила RED/USE",
+        "maintenance": "Окна обслуживания",
+        "selfcheck": "Самоконтроль",
+        "audit": "Журнал аудита",
+        "roles": "Роли и группы",
+        "settings": "Настройки"
+      }
+    },
+    "incidents": {
+      "header": {
+        "title": "Инциденты",
+        "sub": "Тревоги, переданные в PagerDuty: одна на проблему после схлопывания дублей",
+        "saveView": "Сохранить представление"
+      },
+      "views": {
+        "title": "Карты",
+        "open": "Открытые",
+        "closed": "Закрытые",
+        "all": "Все за 24 часа",
+        "pd": "Не приняты PagerDuty",
+        "fallback": "Резервное оповещение",
+        "red": "RED: сервисы",
+        "use": "USE: ресурсы",
+        "mine": "Мои представления",
+        "hint": "Настройте фильтры и нажмите «Сохранить представление»",
+        "prompt": "Название представления"
+      },
+      "indicators": {
+        "open": "открыто",
+        "pdNotAccepted": "Не принято PagerDuty",
+        "pdHint": "в очереди или ошибка",
+        "hourlyTitle": "Новые инциденты по часам за 24 часа",
+        "hourlyLabel": "Новые за 24 ч",
+        "minus24": "−24 ч",
+        "minus12": "−12 ч",
+        "now": "сейчас"
+      },
+      "filters": {
+        "searchPlaceholder": "Поиск: заголовок, КЕ, сервис, текст событий",
+        "methodAll": "Метод: все",
+        "methodOther": "Прочие",
+        "pdAll": "PagerDuty: все",
+        "periodAll": "Период: всё",
+        "hour1": "1 час",
+        "hours6": "6 часов",
+        "hours24": "24 часа",
+        "days7": "7 дней",
+        "total": {
+          "one": "{n} инц.",
+          "few": "{n} инц.",
+          "many": "{n} инц.",
+          "other": "{n} инц."
+        }
+      },
+      "bulk": {
+        "selected": "Выбрано: {n}",
+        "ack": "Подтвердить",
+        "resolve": "Решить",
+        "clear": "Снять выбор"
+      },
+      "table": {
+        "empty": "Инцидентов по этим условиям нет",
+        "severity": "Severity",
+        "incident": "Инцидент",
+        "ci": "КЕ",
+        "service": "ИТ-сервис",
+        "method": "Метод",
+        "events": "Событий",
+        "opened": "Открыт",
+        "duration": "Длительность",
+        "grafanaTitle": "Открыть контекст инцидента в Grafana",
+        "relatedTo": "связан с {id}",
+        "suppressed": "подавлен",
+        "noCi": "без КЕ",
+        "details": "Подробнее"
+      },
+      "drawer": {
+        "grafana": "Контекст в Grafana",
+        "ack": "Подтвердить",
+        "resolve": "Решить",
+        "suppressed": "Подавлен окном",
+        "severity": "Severity",
+        "ci": "КЕ",
+        "noCi": "без КЕ",
+        "service": "ИТ-сервис",
+        "signal": "Сигнал",
+        "sources": "Источники",
+        "sourceOk": "норма",
+        "sourceActive": "активно",
+        "events": "Событий",
+        "opened": "Открыт",
+        "lastEvent": "Последнее событие",
+        "duration": "Длительность",
+        "ackedBy": "Подтвердил",
+        "dedupKey": "Ключ схлопывания",
+        "probableCause": "Вероятная причина",
+        "affects": "Влияет на",
+        "event": "Событие",
+        "pdState": "Состояние в PagerDuty",
+        "lastError": "Последняя ошибка",
+        "fallback": "Резервное оповещение",
+        "fallbackYes": "было: почта и webhook дежурным",
+        "fallbackNo": "не требовалось",
+        "deliveries": "Отправки",
+        "noComments": "Комментариев пока нет",
+        "commentPlaceholder": "Комментарий для смены",
+        "addComment": "Добавить",
+        "noRecords": "Записей нет"
+      },
+      "kinds": {
+        "event": "событие",
+        "status": "статус",
+        "pagerduty": "PagerDuty",
+        "fallback": "резерв",
+        "comment": "комментарий",
+        "maintenance": "обслуживание"
+      },
+      "tabs": {
+        "main": "Основное",
+        "events": "События · {n}",
+        "timeline": "Хронология",
+        "pd": "PagerDuty и резерв",
+        "comments": "Комментарии · {n}"
+      },
+      "csv": {
+        "id": "id",
+        "severity": "severity",
+        "status": "status",
+        "title": "title",
+        "ci": "ci",
+        "service": "service",
+        "signal": "signal",
+        "method": "method",
+        "pagerduty": "pagerduty",
+        "fallback": "fallback",
+        "count": "count",
+        "firstSeen": "first_seen",
+        "lastSeen": "last_seen"
+      },
+      "toasts": {
+        "viewSaved": "Представление сохранено",
+        "bulkAck": "Подтверждено: {n}",
+        "bulkResolve": "Решено: {n}",
+        "bulkSkipped": ", пропущено: {n}",
+        "acked": "Инцидент подтверждён",
+        "resolved": "Инцидент решён"
+      }
+    },
+    "ops": {
+      "side": {
+        "title": "Конфигурационные единицы",
+        "problem": "Проблемные · {n}",
+        "all": "Все · {n}",
+        "services": "Сервисы",
+        "searchPlaceholder": "Название КЕ",
+        "wholeModel": "Вся модель",
+        "emptyFilter": "Нет КЕ по фильтру"
+      },
+      "header": {
+        "title": "Оперативный центр",
+        "sub": "Состояние бизнес-услуг и ИТ-сервисов по открытым тревогам",
+        "ciCard": "карточка КЕ"
+      },
+      "tiles": {
+        "problem": "проблема: {status}",
+        "ok": "работает штатно",
+        "openIncidents": "открытых инцидентов"
+      },
+      "tabs": {
+        "graph": "Граф РСМ",
+        "incidents": "Инциденты · {n}"
+      },
+      "empty": {
+        "graph": "Нет данных карты"
+      }
+    },
+    "cmdb": {
+      "header": {
+        "title": "Карта CMDB",
+        "sub": "КЕ и связи строит CMDB Discovery по данным мониторинга; бизнес-услуги задаются вручную",
+        "table": "Таблица",
+        "graph": "Граф",
+        "create": "Создать КЕ"
+      },
+      "filters": {
+        "title": "Фильтры CMDB",
+        "problem": "Проблемные",
+        "ok": "OK",
+        "searchPlaceholder": "ID, название, описание, группа",
+        "count": "{n} КЕ"
+      },
+      "table": {
+        "empty": "КЕ не найдены",
+        "id": "ID",
+        "name": "Название",
+        "type": "Тип",
+        "state": "Состояние",
+        "openAlerts": "Открытые тревоги",
+        "team": "Команда",
+        "identities": "Идентификаторы",
+        "relations": "Связи",
+        "source": "Источник",
+        "created": "Создана",
+        "maintenance": "обслуживание",
+        "discovery": "Discovery",
+        "manual": "вручную"
+      },
+      "create": {
+        "title": "Новая КЕ",
+        "name": "Название",
+        "type": "Тип",
+        "team": "Команда",
+        "parent": "Родительская КЕ",
+        "parentHelp": "Новая КЕ станет зависимостью выбранной",
+        "description": "Описание",
+        "done": "КЕ создана"
+      },
+      "tabs": {
+        "params": "Параметры",
+        "ids": "Идентификаторы · {n}",
+        "rels": "Связи · {n}",
+        "alerts": "Инциденты · {n}",
+        "maint": "Обслуживание"
+      },
+      "drawer": {
+        "type": "Тип",
+        "state": "Состояние",
+        "withDependents": "с учётом зависимых КЕ",
+        "description": "Описание",
+        "team": "Команда",
+        "itService": "ИТ-сервис",
+        "logicalGroup": "Логическая группа",
+        "origin": "Происхождение",
+        "originDiscovery": "CMDB Discovery",
+        "originManual": "вручную",
+        "created": "Создана",
+        "maintenance": "Обслуживание",
+        "maintenanceActive": "идёт окно обслуживания",
+        "idsHint": "Источники называют КЕ по-разному. ID облачного инстанса меняется после перезапуска, поэтому он хранится как история, а КЕ остаётся той же.",
+        "idKind": "Вид",
+        "idValue": "Значение",
+        "idSince": "С",
+        "idUntil": "По",
+        "idActive": "действует",
+        "maintEmpty": "Окон обслуживания нет",
+        "maintWindow": "Окно",
+        "maintState": "Состояние",
+        "maintStart": "Начало",
+        "maintEnd": "Конец"
+      },
+      "relations": {
+        "ci": "КЕ",
+        "type": "Тип",
+        "relation": "Связь",
+        "runsFor": "работает для",
+        "neededFor": "нужна для",
+        "runsOn": "работает на",
+        "dependsOn": "зависит от"
+      },
+      "maintenanceState": {
+        "planned": "Запланировано",
+        "active": "В действии",
+        "finished": "Завершено"
+      }
+    },
+    "connectors": {
+      "header": {
+        "title": "Коннекторы",
+        "sub": "Подключения к источникам собираются из блоков в конструкторе: получение, парсинг, шаблон, подтверждение",
+        "create": "Создать коннектор"
+      },
+      "side": {
+        "title": "Состояние",
+        "all": "Все",
+        "running": "Запущены",
+        "stopped": "Остановлены",
+        "draft": "Есть неопубликованные изменения"
+      },
+      "columns": {
+        "id": "ID",
+        "name": "Название",
+        "status": "Состояние",
+        "version": "Версия",
+        "events": "Событий",
+        "errors": "Ошибок разбора",
+        "lastEvent": "Последнее событие",
+        "team": "Команда",
+        "updated": "Изменён"
+      },
+      "status": {
+        "running": "Запущен",
+        "stopped": "Остановлен"
+      },
+      "table": {
+        "empty": "Коннекторов нет",
+        "unpublished": "Есть неопубликованные изменения"
+      },
+      "actions": {
+        "stop": "Остановить",
+        "start": "Запустить",
+        "copyIngest": "Копировать адрес приёма",
+        "delete": "Удалить"
+      },
+      "toasts": {
+        "ingestCopied": "Адрес приёма скопирован"
+      },
+      "confirm": {
+        "delete": "Удалить коннектор «{name}»?"
+      },
+      "create": {
+        "title": "Новый коннектор",
+        "submit": "Создать и открыть конструктор",
+        "name": "Название",
+        "namePlaceholder": "Например: Webhook сетевого мониторинга",
+        "team": "Команда-владелец",
+        "template": "Заготовка",
+        "pushTitle": "Push: входящий webhook",
+        "pushSub": "Источник сам присылает события в Umbrella",
+        "pullTitle": "Pull: опрос API по расписанию",
+        "pullSub": "Umbrella сама забирает события по HTTP"
+      }
+    },
+    "editor": {
+      "toolbar": {
+        "back": "К списку",
+        "published": "опубликована v{version}",
+        "notPublished": "не опубликован",
+        "unsaved": "есть несохранённые изменения",
+        "draftDiffers": "черновик отличается от опубликованной версии",
+        "save": "Сохранить",
+        "dryRun": "Проверить (dry-run)",
+        "publish": "Опубликовать",
+        "stop": "Остановить",
+        "start": "Запустить"
+      },
+      "toasts": {
+        "saved": "Черновик сохранён",
+        "published": "Опубликована версия v{version}"
+      },
+      "palette": {
+        "title": "Блоки",
+        "dragHint": "Перетащите на холст или дважды щёлкните"
+      },
+      "block": {
+        "unknown": "Неизвестный блок",
+        "error": "ошибка"
+      },
+      "inspector": {
+        "deleteBlock": "Удалить блок",
+        "lastCheck": "Последняя проверка",
+        "trace": "вход {in} → выход {out}, {ms} мс"
+      },
+      "info": {
+        "selectHint": "Выберите блок на холсте, чтобы настроить его.",
+        "status": "Состояние",
+        "running": "Запущен",
+        "stopped": "Остановлен",
+        "events": "Событий",
+        "errors": "Ошибок разбора",
+        "ingestUrl": "Адрес приёма (push)",
+        "example": "Пример отправки",
+        "token": "токен",
+        "retryHint": "Umbrella отвечает 202 только после записи событий; при ошибке источник должен повторить отправку."
+      },
+      "tabs": {
+        "dry": "Проверка на данных",
+        "help": "Подсказка"
+      },
+      "dry": {
+        "sampleTitle": "Пример входящих данных",
+        "samplePlaceholder": "Вставьте тело webhook или ответ API источника",
+        "empty": "Нажмите «Проверить»: блоки выполнятся на примере без записи событий",
+        "summary": "Событий: {events}, ошибок: {errors}",
+        "notFound": "не найдена"
+      },
+      "columns": {
+        "severity": "Severity",
+        "title": "Заголовок",
+        "ciFromEvent": "КЕ из события",
+        "ciInMap": "КЕ в карте",
+        "signal": "Сигнал",
+        "status": "Статус",
+        "id": "ID"
+      },
+      "help": {
+        "chain": "Соберите цепочку слева направо: триггер → (получение) → парсинг → преобразования → «Событие» → «Подтверждение получения». Блок можно перетащить из палитры или добавить двойным щелчком; связь тянется от правой точки блока к левой точке следующего.",
+        "tplIntro": "В шаблоне источника",
+        "tplPath": "подставляет поле разобранного события (через точку:",
+        "tplDefaultText": "задаёт значение по умолчанию,",
+        "tplOther": "берёт другое поле.",
+        "pathWord": "путь",
+        "fieldWord": "поле",
+        "valueWord": "значение",
+        "otherWord": "другое",
+        "secrets": "Секреты (токены, пароли) не хранятся в коннекторе: в блоке указывается только ссылка на хранилище секретов."
+      }
+    },
+    "blocks": {
+      "categories": {
+        "trigger": "Триггеры",
+        "fetch": "Получение",
+        "parse": "Парсинг",
+        "transform": "Преобразование",
+        "ack": "Подтверждение",
+        "output": "Выход"
+      },
+      "trigger_webhook": {
+        "title": "Входящий webhook",
+        "description": "Источник отправляет события на /api/ingest/{id}. Ответ 2xx уходит только после записи события.",
+        "fields": {
+          "auth": {
+            "label": "Проверка"
+          },
+          "secret_ref": {
+            "label": "Ссылка на секрет",
+            "help": "Сам токен хранится только в хранилище секретов"
+          }
+        }
+      },
+      "trigger_schedule": {
+        "title": "Расписание",
+        "description": "Запускает получение данных с заданным интервалом (pull).",
+        "fields": {
+          "interval": {
+            "label": "Интервал"
+          }
+        }
+      },
+      "fetch_http": {
+        "title": "HTTP-запрос",
+        "description": "GET или POST к REST API источника.",
+        "fields": {
+          "url": {
+            "label": "URL"
+          },
+          "method": {
+            "label": "Метод"
+          },
+          "body": {
+            "label": "Тело запроса"
+          },
+          "auth_header": {
+            "label": "Заголовок авторизации"
+          },
+          "secret_ref": {
+            "label": "Ссылка на секрет"
+          }
+        }
+      },
+      "parse_json": {
+        "title": "Парсинг JSON",
+        "description": "Разбирает JSON. Путь к массиву разбивает пачку на отдельные события.",
+        "fields": {
+          "items": {
+            "label": "Путь к массиву событий",
+            "help": "Пусто: тело целиком — одно событие или массив"
+          }
+        }
+      },
+      "parse_kv": {
+        "title": "Парсинг key=value",
+        "description": "Строки вида host=db1 sev=5 msg=\"disk full\". Каждая строка — событие.",
+        "fields": {
+          "pair_sep": {
+            "label": "Разделитель пар"
+          },
+          "kv_sep": {
+            "label": "Разделитель ключа"
+          }
+        }
+      },
+      "parse_regex": {
+        "title": "Парсинг regex",
+        "description": "Именованные группы (?P<name>...) становятся полями. Каждая строка — событие.",
+        "fields": {
+          "pattern": {
+            "label": "Выражение"
+          }
+        }
+      },
+      "parse_csv": {
+        "title": "Парсинг CSV",
+        "description": "Первая строка — заголовок, остальные — события.",
+        "fields": {
+          "delimiter": {
+            "label": "Разделитель"
+          }
+        }
+      },
+      "filter": {
+        "title": "Фильтр",
+        "description": "Пропускает дальше только события, подходящие под условие.",
+        "fields": {
+          "field": {
+            "label": "Поле"
+          },
+          "op": {
+            "label": "Условие"
+          },
+          "value": {
+            "label": "Значение"
+          }
+        }
+      },
+      "map_severity": {
+        "title": "Справочник severity",
+        "description": "Переводит значение поля источника в critical, error, warning, low или info.",
+        "fields": {
+          "field": {
+            "label": "Поле источника"
+          },
+          "mapping": {
+            "label": "Соответствие",
+            "help": "по строке на значение; * — всё остальное"
+          }
+        }
+      },
+      "enrich_labels": {
+        "title": "Метки",
+        "description": "Добавляет постоянные или вычисленные метки.",
+        "fields": {
+          "labels": {
+            "label": "Метки"
+          }
+        }
+      },
+      "map_event": {
+        "title": "Шаблон источника",
+        "description": "Сопоставляет поля источника с единой моделью события. ${путь} подставляет значение поля.",
+        "fields": {
+          "title": {
+            "label": "Заголовок"
+          },
+          "ci": {
+            "label": "КЕ",
+            "help": "имя, хост, тег или облачный ID — КЕ найдёт CI Resolver"
+          },
+          "signal": {
+            "label": "Сигнал"
+          },
+          "method": {
+            "label": "Метод"
+          },
+          "severity": {
+            "label": "Severity"
+          },
+          "status": {
+            "label": "Статус",
+            "help": "resolved, ok, closed, recovery → resolved; иначе firing"
+          },
+          "external_id": {
+            "label": "ID в источнике"
+          },
+          "value": {
+            "label": "Значение"
+          }
+        }
+      },
+      "ack_response": {
+        "title": "Подтверждение получения",
+        "description": "Ответ источнику после записи событий. Для pull — сдвиг курсора.",
+        "fields": {
+          "mode": {
+            "label": "Способ"
+          }
+        }
+      },
+      "out_event": {
+        "title": "Событие",
+        "description": "Передаёт нормализованные события в обработку тревог.",
+        "fields": {}
+      }
+    },
+    "events": {
+      "header": {
+        "title": "События",
+        "sub": "Нормализованные события всех коннекторов, новые сверху",
+        "resume": "Продолжить",
+        "pause": "Пауза"
+      },
+      "filters": {
+        "search": "Заголовок, КЕ, сигнал, источник"
+      },
+      "table": {
+        "time": "Время",
+        "severity": "Severity",
+        "status": "Статус",
+        "event": "Событие",
+        "ci": "КЕ",
+        "signal": "Сигнал",
+        "source": "Источник",
+        "incident": "Инцидент"
+      },
+      "row": {
+        "resolved": "норма",
+        "active": "активно",
+        "suppressed": "подавлено",
+        "noCi": "без КЕ"
+      }
+    },
+    "parseErrors": {
+      "header": {
+        "title": "Ошибки разбора",
+        "sub": "События, которые коннектор не смог разобрать (events.dlq), с исходным телом"
+      },
+      "empty": {
+        "none": "Ошибок нет"
+      },
+      "table": {
+        "time": "Время",
+        "connector": "Коннектор",
+        "block": "Блок",
+        "error": "Ошибка",
+        "raw": "Исходные данные"
+      }
+    },
+    "rules": {
+      "header": {
+        "title": "Правила RED/USE",
+        "sub": "RED формирует тревоги по ИТ-сервисам, USE — по ресурсам. В этом шаге правила только просматриваются; редактор правил — следующий шаг"
+      },
+      "table": {
+        "method": "Метод",
+        "signal": "Сигнал",
+        "rule": "Правило",
+        "condition": "Условие по умолчанию",
+        "appliesTo": "Применяется к",
+        "severity": "Severity",
+        "enabled": "Включено"
+      }
+    },
+    "maintenance": {
+      "header": {
+        "title": "Окна обслуживания",
+        "sub": "Во время окна тревоги по КЕ и её сервису не отправляются в PagerDuty; после окончания активные тревоги уходят дежурным",
+        "create": "Создать окно"
+      },
+      "empty": {
+        "none": "Окон нет"
+      },
+      "table": {
+        "id": "ID",
+        "window": "Окно",
+        "ci": "КЕ",
+        "state": "Состояние",
+        "start": "Начало",
+        "end": "Конец",
+        "author": "Автор"
+      },
+      "modal": {
+        "title": "Новое окно обслуживания",
+        "name": "Название",
+        "namePlaceholder": "Обновление ПО",
+        "ci": "КЕ",
+        "ciHelp": "Для ИТ-сервиса окно подавляет тревоги всех его КЕ",
+        "ciPlaceholder": "Выберите КЕ",
+        "start": "Начало",
+        "end": "Конец"
+      },
+      "toasts": {
+        "created": "Окно обслуживания создано"
+      },
+      "confirm": {
+        "delete": "Удалить окно обслуживания?"
+      }
+    },
+    "selfcheck": {
+      "header": {
+        "title": "Самоконтроль",
+        "sub": "Состояние конвейера: приём, обработка, передача в PagerDuty"
+      },
+      "tiles": {
+        "uptime": "Работает",
+        "uptimeValue": "{m} мин",
+        "uptimeSub": "хранилище: {store}, шина: {bus}",
+        "connectors": "Коннекторы",
+        "connectorsSub": "запущено / всего",
+        "events": "События",
+        "eventsSub": "последнее: {time}",
+        "parseErrors": "Ошибки разбора",
+        "alerts": "Тревоги",
+        "alertsSub": "активные / всего"
+      },
+      "pd": {
+        "mode": "Режим",
+        "modeLive": "отправка в PagerDuty",
+        "modeDry": "ключ интеграции не задан: события не уходят наружу",
+        "breaker": "Circuit breaker",
+        "breakerOpen": "открыт",
+        "breakerClosed": "закрыт",
+        "breakerSub": "ошибок подряд: {n}",
+        "sent": "Отправлено",
+        "sentSub": "ошибок: {failed}, в очереди: {queue}",
+        "lastSuccess": "Последний успех",
+        "lastError": "ошибка: {error}"
+      },
+      "outage": {
+        "title": "Проверка резервного оповещения.",
+        "text": "Симуляция недоступности PagerDuty: отправки начнут падать, откроется circuit breaker, а тревоги error и critical, не принятые за 2 минуты, получат отметку «Резерв».",
+        "restore": "Вернуть PagerDuty",
+        "simulate": "Симулировать недоступность"
+      },
+      "toasts": {
+        "outageOn": "Симуляция: PagerDuty недоступен",
+        "outageOff": "PagerDuty снова принимает события"
+      }
+    },
+    "audit": {
+      "header": {
+        "title": "Журнал аудита",
+        "sub": "Все изменения конфигурации и действия с инцидентами"
+      },
+      "empty": {
+        "none": "Записей пока нет"
+      },
+      "table": {
+        "time": "Время",
+        "actor": "Кто",
+        "action": "Действие",
+        "object": "Объект"
+      }
+    },
+    "roles": {
+      "header": {
+        "title": "Роли и группы",
+        "sub": "Группы приходят из корпоративного каталога; группа задаёт роль, область видимости и предустановку дашборда. Синхронизация с каталогом и OIDC — следующий шаг"
+      },
+      "table": {
+        "role": "Роль",
+        "perms": "Разрешения"
+      },
+      "list": {
+        "viewer": "Наблюдатель",
+        "viewerPerms": "просмотр дашборда и карты в своей области",
+        "oncall": "Дежурный инженер",
+        "oncallPerms": "incident.ack, incident.silence, комментарии",
+        "monitoring": "Инженер мониторинга",
+        "monitoringPerms": "коннекторы, шаблоны, правила RED/USE, окна обслуживания",
+        "owner": "Владелец сервиса",
+        "ownerPerms": "РСМ своих сервисов, резервные контакты, окна обслуживания",
+        "auditor": "Аудитор",
+        "auditorPerms": "журнал аудита, только чтение",
+        "admin": "Администратор ролей",
+        "adminPerms": "привязка групп каталога к ролям и предустановкам (в два ключа)"
+      },
+      "teams": {
+        "title": "Области (команды)"
+      }
+    },
+    "settings": {
+      "header": {
+        "title": "Настройки",
+        "sub": "Внешний вид и язык интерфейса. Выбор сохраняется в этом браузере."
+      },
+      "tabs": {
+        "themes": "Темы",
+        "languages": "Языки"
+      },
+      "themes": {
+        "title": "Цветовые темы",
+        "intro": "Светлая и тёмная темы встроены. Свою тему можно собрать из шаблона: скачайте JSON, задайте цвета для нужных элементов и загрузите файл обратно.",
+        "builtIn": {
+          "light": "Светлая",
+          "dark": "Тёмная"
+        },
+        "badgeBuiltIn": "встроенная",
+        "badgeCustom": "загружена",
+        "active": "Используется",
+        "use": "Применить",
+        "baseOn": "Основа шаблона",
+        "downloadTemplate": "Скачать шаблон JSON",
+        "upload": "Загрузить тему",
+        "export": "Скачать JSON темы",
+        "remove": "Удалить тему",
+        "confirmRemove": "Удалить тему «{name}»?",
+        "added": "Тема «{name}» добавлена и применена",
+        "rejected": "Файл не принят: {error}",
+        "structure": "Структура файла",
+        "structureHint": "Цвета сгруппированы по элементам интерфейса. Незаполненные цвета берутся из основы (base: light или dark). Подходит любой цвет CSS: #rrggbb, rgb(), rgba(), hsl().",
+        "tokens": {
+          "one": "{n} цвет",
+          "few": "{n} цвета",
+          "many": "{n} цветов",
+          "other": "{n} цвета"
+        },
+        "groups": {
+          "app": "Фон страницы, карточки и панели, основной и вторичный текст, ссылки, рамки, фокус",
+          "accent": "Основные кнопки, активная вкладка, выбранные элементы",
+          "rail": "Левая панель навигации: фон, иконки, активный и наведённый пункт, логотип",
+          "topbar": "Верхняя строка: поиск, область видимости, язык, тема",
+          "sideList": "Вторичная панель списка слева от страницы: представления, список КЕ",
+          "button": "Обычные и опасные кнопки",
+          "input": "Поля ввода, списки, многострочные поля",
+          "table": "Шапка таблицы, разделители, наведённая и выбранная строка",
+          "severity": "Цвета важности: сплошной для точек и полос, Soft для фона метки, Text для текста метки",
+          "status": "Метки статуса инцидента и состояния коннектора",
+          "pagerduty": "Метки доставки в PagerDuty и признак резервного канала",
+          "tag": "Небольшие теги: метки, методы, ссылки",
+          "graph": "Граф CMDB и холст конструктора: фон, сетка, связи, узлы",
+          "blocks": "Категории блоков в конструкторе коннекторов",
+          "chart": "Графики: фон пустого столбца",
+          "overlay": "Затемнение под панелью и окном, всплывающие меню, тени",
+          "toast": "Уведомления в углу экрана",
+          "code": "Блоки JSON и исходных данных"
+        }
+      },
+      "languages": {
+        "title": "Языки интерфейса",
+        "intro": "Русский и английский встроены. Чтобы добавить язык, скачайте шаблон JSON, переведите строки и загрузите файл. Файл с кодом ru или en заменит встроенный перевод.",
+        "badgeBuiltIn": "встроенный",
+        "badgeCustom": "загружен",
+        "active": "Используется",
+        "use": "Применить",
+        "baseOn": "Язык шаблона",
+        "downloadTemplate": "Скачать шаблон JSON",
+        "upload": "Загрузить язык",
+        "export": "Скачать JSON языка",
+        "remove": "Удалить язык",
+        "confirmRemove": "Удалить язык «{name}»?",
+        "added": "Язык «{name}» добавлен и применён",
+        "rejected": "Файл не принят: {error}",
+        "coverage": "Переведено {covered} из {total}",
+        "structure": "Структура файла",
+        "structureHint": "Строки сгруппированы по страницам и элементам. Ключи и {подстановки} оставьте как есть. Формы множественного числа задаются категориями one, few, many, other. Непереведённые строки показываются на английском.",
+        "strings": {
+          "one": "{n} строка",
+          "few": "{n} строки",
+          "many": "{n} строк",
+          "other": "{n} строки"
+        },
+        "code": "Код"
+      }
+    }
+  }
+}

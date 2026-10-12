@@ -1,0 +1,29 @@
+.nb-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.nb-actions .hint {
+  margin-right: auto;
+}
+
+.nb-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nb-group-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.nb-error {
+  color: var(--error);
+}
+
+.nb-stepper {
+  max-width: 220px;
+}

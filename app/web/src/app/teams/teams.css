@@ -1,0 +1,112 @@
+.teams-title {
+  gap: 4px;
+  min-width: 0;
+}
+
+.teams-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.teams-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.teams-crumb button {
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.teams-crumb button:hover {
+  color: var(--accent);
+}
+
+.teams-fields {
+  align-items: start;
+}
+
+.teams-save {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.teams-section {
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.teams-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.teams-children li + li {
+  border-top: 1px solid var(--border);
+}
+
+.teams-children button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.teams-children button:hover {
+  background: var(--surface-2);
+}
+
+.teams-children button:focus-visible,
+.teams-crumb button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.teams-children .org-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.teams-consequences {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teams-empty {
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .teams-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

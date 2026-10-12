@@ -1,0 +1,22 @@
+# Umbrella Flow ClickHouse for the "CI traffic" dashboard (../../flow-ci-traffic.json).
+# The values come from the environment (.env, see README.md); the uid is fixed by the contract
+# between Umbrella and Flow. Requires the grafana-clickhouse-datasource plugin
+# (GF_PLUGINS_PREINSTALL in docker-compose.yml).
+apiVersion: 1
+
+datasources:
+  - name: Umbrella Flow ClickHouse
+    type: grafana-clickhouse-datasource
+    uid: flow-clickhouse
+    editable: true
+    jsonData:
+      # HTTP interface of ClickHouse (port 8123 in the Flow deployment). For TLS set secure: true
+      # and the HTTPS port; for the native protocol set protocol: native and port 9000.
+      protocol: http
+      port: 8123
+      secure: false
+      host: ${FLOW_CLICKHOUSE_HOST}
+      username: ${FLOW_CLICKHOUSE_USER}
+      defaultDatabase: ${FLOW_CLICKHOUSE_DATABASE}
+    secureJsonData:
+      password: ${FLOW_CLICKHOUSE_PASSWORD}

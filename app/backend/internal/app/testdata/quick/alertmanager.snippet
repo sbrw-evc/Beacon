@@ -1,0 +1,11 @@
+route:
+  receiver: umbrella
+receivers:
+  - name: umbrella
+    webhook_configs:
+      - url: "https://umb.example.com/api/ingest/src-1"
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: "tok'en\"x"

@@ -1,0 +1,70 @@
+{
+  "id": "alertmanager",
+  "title": {"en": "Prometheus Alertmanager", "ru": "Prometheus Alertmanager"},
+  "description": {
+    "en": "Alertmanager webhook receiver: one record per alert, severity from the severity label, cluster from the common labels.",
+    "ru": "Приёмник webhook Alertmanager: запись на каждый алерт, severity из метки severity, кластер из общих меток."
+  },
+  "quick": {
+    "order": 2,
+    "name": {"en": "Prometheus Alertmanager", "ru": "Prometheus Alertmanager"},
+    "monitoring_kinds": ["prometheus"],
+    "steps": 2,
+    "snippet": {"kind": "yaml", "name": "alertmanager-umbrella.yml", "template_file": "alertmanager-receiver.yml.tmpl"},
+    "test_body": "{\"alerts\":[{\"annotations\":{\"summary\":{{json .Title}}},\"fingerprint\":\"umbrella-test-{{.Nonce}}\",\"labels\":{\"alertname\":\"UmbrellaTest\",\"instance\":{{json .CI}},\"severity\":\"warning\"},\"status\":\"firing\"}],\"receiver\":\"umbrella\",\"status\":\"firing\"}"
+  },
+  "document": {
+    "format": "umbrella.connector",
+    "format_version": 1,
+    "name": "Prometheus Alertmanager",
+    "tags": ["prometheus"],
+    "graph": {
+      "nodes": [
+        {"id": "webhook", "type": "trigger.webhook", "type_version": 1, "params": {"credential": ""}, "position": {"x": 0, "y": 120}},
+        {"id": "parse", "type": "parse.json", "type_version": 1, "params": {"items": "alerts", "root_as": "batch"}, "position": {"x": 260, "y": 120}},
+        {"id": "severity", "type": "map.severity", "type_version": 1, "params": {
+          "source": "${labels.severity}",
+          "mapping": [
+            {"from": "page", "to": "critical"},
+            {"from": "critical", "to": "critical"},
+            {"from": "error", "to": "error"},
+            {"from": "warning", "to": "warning"},
+            {"from": "low", "to": "low"},
+            {"from": "info", "to": "info"},
+            {"from": "*", "to": "warning"}
+          ]
+        }, "position": {"x": 520, "y": 120}},
+        {"id": "labels", "type": "enrich.labels", "type_version": 1, "params": {
+          "labels": [
+            {"key": "source", "value": "alertmanager"},
+            {"key": "cluster", "value": "${labels.cluster|$batch.commonLabels.cluster}"},
+            {"key": "receiver", "value": "${batch.receiver}"}
+          ]
+        }, "position": {"x": 780, "y": 120}},
+        {"id": "map", "type": "map.event", "type_version": 1, "params": {
+          "title": "${annotations.summary|$annotations.description|$labels.alertname}",
+          "ci": "${labels.instance|$labels.pod|$labels.service|$labels.job}",
+          "signal": "${labels.alertname}",
+          "method": "other",
+          "severity": "${severity}",
+          "status": "${status}",
+          "external_id": "${fingerprint}",
+          "value": "${annotations.value}"
+        }, "position": {"x": 1040, "y": 120}},
+        {"id": "event", "type": "out.event", "type_version": 1, "params": {}, "position": {"x": 1300, "y": 120}}
+      ],
+      "edges": [
+        {"id": "e1", "source": "webhook", "source_output": "main", "target": "parse"},
+        {"id": "e2", "source": "parse", "source_output": "main", "target": "severity"},
+        {"id": "e3", "source": "severity", "source_output": "main", "target": "labels"},
+        {"id": "e4", "source": "labels", "source_output": "main", "target": "map"},
+        {"id": "e5", "source": "map", "source_output": "main", "target": "event"}
+      ]
+    },
+    "credentials": [{"slot": "webhook.credential", "node": "webhook", "param": "credential", "types": ["bearer", "basic", "header", "hmac"]}],
+    "samples": [
+      {"name": "Firing: HighCPU and DiskFull", "headers": {"content-type": "application/json"}, "body": "{\"receiver\":\"umbrella\",\"status\":\"firing\",\"alerts\":[{\"status\":\"firing\",\"labels\":{\"alertname\":\"HighCPU\",\"instance\":\"db-01:9100\",\"job\":\"node\",\"severity\":\"critical\"},\"annotations\":{\"summary\":\"CPU above 90% on db-01\",\"value\":\"93.4\"},\"startsAt\":\"2026-10-05T10:00:00Z\",\"fingerprint\":\"3f1c9a7e0b2d4c51\"},{\"status\":\"firing\",\"labels\":{\"alertname\":\"DiskFull\",\"instance\":\"db-02:9100\",\"job\":\"node\",\"severity\":\"warning\"},\"annotations\":{\"summary\":\"Disk /var is 85% full\"},\"startsAt\":\"2026-10-05T10:02:00Z\",\"fingerprint\":\"8a2e6b0c9d7f1e33\"}],\"groupLabels\":{\"job\":\"node\"},\"commonLabels\":{\"job\":\"node\",\"cluster\":\"prod-1\"},\"externalURL\":\"http://alertmanager:9093\",\"version\":\"4\",\"groupKey\":\"{}:{job=\\\"node\\\"}\"}"},
+      {"name": "Resolved: HighCPU", "headers": {"content-type": "application/json"}, "body": "{\"receiver\":\"umbrella\",\"status\":\"resolved\",\"alerts\":[{\"status\":\"resolved\",\"labels\":{\"alertname\":\"HighCPU\",\"instance\":\"db-01:9100\",\"job\":\"node\",\"severity\":\"critical\"},\"annotations\":{\"summary\":\"CPU above 90% on db-01\"},\"startsAt\":\"2026-10-05T10:00:00Z\",\"endsAt\":\"2026-10-05T10:20:00Z\",\"fingerprint\":\"3f1c9a7e0b2d4c51\"}],\"commonLabels\":{\"cluster\":\"prod-1\"},\"version\":\"4\"}"}
+    ]
+  }
+}

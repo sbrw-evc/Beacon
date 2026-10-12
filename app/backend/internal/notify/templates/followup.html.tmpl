@@ -1,0 +1,6 @@
+{{if eq .Event "acknowledged"}}👀{{else}}✅{{end}} <b>{{html (t (print "fu." .Event))}}</b>
+
+<b>{{html .ID}} · {{html .Title}}</b>
+{{html (include "followup.detail" .)}}
+{{with .Open}}
+<a href="{{html .}}">{{html (t "open")}}</a>{{end}}
