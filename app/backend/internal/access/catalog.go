@@ -107,6 +107,10 @@ var pages = []Page{
 		{"test", Text{"Check the Jira, Microsoft Teams and Zoom connections", "Проверка подключений Jira, Microsoft Teams и Zoom"}},
 		{"edit", Text{"Change impact rules, priority policies, escalations and integrations", "Изменение правил влияния, политик приоритетов, эскалаций и интеграций"}},
 	}},
+	{"integrations.flow", GroupAuto, Text{"Umbrella Flow integration", "Интеграция с Umbrella Flow"}, []Feature{
+		{View, Text{"No page of its own: given together with the functions below", "Своей страницы нет: выдаётся вместе с функциями ниже"}},
+		{"read", Text{"Read the visibility scopes of users for Umbrella Flow", "Чтение областей видимости пользователей для Umbrella Flow"}},
+	}},
 	{"credentials", GroupAuto, Text{"Credentials", "Учётные данные"}, []Feature{
 		view,
 		{"edit", Text{"Create, replace and delete credentials", "Создание, замена и удаление учётных данных"}},
