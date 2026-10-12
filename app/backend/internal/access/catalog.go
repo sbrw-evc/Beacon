@@ -55,7 +55,10 @@ var pages = []Page{
 		view,
 		{"ack", Text{"Acknowledge, resolve and comment incidents", "Подтверждение, решение и комментарии инцидентов"}},
 	}},
-	{"cmdb", GroupOverview, Text{"CMDB map", "Карта CMDB"}, []Feature{view}},
+	{"cmdb", GroupOverview, Text{"CMDB map", "Карта CMDB"}, []Feature{
+		view,
+		{"propose", Text{"Submit dependency proposals (Umbrella Flow)", "Отправка предложений зависимостей (Umbrella Flow)"}},
+	}},
 	{"cis", GroupOverview, Text{"Configuration items", "Конфигурационные единицы"}, []Feature{
 		view,
 		{"edit", Text{"Create, change and delete configuration items, also in NetBox", "Создание, изменение и удаление КЕ, в том числе в NetBox"}},

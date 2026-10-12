@@ -26,6 +26,7 @@ import { Link } from '../../router'
 import { useSession } from '../session'
 import { CI_H, CI_W, layout, SERVICE_H, SERVICE_W } from './layout'
 import { strings } from './strings'
+import { ProposalsPanel } from './Proposals'
 import { LEVELS, problem, rank, type CMDBMap, type Health, type Level, type MapCI, type MapService } from './types'
 import './cmdb.css'
 import { SetupGuide } from '../guide/SetupGuide'
@@ -262,6 +263,8 @@ function MapView() {
       </div>
 
       {res.error !== null && <ErrorBanner error={res.error} strings={strings} />}
+
+      <ProposalsPanel epoch={epoch} onDecided={() => setEpoch((e) => e + 1)} onSelect={(id) => setSelected({ kind: 'ci', id })} />
 
       {map.services.length === 0 ? (
         <div className="card svc-empty">

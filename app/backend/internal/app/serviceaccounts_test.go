@@ -225,18 +225,19 @@ func TestServiceAccountValidation(t *testing.T) {
 	}
 }
 
-// Service accounts and token hashes are part of the state snapshot.
+// Service accounts, token hashes and proposals are part of the state snapshot.
 func TestServiceAccountsSurviveSnapshot(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	st := restarted(t, func(d *store.Data) {
 		d.ServiceAccounts["SA-1"] = &model.ServiceAccount{ID: "SA-1", Name: "flow", Role: "viewer", ScopeMode: model.ScopeAll, CreatedAt: now}
 		d.APITokens["TOK-1"] = &model.APIToken{ID: "TOK-1", AccountID: "SA-1", Name: "prod", Hash: "abc", IPs: []string{"10.0.0.1"}, CreatedAt: now}
+		d.Proposals["k"] = &model.DependencyProposal{Key: "k", Status: model.ProposalRejected, RejectedBytes: 10, RefreshedAt: now}
 		d.Settings.APITokenKeyRef = "openbao://umbrella/system/api-tokens#hmac_key"
 	})
 	st.Read(func(d *store.Data) {
 		if d.ServiceAccounts["SA-1"].Name != "flow" || d.APITokens["TOK-1"].Hash != "abc" || d.APITokens["TOK-1"].IPs[0] != "10.0.0.1" ||
-			d.Settings.APITokenKeyRef == "" {
-			t.Fatalf("lost: %+v %+v", d.ServiceAccounts, d.APITokens)
+			d.Proposals["k"].RejectedBytes != 10 || d.Settings.APITokenKeyRef == "" {
+			t.Fatalf("lost: %+v %+v %+v", d.ServiceAccounts, d.APITokens, d.Proposals)
 		}
 	})
 	h := newHarnessWith(t, st)

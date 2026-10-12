@@ -91,6 +91,8 @@ type App struct {
 
 	// serviceAccounts are the machine identities that call the API with tokens.
 	serviceAccounts *ServiceAccountsService
+	// proposals are the dependency proposals of Umbrella Flow shown on the CMDB map.
+	proposals *ProposalsService
 
 	creds         *CredentialsService
 	connectors    *ConnectorsService
@@ -213,6 +215,7 @@ func New(opt Options, deps Deps) *App {
 	}
 	a.cmdb = NewCMDBService(deps.Store, active)
 	a.serviceAccounts = NewServiceAccountsService(deps.Store, vault)
+	a.proposals = NewProposalsService(deps.Store, a.services)
 	a.inventory = NewInventoryDBService(deps.Store, vault, active)
 	a.monitoring = NewMonitoringService(deps.Store, creds, a.cis)
 	a.alertPoll = newAlertPoller(a)
@@ -239,7 +242,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/users/{id}/avatar", a.authed(a.avatar))
 	mux.HandleFunc("PUT /api/settings", a.authed(a.can("status:defaults", a.updateSettings)))
 	mux.HandleFunc("GET /api/system", a.authed(a.can("status:view", a.system)))
-	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope} {
+	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
 		register(mux)
 	}
 	a.registerRoutePreview(mux)

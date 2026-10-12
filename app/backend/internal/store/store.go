@@ -40,6 +40,8 @@ type Data struct {
 	ServiceAccounts map[string]*model.ServiceAccount
 	// APITokens are the tokens of service accounts, by token ID (only keyed hashes are kept).
 	APITokens map[string]*model.APIToken
+	// Proposals are the dependency proposals of Umbrella Flow, by proposal key.
+	Proposals map[string]*model.DependencyProposal
 	Settings  model.Settings
 	Audit     []AuditEntry
 	Seq       map[string]int
@@ -128,6 +130,9 @@ func (d *Data) init() {
 	}
 	if d.APITokens == nil {
 		d.APITokens = map[string]*model.APIToken{}
+	}
+	if d.Proposals == nil {
+		d.Proposals = map[string]*model.DependencyProposal{}
 	}
 	if d.InventoryDBPushed == nil {
 		d.InventoryDBPushed = map[string]model.PushedAlert{}

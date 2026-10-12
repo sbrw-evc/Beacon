@@ -356,3 +356,21 @@ func (w *world) maintenanceFor(a *Alert, now time.Time) *model.Maintenance {
 	}
 	return nil
 }
+
+// Catalog finds configuration items the way events find them (source_ref, then the name, then
+// the IP address), for callers outside the engine. It is a copy of the catalog at the time it
+// is made.
+type Catalog struct{ w *world }
+
+// NewCatalog copies the catalog of st.
+func NewCatalog(st *store.Store) Catalog { return Catalog{w: snapshot(st)} }
+
+// Find resolves an item named by its Inventory DB reference, name and IP address; a host
+// marked as no item, an ambiguous name or nothing found is nil.
+func (c Catalog) Find(sourceRef, name, ip string) *model.ConfigItem {
+	if strings.TrimSpace(name) == "" {
+		name = ip
+	}
+	ci, _ := c.w.resolveCI(name, map[string]string{LabelSourceRef: sourceRef, LabelIP: ip})
+	return ci
+}
