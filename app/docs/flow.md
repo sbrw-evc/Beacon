@@ -8,6 +8,14 @@ ElastiFlow). The integration is two-way and optional:
   them as usual: collapsing, maintenance windows, route, PagerDuty, fallback notification.
 - **Umbrella → Flow.** Incident and CI cards get a "Traffic" link to the Flow console, filtered by the
   CI and with a time window around the incident.
+- **Flow → Umbrella: visibility scopes.** Flow asks Umbrella which CIs and services a user may see and limits its
+  queries for users whose Flow role says so.
+- **Flow → Umbrella: dependency proposals.** Flow posts steady CI ↔ CI traffic as proposed dependencies between
+  business services; people accept or reject them on the CMDB map.
+- **Grafana.** The "CI traffic" dashboard over the Flow ClickHouse tables, opened from an incident.
+
+Flow calls Umbrella with an API token of a **service account** ([access.md](access.md#service-accounts-and-api-tokens)).
+The cross-application contract is `docs/integrations.md` in the Umbrella Flow repository (§1, §3).
 
 ```mermaid
 sequenceDiagram
@@ -114,6 +122,90 @@ others go to the incident (`/incidents?id=…`) or the CI (`/cis?id=…`) in Umb
 or a messenger arrives without the session cookie (SameSite=Strict): Umbrella returns a short page
 that repeats the request from its own address.
 
+## Flow → Umbrella: visibility scopes
+
+1. In Umbrella: **Settings → Service accounts** — create a role with `integrations.flow:read` and `cmdb:propose`
+   (Roles page; the "Umbrella Flow integration" and "CMDB map" groups), then a service account with this role, and issue
+   a token. Copy the token (shown once) into the Flow settings ("Umbrella" section); Flow keeps it in OpenBao.
+2. Flow asks for the scope of a signed-in user and caches it for 60 s:
+
+```
+GET /api/integrations/flow/scope?username=<login>
+Authorization: Bearer umb_…
+```
+
+```json
+{"username": "ivanov", "known": true, "mode": "teams",
+ "cis": [{"id": "CI-12", "name": "app-01", "source_refs": ["inventory-db:dcim.device:100"], "ips": ["10.0.0.5"]}],
+ "services": [{"id": "SVC-3", "name": "Billing"}]}
+```
+
+The user is found by login, ignoring case (LDAP and Entra ID logins are the same in both applications). The scope is
+the one of [access.md](access.md#visibility-scope):
+
+| Umbrella | `mode` | `cis`, `services` |
+| --- | --- | --- |
+| administrator, or "All services" | `all` | empty: everything |
+| "Services of my teams" | `teams` | the services the user's teams own or support and every CI bound to one of them |
+| "Chosen services" | `selected` | the chosen services and their CIs |
+| locked account | `selected` | empty: nothing |
+| unknown login | — | `{"known": false}` |
+
+Retired services and their CIs are left out. `source_refs` holds the Inventory DB reference of a CI (Flow writes it to
+`SrcCI` / `DstCI`), `ips` its addresses. Without `username` — 400 `username_required`.
+
+## Flow → Umbrella: dependency proposals
+
+Flow finds steady traffic between two CIs (both ends resolved; enough flows on enough of the last 7 days; the server
+port detected) and posts it daily and on demand:
+
+```
+POST /api/cmdb/proposals
+Authorization: Bearer umb_…
+```
+
+```json
+{"source": "umbrella-flow", "generated_at": "2026-10-12T10:00:00Z",
+ "proposals": [{
+   "key": "flow:inventory-db:dcim.device:100->inventory-db:dcim.device:200:tcp/5432",
+   "from": {"source_ref": "inventory-db:dcim.device:100", "name": "app-01", "ip": "10.0.0.5"},
+   "to":   {"source_ref": "inventory-db:dcim.device:200", "name": "db-01", "ip": "10.0.1.9"},
+   "type": "depends_on",
+   "evidence": {"protocol": "tcp", "port": 5432, "app": "postgres", "bytes_7d": 123456789, "flows_7d": 4200,
+                "days_seen": 7, "first_seen": "…", "last_seen": "…", "flow_url": "https://flow.corp/visualize?q=…"}
+ }]}
+```
+
+→ `{"accepted": 1, "updated": 0, "ignored": 0}`.
+
+- Each end is resolved to a CI the way events are ([How the CI is found](#how-the-ci-is-found)): the Inventory DB
+  reference, then the name (with aliases, short names, IPs, DNS names and manual host links), then the IP address. A
+  proposal whose end matches no CI (or several), whose ends are the same CI, without a `key` or with another `type` is
+  **ignored** and not stored. Unknown fields are allowed. Up to 1000 proposals per request.
+- Proposals are stored in the state snapshot, keyed by `key`: a new key is **accepted**, a known one **updated** (ends
+  and evidence replaced, refreshed). Up to 5000 proposals are kept; proposals not refreshed for **14 days expire**.
+- The implied dependency: every active or planned business service of the `from` CI depends on every such service of
+  the `to` CI (never a service on itself).
+- **CMDB map → Proposed dependencies** (`cmdb:view`): pending proposals, the most traffic first, with the ends (a click
+  selects the CI on the map), protocol / port / application, the volume and flows over 7 days, the days seen, the
+  last time seen, the implied service dependencies (those already set are marked) and a "Traffic in Flow" link.
+  **Accept** (`services:edit`) creates the missing dependencies with the checks of a service edit (no cycles, error
+  `dependency_cycle`; without services on both ends — `proposal_unresolved`); a later refresh keeps it accepted.
+  **Reject** (`services:edit`) hides the proposal for this key until its `bytes_7d` or `flows_7d` grows **10 times**
+  over the values at rejection; then it is pending again.
+- Audit log: `cmdb.proposals` (each batch with the counts), `cmdb.proposal.accepted`, `cmdb.proposal.rejected`.
+
+## Grafana: CI traffic
+
+`deploy/grafana/flow-ci-traffic.json` — the "CI traffic" dashboard (uid `flow-ci-traffic`) on the Flow ClickHouse
+datasource (`grafana-clickhouse-datasource`, uid `flow-clickhouse`) with the variables `ci`, `ci_id`, `ip`, `ref`:
+traffic in / out of the CI (`SrcCI` / `DstCI` = `ref` or `SrcAddr` / `DstAddr` = `ip`), top talkers, top ports and
+applications, top interfaces, and a long-range panel over `flows_1m` / `flows_5m` / `flows_1h`. Setting it up and the
+environment of the datasource: [deploy/grafana/README.md](../../deploy/grafana/README.md#umbrella-flow-ci-traffic).
+Set its address in **Settings → Alerting → Grafana**: the incident link fills `ci`, `ci_id`, `ip` (the first
+address of the CI, else the `ip` label of the events) and `ref` (the Inventory DB reference of the CI, else the
+`source_ref` label), next to the variables of the incident dashboard.
+
 ## API
 
 | Method | Path | Permission | Purpose |
@@ -123,6 +215,11 @@ that repeats the request from its own address.
 | GET | `/go/incidents/{id}/flow` | sign-in + `incidents:view` | redirect to the incident's traffic |
 | GET | `/go/cis/{id}/flow` | sign-in + `cis:view` | redirect to the CI's traffic for the last hour |
 | POST | `/api/connectors/quick` `{"preset":"network-flow"}` | `connectors:edit`, `connectors:publish`, `credentials:edit` | quick connection of Flow |
+| GET | `/api/integrations/flow/scope?username=` | `integrations.flow:read` | visibility scope of a user for Flow |
+| POST | `/api/cmdb/proposals` | `cmdb:propose` | dependency proposals from Flow |
+| GET | `/api/cmdb/proposals` | `cmdb:view` | pending proposals with the implied dependencies; `?status=all` also accepted and rejected ones |
+| POST | `/api/cmdb/proposals/accept` `{"key"}` | `services:edit` | create the implied service dependencies |
+| POST | `/api/cmdb/proposals/reject` `{"key"}` | `services:edit` | hide the proposal until its evidence grows 10× |
 
 The responses of `GET /api/incidents/{id}` and of CIs (`GET /api/cis`, `GET /api/cis/{id}`) contain `flow_url` (the
 `/go/…/flow` path) when the Flow address is set. A change of the address is written to the audit log (`settings.flow`).
