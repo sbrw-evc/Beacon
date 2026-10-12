@@ -47,12 +47,12 @@ POST /api/ingest/{slug}
 Кнопка **Подключить источник** на странице «Коннекторы» (и на «Системах мониторинга», и по адресу `/monitoring?connect=1`) делает за один шаг то, что раньше требовало трёх страниц:
 
 1. создаёт Bearer-токен (учётные данные «Токен приёма: …»);
-2. создаёт коннектор из шаблона Zabbix, Alertmanager, Grafana или универсального webhook с этим токеном (адрес — из названия, при занятом добавляется номер);
+2. создаёт коннектор из шаблона Zabbix, Alertmanager, Grafana, Graylog, Umbrella Flow или универсального webhook с этим токеном (адрес — из названия, при занятом добавляется номер);
 3. публикует его.
 
-Ответ показывает адрес приёма (публичный адрес Umbrella из настроек оповещений или адрес, по которому открыт интерфейс) и токен — **один раз**, дальше он хранится только в OpenBao. Для Zabbix выдаётся способ оповещения [`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml) с уже подставленными адресом и токеном, для Alertmanager — готовый получатель `alertmanager.yml`, для Grafana — параметры точки контакта, для webhook — пример `curl`. С вкладки «Приём алертов» системы мониторинга коннектор сразу становится приёмом этой системы.
+Ответ показывает адрес приёма (публичный адрес Umbrella из настроек оповещений или адрес, по которому открыт интерфейс) и токен — **один раз**, дальше он хранится только в OpenBao. Для Zabbix выдаётся способ оповещения [`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml) с уже подставленными адресом и токеном, для Alertmanager — готовый получатель `alertmanager.yml`, для Grafana — параметры точки контакта, для Umbrella Flow — адрес и токен для его настроек ([flow.md](flow.md)), для webhook — пример `curl`. С вкладки «Приём алертов» системы мониторинга коннектор сразу становится приёмом этой системы.
 
-`POST /api/connectors/quick` (права `connectors:edit`, `connectors:publish`, `credentials:edit`; с `monitoring_id` — ещё `monitoring:edit`): тело `{preset: "zabbix"|"alertmanager"|"grafana"|"webhook", name?, monitoring_id?}`, ответ `{connector, credential_id, ingest_url, token, instructions: {preset, ingest_url, auth_header, snippet?, snippet_kind?}, mediatype_yaml?, monitoring_id?}`. Если шаг не удался, созданное раньше удаляется.
+`POST /api/connectors/quick` (права `connectors:edit`, `connectors:publish`, `credentials:edit`; с `monitoring_id` — ещё `monitoring:edit`): тело `{preset: "zabbix"|"alertmanager"|"grafana"|"graylog"|"network-flow"|"webhook", name?, monitoring_id?}`, ответ `{connector, credential_id, ingest_url, token, instructions: {preset, ingest_url, auth_header, snippet?, snippet_kind?}, mediatype_yaml?, monitoring_id?}`. Если шаг не удался, созданное раньше удаляется.
 
 ## Тестовое событие
 
@@ -74,7 +74,7 @@ POST /api/ingest/{slug}
 - тест: прогон образца, прогон до выбранного узла, прогон всех образцов (регрессия перед публикацией); вход и выход каждого узла (JSON или таблица), счётчики на узлах и связях, закрепление выхода узла, пометка устаревших результатов после правок; тест ничего не записывает;
 - вкладки «Запросы», «Ошибки» (повторная обработка выбранных или всех на текущей версии), «События», «Статистика».
 
-Шаблоны: Prometheus Alertmanager, Grafana Alerting, Zabbix (webhook), универсальный webhook — со встроенными образцами.
+Шаблоны: Prometheus Alertmanager, Grafana Alerting, Graylog, Umbrella Flow (`network-flow`, события трафика NetFlow / IPFIX / sFlow — [flow.md](flow.md)), Zabbix (webhook), универсальный webhook — со встроенными образцами.
 
 Шаблон — файл `backend/internal/presets/*.json` в формате выгрузки коннектора. Необязательный объект `quick` делает его доступным быстрому подключению: порядок в диалоге (`order`), название коннектора по умолчанию (`name`, en/ru), виды систем мониторинга (`monitoring_kinds`), число шагов настройки источника (`steps`, их текст — в строках интерфейса `src.steps.<id>.<n>`), фрагмент настройки (`snippet`) и файл для импорта (`attachment`) — шаблоны Go `text/template` с `{{.URL}}` и `{{.Token}}` (функции `quote`, `yaml`, `json`) — и тело тестового события (`test_body`, с `{{.Nonce}}`, `{{.CI}}`, `{{.Title}}`). Шаблон с `starter` задаёт граф нового коннектора без шаблона.
 
