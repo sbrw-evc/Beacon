@@ -26,4 +26,4 @@ How to connect Zabbix, NetBox and Grafana to Umbrella is described in the README
 
 ## Architecture documentation
 
-Architecture documents (MVP and target architecture) and their diagrams are kept separately from this repository. This repository holds the application documentation ([app/README.md](app/README.md) and [app/docs](app/docs)) and an analysis of n8n capabilities for the connector builder ([n8n.md](n8n.md)).
+Architecture documents (MVP and target architecture) and their diagrams are kept separately from this repository; the architecture of the Inventory DB integration is in [integrations/inventory-db.md](integrations/inventory-db.md). This repository holds the application documentation ([app/README.md](app/README.md) and [app/docs](app/docs)) and an analysis of n8n capabilities for the connector builder ([n8n.md](n8n.md)).
