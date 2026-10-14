@@ -233,6 +233,7 @@ func assignFromGroups(d *store.Data, u *model.User, source string, admin bool, g
 	var mRole, mScope string
 	var mTeams []string
 	if known {
+		u.Groups = slices.Clone(groups)
 		mRole, mTeams, mScope = matchMappings(d, source, groups)
 	}
 	scope := u.ScopeMode

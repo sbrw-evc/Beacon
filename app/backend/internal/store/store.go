@@ -42,9 +42,11 @@ type Data struct {
 	APITokens map[string]*model.APIToken
 	// Proposals are the dependency proposals of Umbrella Flow, by proposal key.
 	Proposals map[string]*model.DependencyProposal
-	Settings  model.Settings
-	Audit     []AuditEntry
-	Seq       map[string]int
+	// Applications are the applications connected to Umbrella Identity, by ID.
+	Applications map[string]*model.Application
+	Settings     model.Settings
+	Audit        []AuditEntry
+	Seq          map[string]int
 }
 
 type AuditEntry struct {
@@ -130,6 +132,9 @@ func (d *Data) init() {
 	}
 	if d.APITokens == nil {
 		d.APITokens = map[string]*model.APIToken{}
+	}
+	if d.Applications == nil {
+		d.Applications = map[string]*model.Application{}
 	}
 	if d.Proposals == nil {
 		d.Proposals = map[string]*model.DependencyProposal{}

@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { KeyRound, Lock, Trash2, Unlock } from 'lucide-react'
+import { Fingerprint, KeyRound, Lock, Trash2, Unlock } from 'lucide-react'
 import { api } from '../../api'
+import { ask } from '../../confirm'
 import { Avatar } from '../../Avatar'
 import { useLocale, useT } from '../../i18n'
 import { Banner, Button, formatDate, Modal, Rows, SettingRow } from '../../ui'
@@ -239,6 +240,7 @@ function EditView({
                 </Button>
               </SettingRow>
             )}
+            {rights.lock && <PasskeysRow user={user} />}
             {rights.password && (
               <SettingRow label={t('usr.password')} hint={t('usr.password.hint')}>
                 <Button onClick={() => onMode('password')}>
@@ -325,5 +327,33 @@ function DeleteView({ user, onBack, onDeleted }: { user: ManagedUser; onBack: ()
         </Button>
       </Footer>
     </>
+  )
+}
+
+// PasskeysRow removes the passkeys of a person, for a lost or stolen device.
+function PasskeysRow({ user }: { user: ManagedUser }) {
+  const t = useT(strings)
+  const action = useAction(strings)
+  const [count, setCount] = useState<number | null>(null)
+  useEffect(() => {
+    api<unknown[]>('GET', `/api/users/${encodeURIComponent(user.id)}/passkeys`)
+      .then((l) => setCount(l.length))
+      .catch(() => setCount(null))
+  }, [user.id])
+  if (!count) return null
+  const removeAll = () =>
+    action.run(async () => {
+      if (!(await ask({ text: t('usr.passkeys.ask', { n: count }), danger: true }))) return
+      await api('DELETE', `/api/users/${encodeURIComponent(user.id)}/passkeys/*`)
+      setCount(0)
+      return t('usr.passkeys.removed')
+    })
+  return (
+    <SettingRow label={t('usr.passkeys', { n: count })} hint={t('usr.passkeys.hint')}>
+      <Button onClick={() => void removeAll()} busy={action.busy}>
+        <Fingerprint size={16} aria-hidden />
+        {t('usr.passkeys.remove')}
+      </Button>
+    </SettingRow>
   )
 }

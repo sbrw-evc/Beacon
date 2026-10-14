@@ -389,7 +389,7 @@ func (s *UsersService) SetPassword(ctx context.Context, actor Actor, id string, 
 	if err := policy.Validate(in.Password, target.Username); err != nil {
 		return model.User{}, err
 	}
-	ref, err := s.passwords.Set(ctx, id, in.Password)
+	ref, err := s.passwords.Replace(ctx, id, target.PasswordRef, in.Password, policy.HistoryCount, false)
 	if err != nil {
 		return model.User{}, err
 	}

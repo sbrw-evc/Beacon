@@ -1,0 +1,153 @@
+.id-badge {
+  color: var(--accent);
+}
+
+.id-providers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.id-providers li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.id-provider-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.id-apps {
+  margin-top: 16px;
+}
+
+.id-apps > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.id-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.id-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.id-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.id-steps {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.id-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.id-steps li + li::before {
+  content: '';
+  width: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.id-steps li.current {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.id-step-n {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.id-steps li.current .id-step-n {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.id-steps li.done .id-step-n {
+  background: var(--ok, #16a34a);
+  border-color: transparent;
+  color: #fff;
+}
+
+.id-key {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.id-key code {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  word-break: break-all;
+  font-size: 12px;
+}
+
+.pk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pk-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.pk-list .pk-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 860px) {
+  .id-two {
+    grid-template-columns: 1fr;
+  }
+}

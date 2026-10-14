@@ -51,6 +51,10 @@ type guideFacts struct {
 	responseIntegr bool
 	backup         bool
 	grafana        bool
+	passkeys       bool
+	providers      bool
+	applications   int
+	strongPolicy   bool
 }
 
 func readGuideFacts(d *store.Data) guideFacts {
@@ -121,6 +125,12 @@ func readGuideFacts(d *store.Data) guideFacts {
 	}
 	f.backup = backupDelivers(al.Notify, people, teams)
 	f.grafana = al.Grafana.DashboardURL != ""
+	f.passkeys = d.Settings.Passkeys.Enabled
+	pr := d.Settings.Providers
+	f.providers = f.directory || pr.Google.Enabled || pr.Apple.Enabled || pr.OIDC.Enabled
+	f.applications = len(d.Applications)
+	pol := d.Settings.Password
+	f.strongPolicy = pol.BlockCommon && pol.HistoryCount > 0 && pol.LockoutAttempts > 0
 	return f
 }
 
@@ -228,6 +238,15 @@ var guides = map[string]func(f guideFacts) []guideStep{
 			{id: "delivery", done: f.delivery, perms: []string{"settings.alerting:edit"}},
 			{id: "backup", done: f.backup, optional: true, perms: []string{"settings.alerting:edit"}},
 			{id: "grafana", done: f.grafana, optional: true, perms: []string{"settings.alerting:edit"}},
+		}
+	},
+	"settings.identity": func(f guideFacts) []guideStep {
+		return []guideStep{
+			{id: "public_url", done: f.publicURL, path: "/settings/alerting", perms: []string{"settings.alerting:edit"}},
+			{id: "policy", done: f.strongPolicy, path: "/settings/password-policy", perms: []string{"settings.policy:edit"}},
+			{id: "passkeys", done: f.passkeys, perms: []string{"settings.identity:edit"}},
+			{id: "providers", done: f.providers, optional: true, perms: []string{"settings.identity:edit"}},
+			{id: "application", done: f.applications > 0, action: ActionConnect, perms: []string{"settings.identity:edit"}},
 		}
 	},
 	"netbox": func(f guideFacts) []guideStep {

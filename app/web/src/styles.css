@@ -1735,6 +1735,24 @@ body.side-resizing .app-body {
   font-size: 0.85em;
 }
 
+.signin-for {
+  margin: 4px 0 0;
+}
+
+.signin-passkey {
+  min-height: 44px;
+}
+
+.signin-passkey-hint {
+  margin-top: -8px;
+  text-align: center;
+}
+
+.signin-providers {
+  display: grid;
+  gap: 8px;
+}
+
 .signin-or::before,
 .signin-or::after {
   content: '';

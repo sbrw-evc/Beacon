@@ -137,6 +137,10 @@ var pages = []Page{
 	{"settings.ldap", GroupSettings, Text{"LDAP / AD", "LDAP / AD"}, []Feature{view, test, {"edit", Text{"Change the connection", "Изменение подключения"}}}},
 	{"settings.postgres", GroupSettings, Text{"PostgreSQL", "PostgreSQL"}, []Feature{view, test, migrate}},
 	{"settings.openbao", GroupSettings, Text{"OpenBao", "OpenBao"}, []Feature{view, test, migrate}},
+	{"settings.identity", GroupSettings, Text{"Sign-in and Umbrella Identity", "Вход и Umbrella Identity"}, []Feature{
+		view,
+		{"edit", Text{"Change passkeys and sign-in providers, connect applications", "Изменение passkey и провайдеров входа, подключение приложений"}},
+	}},
 	{"settings.policy", GroupSettings, Text{"Password policy", "Парольная политика"}, []Feature{view, {"edit", Text{"Change the policy", "Изменение политики"}}}},
 	{"serviceaccounts", GroupSettings, Text{"Service accounts", "Сервисные учётные записи"}, []Feature{
 		view,

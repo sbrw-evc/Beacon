@@ -25,6 +25,8 @@ type Session struct {
 	CSRF     string
 	Created  time.Time
 	LastSeen time.Time
+	// Method is how the person signed in: pwd, passkey or a provider (ldap, entra, google…).
+	Method string
 }
 
 type Sessions struct {
@@ -35,9 +37,12 @@ type Sessions struct {
 
 func NewSessions() *Sessions { return &Sessions{m: map[string]*Session{}} }
 
-func (s *Sessions) Create(userID string) *Session {
+func (s *Sessions) Create(userID string) *Session { return s.CreateWith(userID, "") }
+
+// CreateWith starts a session and records the sign-in method.
+func (s *Sessions) CreateWith(userID, method string) *Session {
 	now := time.Now()
-	ss := &Session{ID: RandomToken("", 32), UserID: userID, CSRF: RandomToken("", 24), Created: now, LastSeen: now}
+	ss := &Session{ID: RandomToken("", 32), UserID: userID, CSRF: RandomToken("", 24), Created: now, LastSeen: now, Method: method}
 	s.mu.Lock()
 	s.m[TokenHash(ss.ID)] = ss
 	s.dirty = true

@@ -54,6 +54,9 @@ export function UsersToolbar({ refs, filters, onChange, onCreate }: { refs: Refs
               <option value="local">{t('usr.source.local')}</option>
               <option value="ldap">{t('usr.source.ldap')}</option>
               <option value="entra">{t('usr.source.entra')}</option>
+              <option value="google">{t('usr.source.google')}</option>
+              <option value="apple">{t('usr.source.apple')}</option>
+              <option value="oidc">{t('usr.source.oidc')}</option>
               <option value="netbox">{t('usr.source.netbox')}</option>
             </Select>
           )}

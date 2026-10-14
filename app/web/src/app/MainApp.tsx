@@ -18,6 +18,7 @@ import { useMobile } from './mobile/useMobile'
 import { SessionProvider, useSession, type Session } from './session'
 import { Sidebar, SidebarResizer, useCollapsed, useSidebarWidth } from './Sidebar'
 import { SignIn } from './SignIn'
+import { pendingSSO, SingleSignOn } from './SingleSignOn'
 import { strings } from './strings'
 import { TopBar } from './TopBar'
 import type { User } from './types'
@@ -107,6 +108,14 @@ function Shell({ meta }: { meta: Meta }) {
   )
 
   if (!checked) return <div className="center-page boot">{t('loading')}</div>
+  if (window.location.pathname === '/sso') return <SingleSignOn meta={meta} user={user} onSignedIn={setUser} />
+  if (session) {
+    const sso = pendingSSO()
+    if (sso) {
+      window.location.replace(`/sso?request=${encodeURIComponent(sso)}`)
+      return <div className="center-page boot">{t('loading')}</div>
+    }
+  }
   if (!session) return <SignIn meta={meta} onSignedIn={setUser} />
 
   const hasSidebar = visiblePages(session.can).length > 0

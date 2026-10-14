@@ -4,6 +4,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 )
 
 type Limiter struct {
@@ -61,6 +63,13 @@ func (l *Limiter) Fail(keys ...string) {
 	}
 }
 
+// Tune changes the threshold and the block time; marks already counted stay.
+func (l *Limiter) Tune(max int, block time.Duration) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.max, l.block = max, block
+}
+
 func (l *Limiter) Reset(key string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -86,6 +95,16 @@ func newLoginGuard() *loginGuard {
 func loginAccount(username string) string { return strings.ToLower(strings.TrimSpace(username)) }
 
 func loginPair(username, ip string) string { return loginAccount(username) + "\x00" + ip }
+
+// apply follows the lockout of the password policy: its threshold and duration replace the
+// built-in limit of one account from one address. The looser limits stay.
+func (g *loginGuard) apply(p model.PasswordPolicy) {
+	if p.LockoutAttempts > 0 {
+		g.pair.Tune(p.LockoutAttempts, time.Duration(p.LockoutMinutes)*time.Minute)
+	} else {
+		g.pair.Tune(maxFailures, lockout)
+	}
+}
 
 // Locked tells whether a sign-in of username from ip is refused now.
 func (g *loginGuard) Locked(username, ip string) bool {

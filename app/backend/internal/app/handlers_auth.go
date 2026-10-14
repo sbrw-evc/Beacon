@@ -8,6 +8,7 @@ import (
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 )
 
 type loginInput struct {
@@ -21,6 +22,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := a.clientIP(r)
+	a.limiter.apply(a.policy.Get())
 	if a.limiter.Locked(in.Username, ip) {
 		writeError(w, ErrTooManyAttempts)
 		return
@@ -35,7 +37,11 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.limiter.Reset(in.Username, ip)
-	ss := a.deps.Sessions.Create(u.ID)
+	method := MethodPassword
+	if u.Source == model.SourceLDAP {
+		method = model.SourceLDAP
+	}
+	ss := a.deps.Sessions.CreateWith(u.ID, method)
 	u = a.auth.Signed(u.ID, ip)
 	a.setCookie(w, ss.ID, int(auth.MaxLifetime/time.Second))
 	httpx.JSON(w, http.StatusOK, a.view(u, ss.CSRF))

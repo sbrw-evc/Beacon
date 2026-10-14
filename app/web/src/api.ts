@@ -11,6 +11,8 @@ export type Meta = {
   default_timezone: string
   ldap_enabled?: boolean
   entra_enabled?: boolean
+  passkeys_enabled?: boolean
+  providers?: { id: string; title: string }[]
   container?: boolean
   password_policy?: PasswordPolicy
 }

@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -104,7 +105,10 @@ func (s *UserService) ChangePassword(ctx context.Context, id, current, next stri
 	if next == current {
 		return ErrSamePassword
 	}
-	ref, err := s.passwords.Set(ctx, u.ID, next)
+	ref, err := s.passwords.Replace(ctx, u.ID, u.PasswordRef, next, policy.HistoryCount, true)
+	if errors.Is(err, credentials.ErrReused) {
+		return &model.PolicyError{Violations: []string{model.ViolationHistory}}
+	}
 	if err != nil {
 		return err
 	}

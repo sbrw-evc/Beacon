@@ -22,6 +22,8 @@ type userView struct {
 	Permissions   []string `json:"permissions,omitempty"`
 	// Admins are whom a user without any permission asks for access.
 	Admins []AdminContact `json:"admins,omitempty"`
+	// PasskeysEnabled shows the passkeys of the profile.
+	PasskeysEnabled bool `json:"passkeys_enabled"`
 	passwordView
 }
 
@@ -40,6 +42,7 @@ func (a *App) view(u model.User, csrf string) userView {
 	v := newUserView(u, csrf)
 	g := a.access.Grant(u)
 	v.Role, v.RoleName, v.Permissions = g.RoleID, g.RoleName, g.Perms.List()
+	v.PasskeysEnabled = a.passkeys.Enabled() && u.Source != model.SourceService
 	if len(v.Permissions) == 0 {
 		v.Admins = a.adminContacts()
 	}

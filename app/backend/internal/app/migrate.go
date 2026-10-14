@@ -19,6 +19,16 @@ func Migrate(ctx context.Context, st *store.Store, vault credentials.Vault) erro
 			d.AddAudit(store.AuditEntry{Actor: "system", Action: "settings.password_policy", Detail: "default policy applied"})
 			changed = true
 		}
+		if !d.Settings.PolicyExtended {
+			// Policies saved before history, common passwords and lockout existed keep their
+			// behaviour: the built-in lock after 10 wrong passwords for 5 minutes, no history.
+			if d.Settings.Password.LockoutAttempts == 0 {
+				d.Settings.Password.BlockCommon, d.Settings.Password.LockoutAttempts, d.Settings.Password.LockoutMinutes = true, maxFailures, int(lockout/time.Minute)
+			}
+			d.Settings.PolicyExtended = true
+			d.AddAudit(store.AuditEntry{Actor: "system", Action: "settings.password_policy", Detail: "common passwords blocked, lockout after 10 attempts for 5 minutes"})
+			changed = true
+		}
 		now := time.Now().UTC()
 		if d.EnsureSystemRoles(now) {
 			d.AddAudit(store.AuditEntry{Actor: "system", Action: "roles.seeded", Detail: "system roles created"})

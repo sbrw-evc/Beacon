@@ -69,6 +69,13 @@ type App struct {
 	status    *StatusService
 	limiter   *loginGuard
 	entraRate *Limiter // Microsoft sign-in starts per client address
+	// passkeys run passkey sign-in; passkeyRate limits its starts per client address.
+	passkeys    *PasskeyService
+	passkeyRate *Limiter
+	// providers are Google, Apple and OpenID Connect sign-in; identity is Umbrella Identity:
+	// the OpenID Connect provider and the federation API of connected applications.
+	providers *ProvidersService
+	identity  *IdentityService
 	policy    *PolicyService
 	access    *AccessService
 	directory *DirectoryService
@@ -153,6 +160,9 @@ func New(opt Options, deps Deps) *App {
 		settings:    NewSettingsService(deps.Store),
 		limiter:     newLoginGuard(),
 		entraRate:   NewLimiter(entraStartsPerMinute, time.Minute, time.Minute),
+		passkeys:    NewPasskeyService(deps.Store),
+		passkeyRate: NewLimiter(passkeyStartsPerMinute, time.Minute, time.Minute),
+		providers:   NewProvidersService(deps.Store, vault, users, deps.Sessions),
 		policy:      NewPolicyService(deps.Store),
 		access:      NewAccessService(deps.Store),
 		directory:   NewDirectoryService(deps.Store, deps.Vault, dir, deps.Sessions),
@@ -215,6 +225,7 @@ func New(opt Options, deps Deps) *App {
 	}
 	a.cmdb = NewCMDBService(deps.Store, active)
 	a.serviceAccounts = NewServiceAccountsService(deps.Store, vault)
+	a.identity = NewIdentityService(deps.Store, vault, a.serviceAccounts.key, a.access, deps.Sessions)
 	a.proposals = NewProposalsService(deps.Store, a.services)
 	a.inventory = NewInventoryDBService(deps.Store, vault, active)
 	a.monitoring = NewMonitoringService(deps.Store, creds, a.cis)
@@ -242,7 +253,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/users/{id}/avatar", a.authed(a.avatar))
 	mux.HandleFunc("PUT /api/settings", a.authed(a.can("status:defaults", a.updateSettings)))
 	mux.HandleFunc("GET /api/system", a.authed(a.can("status:view", a.system)))
-	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
+	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPasskeys, a.registerProviders, a.registerIdentity, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
 		register(mux)
 	}
 	a.registerRoutePreview(mux)
@@ -313,11 +324,16 @@ type metaView struct {
 	Version       string `json:"version"`
 	LDAPEnabled   bool   `json:"ldap_enabled"`
 	EntraEnabled  bool   `json:"entra_enabled"`
+	// PasskeysEnabled shows "Sign in with a passkey"; Providers the Google, Apple and OpenID
+	// Connect buttons.
+	PasskeysEnabled bool           `json:"passkeys_enabled"`
+	Providers       []SignInMethod `json:"providers"`
 }
 
 func (a *App) meta(w http.ResponseWriter, r *http.Request) {
 	s := a.settings.Get()
-	httpx.JSON(w, http.StatusOK, metaView{defaultsView: defaultsOf(s), Mode: "ready", Version: a.opt.Version, LDAPEnabled: s.LDAP.Enabled, EntraEnabled: s.Entra.Enabled})
+	httpx.JSON(w, http.StatusOK, metaView{defaultsView: defaultsOf(s), Mode: "ready", Version: a.opt.Version, LDAPEnabled: s.LDAP.Enabled, EntraEnabled: s.Entra.Enabled,
+		PasskeysEnabled: s.Passkeys.Enabled, Providers: append([]SignInMethod{}, a.providers.Methods()...)})
 }
 
 type noSecrets struct{}

@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Choices } from './Choice'
 import { useT } from './i18n'
-import { MAX_AGE_DAYS, MAX_WARN_DAYS, expiryText, policyError, ruleText, rules, type Letters, type PasswordPolicy } from './policy'
+import { MAX_AGE_DAYS, MAX_HISTORY, MAX_LOCKOUT, MAX_LOCKOUT_MINUTES, MAX_WARN_DAYS, MIN_LOCKOUT, expiryText, lockoutText, policyError, ruleText, rules, type Letters, type PasswordPolicy } from './policy'
 import { policyEditorStrings } from './policyEditorStrings'
 import { Banner, Field, SettingRow, Stepper, Switch } from './ui'
 
@@ -104,6 +104,43 @@ export function PolicyEditor({ value: policy, onChange }: { value: PasswordPolic
           </div>
         </Reveal>
       </div>
+      <div className="section">
+        <Switch checked={policy.block_common} onChange={(v) => set({ block_common: v })} label={t('pol.common')} hint={t('pol.common.hint')} />
+      </div>
+      <div className="section">
+        <Switch
+          checked={policy.history_count > 0}
+          onChange={(v) => set({ history_count: v ? 5 : 0 })}
+          label={t('pol.history')}
+          hint={t('pol.history.hint')}
+          aside={
+            policy.history_count > 0 && (
+              <div className="at-least">
+                <span className="hint">{t('pol.history.last')}</span>
+                <Stepper label={t('pol.history')} min={1} max={MAX_HISTORY} value={policy.history_count} onChange={(v) => set({ history_count: v })} />
+              </div>
+            )
+          }
+        />
+      </div>
+      <div className="section">
+        <Switch
+          checked={policy.lockout_attempts > 0}
+          onChange={(v) => set(v ? { lockout_attempts: 10, lockout_minutes: 15 } : { lockout_attempts: 0, lockout_minutes: 0 })}
+          label={t('pol.lockout')}
+          hint={t('pol.lockout.hint')}
+        />
+        <Reveal show={policy.lockout_attempts > 0}>
+          <div className="setting-rows">
+            <SettingRow label={t('pol.lockout.attempts')} hint={t('pol.lockout.attempts.hint')}>
+              <Stepper label={t('pol.lockout.attempts')} min={MIN_LOCKOUT} max={MAX_LOCKOUT} value={policy.lockout_attempts} onChange={(v) => set({ lockout_attempts: v })} />
+            </SettingRow>
+            <SettingRow label={t('pol.lockout.minutes')} hint={t('pol.lockout.minutes.hint')}>
+              <Stepper label={t('pol.lockout.minutes')} min={1} max={MAX_LOCKOUT_MINUTES} value={policy.lockout_minutes} onChange={(v) => set({ lockout_minutes: v })} />
+            </SettingRow>
+          </div>
+        </Reveal>
+      </div>
       {problem ? (
         <Banner kind="error" title={t(`pol.err.${problem}`)} />
       ) : (
@@ -113,6 +150,8 @@ export function PolicyEditor({ value: policy, onChange }: { value: PasswordPolic
               <li key={r}>• {ruleText(t, r, policy)}</li>
             ))}
             <li>• {expiryText(t, policy)}</li>
+            {policy.history_count > 0 && <li>• {ruleText(t, 'history', policy)}</li>}
+            <li>• {lockoutText(t, policy)}</li>
           </ul>
         </Banner>
       )}

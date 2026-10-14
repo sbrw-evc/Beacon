@@ -22,6 +22,11 @@ const (
 	PolicyMaxWarnDays = 90
 
 	MaxPasswordLength = 256
+
+	PolicyMaxHistory         = 24
+	PolicyMinLockoutAttempts = 3
+	PolicyMaxLockoutAttempts = 100
+	PolicyMaxLockoutMinutes  = 1440
 )
 
 const (
@@ -32,6 +37,8 @@ const (
 	ViolationLetters  = "letters"
 	ViolationUsername = "username"
 	ViolationControl  = "control"
+	ViolationCommon   = "common"
+	ViolationHistory  = "history"
 )
 
 type PasswordPolicy struct {
@@ -44,11 +51,21 @@ type PasswordPolicy struct {
 	Letters          string `json:"letters"`
 	MaxAgeDays       int    `json:"max_age_days"`
 	WarnDays         int    `json:"warn_days"`
+	// HistoryCount: a new password must differ from this many previous ones (0 = not checked).
+	HistoryCount int `json:"history_count"`
+	// BlockCommon rejects the most common passwords, keyboard sequences and the user name with a
+	// few characters added.
+	BlockCommon bool `json:"block_common"`
+	// LockoutAttempts wrong passwords in a row lock the account for LockoutMinutes (0 = the
+	// built-in limits only).
+	LockoutAttempts int `json:"lockout_attempts"`
+	LockoutMinutes  int `json:"lockout_minutes"`
 }
 
 func DefaultPasswordPolicy() PasswordPolicy {
 	return PasswordPolicy{MinLength: 12, RequireDigits: true, MinDigits: 1, RequireSpecial: true, MinSpecial: 1,
-		RequireMixedCase: true, Letters: LettersLatin}
+		RequireMixedCase: true, Letters: LettersLatin, HistoryCount: 5, BlockCommon: true, LockoutAttempts: 10,
+		LockoutMinutes: 15}
 }
 
 func (p PasswordPolicy) Normalize() (PasswordPolicy, error) {
@@ -79,6 +96,16 @@ func (p PasswordPolicy) Normalize() (PasswordPolicy, error) {
 		p.WarnDays = 0
 	} else if p.WarnDays < 0 || p.WarnDays > PolicyMaxWarnDays || p.WarnDays >= p.MaxAgeDays {
 		return p, fmt.Errorf("expiry warning must be between 0 and %d days and shorter than the password lifetime", PolicyMaxWarnDays)
+	}
+	if p.HistoryCount < 0 || p.HistoryCount > PolicyMaxHistory {
+		return p, fmt.Errorf("password history must be between 0 and %d", PolicyMaxHistory)
+	}
+	if p.LockoutAttempts == 0 {
+		p.LockoutMinutes = 0
+	} else if p.LockoutAttempts < PolicyMinLockoutAttempts || p.LockoutAttempts > PolicyMaxLockoutAttempts {
+		return p, fmt.Errorf("lockout threshold must be between %d and %d, or 0 for the built-in limits", PolicyMinLockoutAttempts, PolicyMaxLockoutAttempts)
+	} else if p.LockoutMinutes < 1 || p.LockoutMinutes > PolicyMaxLockoutMinutes {
+		return p, fmt.Errorf("lockout duration must be between 1 and %d minutes", PolicyMaxLockoutMinutes)
 	}
 	need := p.MinDigits + p.MinSpecial
 	if p.RequireMixedCase {
@@ -147,6 +174,9 @@ func (p PasswordPolicy) Check(password, username string) []string {
 	}
 	if username != "" && strings.EqualFold(password, username) {
 		add(ViolationUsername)
+	}
+	if p.BlockCommon && IsCommonPassword(password, username) {
+		add(ViolationCommon)
 	}
 	return out
 }

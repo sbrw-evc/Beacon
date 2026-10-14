@@ -6,6 +6,7 @@ import { useSession } from '../session'
 import { strings } from '../strings'
 import { fullName } from '../types'
 import { AccountCard } from './AccountCard'
+import { PasskeysCard } from './PasskeysCard'
 import { PasswordCard } from './PasswordCard'
 import { PersonalCard } from './PersonalCard'
 import { TelegramCard } from './TelegramCard'
@@ -57,6 +58,7 @@ export function ProfilePage() {
       <div className="cards">
         <PersonalCard />
         {user.source === 'local' && <PasswordCard />}
+        {user.passkeys_enabled && <PasskeysCard />}
         <TimezoneCard />
         <TelegramCard />
         <AccountCard />

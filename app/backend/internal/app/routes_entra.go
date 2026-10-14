@@ -10,6 +10,7 @@ import (
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/entra"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 )
 
 const entraCookie = "umbrella_entra"
@@ -92,7 +93,7 @@ func (a *App) entraCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.setEntraCookie(w, "", -1)
-	ss := a.deps.Sessions.Create(u.ID)
+	ss := a.deps.Sessions.CreateWith(u.ID, model.SourceEntra)
 	a.auth.Signed(u.ID, a.clientIP(r))
 	a.setCookie(w, ss.ID, int(auth.MaxLifetime/time.Second))
 	http.Redirect(w, r, "/", http.StatusSeeOther)

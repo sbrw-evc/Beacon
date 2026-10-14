@@ -47,6 +47,7 @@ export const navStrings: Dict = {
     'page.settings.alerting.subtitle': 'PagerDuty, backup notification by mail and Telegram, Grafana context.',
     'page.settings.subtitle': 'Connections and security of this Umbrella installation.',
     'page.serviceaccounts': 'Service accounts',
+    'page.settings.identity.subtitle': 'Passkeys (Windows Hello, Touch ID, security keys), sign-in with Google, Apple and OpenID Connect, and the applications that sign people in through Umbrella: Umbrella Flow, Inventory DB, Network Control.',
     'page.serviceaccounts.subtitle': 'Machine identities (Umbrella Flow, scripts) that call the API with API tokens instead of a session: a role and a visibility scope like a user.',
   },
   ru: {
@@ -95,6 +96,7 @@ export const navStrings: Dict = {
     'page.settings.alerting.subtitle': 'PagerDuty, резервное оповещение по почте и в Telegram, контекст в Grafana.',
     'page.settings.subtitle': 'Подключения и безопасность этой установки Umbrella.',
     'page.serviceaccounts': 'Сервисные учётные записи',
+    'page.settings.identity.subtitle': 'Passkey (Windows Hello, Touch ID, ключи безопасности), вход через Google, Apple и OpenID Connect и приложения, которые выполняют вход через Umbrella: Umbrella Flow, Inventory DB, Network Control.',
     'page.serviceaccounts.subtitle': 'Учётные записи систем (Umbrella Flow, скриптов), которые обращаются к API по API-токенам вместо сессии: роль и область видимости, как у пользователя.',
   },
 }

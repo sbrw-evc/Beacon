@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Activity, BellRing, Bot, Boxes, CalendarClock, Briefcase, Cable, Database, Gauge, KeyRound, LockKeyhole, Megaphone, Network, Radar, Server, ShieldCheck, Siren, Tv, UserCog, Users, UsersRound, Warehouse, Waypoints, type LucideIcon } from 'lucide-react'
+import { Activity, BellRing, Bot, Boxes, CalendarClock, Briefcase, Cable, Database, Fingerprint, Gauge, KeyRound, LockKeyhole, Megaphone, Network, Radar, Server, ShieldCheck, Siren, Tv, UserCog, Users, UsersRound, Warehouse, Waypoints, type LucideIcon } from 'lucide-react'
 import { CIsPage } from './cis/CIsPage'
 import { IncidentsPage } from './incidents/IncidentsPage'
 import { CMDBMapPage } from './cmdb/CMDBMapPage'
@@ -16,6 +16,7 @@ import { ServicesPage } from './services/ServicesPage'
 import { AlertingSettings } from './settings/alerting/AlertingSettings'
 import { DirectorySettings } from './settings/directory/DirectorySettings'
 import { OpenBaoSettings } from './settings/openbao/OpenBaoSettings'
+import { IdentitySettings } from './settings/identity/IdentitySettings'
 import { PolicySettings } from './settings/policy/PolicySettings'
 import { PostgresSettings } from './settings/postgres/PostgresSettings'
 import { ServiceAccountsPage } from './settings/serviceaccounts/ServiceAccountsPage'
@@ -72,6 +73,7 @@ export const PAGES: PageDef[] = [
     Component: PolicySettings,
     subtitle: 'page.settings.subtitle',
   },
+  { id: 'settings.identity', path: '/settings/identity', icon: Fingerprint, Component: IdentitySettings, subtitle: 'page.settings.identity.subtitle' },
   { id: 'serviceaccounts', path: '/settings/service-accounts', icon: Bot, Component: ServiceAccountsPage, subtitle: 'page.serviceaccounts.subtitle' },
 ]
 

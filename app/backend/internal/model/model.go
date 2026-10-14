@@ -126,15 +126,20 @@ type User struct {
 	Telegram string `json:"telegram"`
 	// Locale is the interface language the user chose (en, ru); empty is the default of the
 	// installation. Voice calls speak it.
-	Locale             string     `json:"locale,omitempty"`
-	MustChangePassword bool       `json:"must_change_password"`
-	PasswordRef        string     `json:"-"`
-	ExternalID         string     `json:"-"`
-	PasswordHash       string     `json:"-"`
-	PasswordChangedAt  time.Time  `json:"password_changed_at,omitzero"`
-	Disabled           bool       `json:"disabled"`
-	CreatedAt          time.Time  `json:"created_at"`
-	LastLoginAt        *time.Time `json:"last_login_at,omitempty"`
+	Locale             string    `json:"locale,omitempty"`
+	MustChangePassword bool      `json:"must_change_password"`
+	PasswordRef        string    `json:"-"`
+	ExternalID         string    `json:"-"`
+	PasswordHash       string    `json:"-"`
+	PasswordChangedAt  time.Time `json:"password_changed_at,omitzero"`
+	// Passkeys are the WebAuthn credentials of the user (Windows Hello, Touch ID, security keys).
+	Passkeys []Passkey `json:"-"`
+	// Groups are the directory groups the user was last seen in (LDAP DNs, Entra object IDs,
+	// OpenID Connect group names): Umbrella Identity gives them to connected applications.
+	Groups      []string   `json:"-"`
+	Disabled    bool       `json:"disabled"`
+	CreatedAt   time.Time  `json:"created_at"`
+	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
 }
 
 type Settings struct {
@@ -165,9 +170,17 @@ type Settings struct {
 	PresetRolesSeeded bool `json:"-"`
 	// NetBoxUsersDecided: NetBox settings saved before «create accounts for contacts» existed were
 	// given it on (their behaviour), later ones choose it.
-	NetBoxUsersDecided bool      `json:"-"`
-	SetupAt            time.Time `json:"setup_at"`
-	SetupBy            string    `json:"setup_by"`
+	NetBoxUsersDecided bool `json:"-"`
+	// PolicyExtended: the password policy got history, common-password blocking and lockout.
+	PolicyExtended bool `json:"-"`
+	// Passkeys are the passkey settings; Providers the external sign-in providers.
+	Passkeys  PasskeySettings `json:"passkeys"`
+	Providers Providers       `json:"providers"`
+	// IdentityKeyRef is the OpenBao reference of the key ID tokens of Umbrella Identity are
+	// signed with.
+	IdentityKeyRef string    `json:"-"`
+	SetupAt        time.Time `json:"setup_at"`
+	SetupBy        string    `json:"setup_by"`
 }
 
 // InTeam reports whether the user is a member of the team.

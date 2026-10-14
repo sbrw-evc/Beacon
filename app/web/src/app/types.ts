@@ -14,12 +14,13 @@ export type User = ProfileFields & {
   id: string
   username: string
   name: string
-  source: 'local' | 'ldap' | 'entra' | 'netbox'
+  source: 'local' | 'ldap' | 'entra' | 'netbox' | 'google' | 'apple' | 'oidc'
   role: string
   role_name?: string
   permissions?: string[]
   /** Active administrators; sent only to a user without any permission. */
   admins?: { name: string; email?: string }[]
+  passkeys_enabled?: boolean
   team_ids?: string[]
   /** What the user sees: all services, the services of their teams, or the chosen services. Ignored for administrators. */
   scope_mode?: ScopeMode
