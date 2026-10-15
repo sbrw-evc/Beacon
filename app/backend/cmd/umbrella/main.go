@@ -27,6 +27,7 @@ import (
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/logbuf"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/setup"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
 
@@ -241,7 +242,7 @@ func main() {
 	}
 	webHandler := httpx.Web(webDir)
 	opts := app.Options{Version: version, Commit: commit, BuiltAt: builtAt, SecureCookies: env("UMBRELLA_SECURE_COOKIES", "false") == "true", Web: webHandler,
-		Ingest: ingestConfig()}
+		Ingest: ingestConfig(), SPAKey: os.Getenv(spa.Env), SPAKeyFile: os.Getenv(spa.EnvFile), SPAPublicURL: os.Getenv(spa.EnvPublicURL)}
 	sessions := auth.NewSessions()
 	if err := sessions.Load(*dataDir); err != nil {
 		slog.Warn("sessions not restored", "err", err)
@@ -365,7 +366,7 @@ func open(ctx context.Context, cfg config.File, wait time.Duration) (*secrets.Cl
 	}
 	if err := app.Migrate(ctx, st, vault); err != nil {
 		backend.Close()
-		return nil, nil, nil, fmt.Errorf("move password hashes to OpenBao: %w", err)
+		return nil, nil, nil, fmt.Errorf("migrate the state: %w", err)
 	}
 	return vault, backend, st, nil
 }

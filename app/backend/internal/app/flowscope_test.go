@@ -87,7 +87,9 @@ func TestFlowScope(t *testing.T) {
 	}
 	// Without integrations.flow:read: forbidden.
 	h.addLocal("viewer1", "ViewerPassw0rd!", "viewer", now)
-	h.st.Write(func(d *store.Data) { d.Roles["viewer"] = &model.Role{ID: "viewer", Name: "Viewer", Permissions: []string{"cmdb:view"}} })
+	h.st.Write(func(d *store.Data) {
+		d.Roles["viewer"] = &model.Role{ID: "viewer", Name: "Viewer", Permissions: []string{"cmdb:view"}}
+	})
 	v := h.client()
 	v.login("viewer1", "ViewerPassw0rd!")
 	if code := v.call(http.MethodGet, "/api/integrations/flow/scope?username=ivanov", nil, nil); code != http.StatusForbidden {

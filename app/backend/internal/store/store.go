@@ -35,18 +35,15 @@ type Data struct {
 	InventoryDBSync model.SyncState
 	// InventoryDBPushed is the last alert state sent to Inventory DB, by alert ID.
 	InventoryDBPushed map[string]model.PushedAlert
-	GroupSync         model.GroupSyncState
 	// ServiceAccounts are the machine identities that call the API with API tokens.
 	ServiceAccounts map[string]*model.ServiceAccount
 	// APITokens are the tokens of service accounts, by token ID (only keyed hashes are kept).
 	APITokens map[string]*model.APIToken
 	// Proposals are the dependency proposals of Umbrella Flow, by proposal key.
 	Proposals map[string]*model.DependencyProposal
-	// Applications are the applications connected to Umbrella Identity, by ID.
-	Applications map[string]*model.Application
-	Settings     model.Settings
-	Audit        []AuditEntry
-	Seq          map[string]int
+	Settings  model.Settings
+	Audit     []AuditEntry
+	Seq       map[string]int
 }
 
 type AuditEntry struct {
@@ -132,9 +129,6 @@ func (d *Data) init() {
 	}
 	if d.APITokens == nil {
 		d.APITokens = map[string]*model.APIToken{}
-	}
-	if d.Applications == nil {
-		d.Applications = map[string]*model.Application{}
 	}
 	if d.Proposals == nil {
 		d.Proposals = map[string]*model.DependencyProposal{}

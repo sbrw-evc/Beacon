@@ -42,6 +42,6 @@
       "en": "On-call engineer who also manages teams, users (except administrators), TV wallboards and checks alerting.",
       "ru": "Дежурный инженер, который также управляет командами, пользователями (кроме администраторов), ТВ-панелями и проверяет оповещения."
     },
-    "permissions": ["incidents:view", "response:view", "response:test", "response:edit", "cmdb:view", "cis:view", "services:view", "maintenance:view", "wallboards:view", "incidents:ack", "maintenance:edit", "teams:edit", "users:view", "users:edit", "users:lock", "wallboards:edit", "settings.alerting:view", "settings.alerting:test", "status:view"]
+    "permissions": ["incidents:view", "response:view", "response:test", "response:edit", "cmdb:view", "cis:view", "services:view", "maintenance:view", "wallboards:view", "incidents:ack", "maintenance:edit", "teams:edit", "users:view", "users:edit", "wallboards:edit", "settings.alerting:view", "settings.alerting:test", "status:view"]
   }
 ]

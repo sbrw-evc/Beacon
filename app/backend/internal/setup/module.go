@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,8 +27,6 @@ const (
 
 	secretPostgres = "postgres"
 )
-
-var usernameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._@-]{1,63}$`)
 
 type Options struct {
 	DataDir string
@@ -75,7 +73,7 @@ func (m *Module) Handler() http.Handler {
 	}))
 	mux.HandleFunc("POST /api/setup/openbao/test", m.guard(m.testOpenBao))
 	mux.HandleFunc("POST /api/setup/postgres/test", m.guard(m.testPostgres))
-	mux.HandleFunc("POST /api/setup/ldap/test", m.guard(m.testLDAP))
+	mux.HandleFunc("POST /api/setup/spa/test", m.guard(m.testSPA))
 	mux.HandleFunc("POST /api/setup/complete", m.guard(m.complete))
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusServiceUnavailable, "setup_required", nil)
@@ -153,7 +151,7 @@ func (m *Module) complete(w http.ResponseWriter, r *http.Request) {
 			se = fail(http.StatusInternalServerError, "internal", err)
 		}
 		slog.Warn("setup: not completed", "step", se.code, "err", se.err)
-		p := httpx.Problem{Code: se.code, Violations: se.violations}
+		p := httpx.Problem{Code: se.code}
 		if se.err != nil {
 			p.Detail = se.err.Error()
 		}
@@ -162,7 +160,7 @@ func (m *Module) complete(w http.ResponseWriter, r *http.Request) {
 	}
 	m.finished = true
 	_ = os.Remove(filepath.Join(m.opt.DataDir, config.SetupTokenFile))
-	slog.Info("setup completed", "admin", in.Admin.Username, "storage", res.Backend.Where(), "ldap", in.LDAP.Config.Enabled)
+	slog.Info("setup completed", "storage", res.Backend.Where(), "spa", strings.TrimSpace(in.SPAKey) != "")
 	if m.done != nil {
 		m.done(res)
 	}

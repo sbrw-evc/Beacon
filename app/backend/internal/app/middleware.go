@@ -25,13 +25,6 @@ func current(r *http.Request) session {
 	return s
 }
 
-var allowedWhenExpired = map[string]bool{
-	"GET /api/auth/me":           true,
-	"POST /api/auth/logout":      true,
-	"PUT /api/auth/me/password":  true,
-	"GET /api/users/{id}/avatar": true,
-}
-
 // bearerToken is the token of an Authorization: Bearer header, if the request has one.
 func bearerToken(r *http.Request) (string, bool) {
 	h := r.Header.Get("Authorization")
@@ -43,7 +36,7 @@ func bearerToken(r *http.Request) (string, bool) {
 }
 
 // tokenRoutes: a token reaches every API route of its permissions except the session routes of
-// a person (sign-out, profile, password, preferences); it may read GET /api/auth/me.
+// a person (sign-out, preferences, avatar); it may read GET /api/auth/me.
 func tokenRoute(pattern string) bool {
 	_, path, _ := strings.Cut(pattern, " ")
 	return !strings.HasPrefix(path, "/api/auth/") || pattern == "GET /api/auth/me"
@@ -92,10 +85,6 @@ func (a *App) authed(next http.HandlerFunc) http.HandlerFunc {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead &&
 			subtle.ConstantTimeCompare([]byte(r.Header.Get(CSRFHeader)), []byte(ss.CSRF)) != 1 {
 			writeError(w, invalidCSRF)
-			return
-		}
-		if !allowedWhenExpired[r.Pattern] && a.policy.Age(*u).Expired {
-			writeError(w, ErrPasswordExpired)
 			return
 		}
 		next(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, session{user: *u, ss: ss})))

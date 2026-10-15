@@ -11,25 +11,20 @@ import (
 )
 
 func TestMigrate(t *testing.T) {
-	bao, vault := secretstest.New(t)
+	_, vault := secretstest.New(t)
 	st := store.New()
 	st.Write(func(d *store.Data) {
-		d.Users["USR-1"] = &model.User{ID: "USR-1", Username: "admin", Source: model.SourceLocal, PasswordHash: "pbkdf2-sha256$1$c2FsdA$aGFzaA"}
+		d.Users["USR-1"] = &model.User{ID: "USR-1", Username: "admin", Source: model.SourceLocal}
 		d.Users["USR-2"] = &model.User{ID: "USR-2", Username: "anna", Source: model.SourceLDAP, Name: "Anna Ivanova"}
 		d.Users["USR-3"] = &model.User{ID: "USR-3", Username: "ops", Source: model.SourceLocal, Name: "Сидоров Иван Петрович"}
 		d.Users["USR-4"] = &model.User{ID: "USR-4", Username: "root", Source: model.SourceLocal, Name: "root"}
+		d.ServiceAccounts["SA-1"] = &model.ServiceAccount{ID: "SA-1", Name: "flow", CreatedBy: "ops"}
+		d.ServiceAccounts["SA-2"] = &model.ServiceAccount{ID: "SA-2", Name: "old", CreatedBy: "gone"}
 	})
 	if err := app.Migrate(context.Background(), st, vault); err != nil {
 		t.Fatal(err)
 	}
-	if got := bao.Get("umbrella/users/USR-1")["password_hash"]; got != "pbkdf2-sha256$1$c2FsdA$aGFzaA" {
-		t.Fatalf("hash in OpenBao = %v", got)
-	}
 	st.Read(func(d *store.Data) {
-		u := d.Users["USR-1"]
-		if u.PasswordHash != "" || u.PasswordRef != "openbao://umbrella/users/USR-1#password_hash" {
-			t.Fatalf("user after migration = %+v", u)
-		}
 		if u := d.Users["USR-3"]; u.LastName != "Сидоров" || u.FirstName != "Иван" || u.MiddleName != "Петрович" || u.Profile.DisplayName(u.Username) != u.Name {
 			t.Fatalf("name split = %+v", u.Profile)
 		}
@@ -39,24 +34,13 @@ func TestMigrate(t *testing.T) {
 		if u := d.Users["USR-2"]; u.LastName != "" {
 			t.Fatalf("directory users keep directory data: %+v", u.Profile)
 		}
-		if d.Users["USR-1"].PasswordChangedAt.IsZero() || d.Users["USR-3"].PasswordChangedAt.IsZero() {
-			t.Fatal("local users must get a password change time so they do not expire at once")
+		if d.ServiceAccounts["SA-1"].OwnerID != "USR-3" || d.ServiceAccounts["SA-2"].OwnerID != "" {
+			t.Fatalf("service account owners = %q %q", d.ServiceAccounts["SA-1"].OwnerID, d.ServiceAccounts["SA-2"].OwnerID)
 		}
-		if !d.Users["USR-2"].PasswordChangedAt.IsZero() {
-			t.Fatal("directory users have no local password age")
-		}
-		if d.Users["USR-2"].PasswordRef != "" {
-			t.Fatal("directory user must not get a password")
+		if d.Roles[model.RoleAdmin] == nil || d.Roles[model.RoleUser] == nil {
+			t.Fatal("system roles must exist")
 		}
 	})
-	st.Read(func(d *store.Data) {
-		if d.Settings.Password != model.DefaultPasswordPolicy() {
-			t.Fatalf("missing policy must become the default, got %+v", d.Settings.Password)
-		}
-	})
-	if bao.Get("umbrella/users/USR-2") != nil {
-		t.Fatal("nothing must be written for users without a legacy hash")
-	}
 	if err := app.Migrate(context.Background(), st, vault); err != nil {
 		t.Fatal(err)
 	}

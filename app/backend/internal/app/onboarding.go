@@ -22,6 +22,8 @@ const (
 	StepCatalog   = "catalog"
 	StepDelivery  = "delivery"
 	StepPublicURL = "public_url"
+	// StepSPA: Umbrella is connected to SPA and the people of SPA are synchronized.
+	StepSPA = "spa"
 )
 
 // OnboardingStep is one item of the «first steps» checklist or of a page setup guide. Path is
@@ -49,6 +51,7 @@ type onboardingFacts struct {
 	catalog   bool
 	delivery  bool
 	publicURL bool
+	spa       bool
 }
 
 func readOnboardingFacts(d *store.Data) onboardingFacts {
@@ -86,6 +89,8 @@ func readOnboardingFacts(d *store.Data) onboardingFacts {
 	}
 	al := d.Settings.Alerting
 	f.publicURL = al.PublicURL != ""
+	sp := d.Settings.SPA
+	f.spa = sp.Issuer != "" && sp.LastSync != nil && sp.OK
 	var teams []*model.Team
 	for _, t := range d.Teams {
 		teams = append(teams, t)
@@ -156,6 +161,7 @@ func (a *App) Onboarding(ctx context.Context, perms access.Set) Onboarding {
 		eventPath = "/connectors/" + f.published[0]
 	}
 	steps := []OnboardingStep{
+		{ID: StepSPA, Done: f.spa, Path: "/settings/spa", CanFix: all("settings.spa:sync")},
 		{ID: StepSource, Done: len(f.published) > 0, Path: sourcePath, CanFix: all("connectors:edit", "connectors:publish", "credentials:edit")},
 		{ID: StepEvent, Done: a.anyEvent(ctx), Path: eventPath, CanFix: all("connectors:view")},
 		{ID: StepTeam, Done: f.team, Path: "/teams", CanFix: all("teams:edit")},

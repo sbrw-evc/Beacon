@@ -1,7 +1,6 @@
 package app
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -42,44 +41,6 @@ func (a *App) preferences(w http.ResponseWriter, r *http.Request) {
 		u, err = a.users.SetTimezone(id, *in.Timezone)
 	}
 	a.respondUser(w, r, u, err)
-}
-
-func (a *App) updateProfile(w http.ResponseWriter, r *http.Request) {
-	var in model.Profile
-	if !httpx.Decode(w, r, &in) {
-		return
-	}
-	u, err := a.users.UpdateProfile(current(r).user.ID, in)
-	a.respondUser(w, r, u, err)
-}
-
-type passwordInput struct {
-	Current string `json:"current_password"`
-	New     string `json:"new_password"`
-}
-
-func (a *App) changePassword(w http.ResponseWriter, r *http.Request) {
-	var in passwordInput
-	if !httpx.Decode(w, r, &in) {
-		return
-	}
-	s := current(r)
-	ip := a.clientIP(r)
-	if a.limiter.Locked(s.user.Username, ip) {
-		writeError(w, ErrTooManyAttempts)
-		return
-	}
-	err := a.users.ChangePassword(r.Context(), s.user.ID, in.Current, in.New)
-	if errors.Is(err, ErrWrongPassword) {
-		a.limiter.Fail(s.user.Username, ip)
-	}
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	a.limiter.Reset(s.user.Username, ip)
-	a.deps.Sessions.DeleteUser(s.user.ID, s.ss.ID)
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) uploadAvatar(w http.ResponseWriter, r *http.Request) {

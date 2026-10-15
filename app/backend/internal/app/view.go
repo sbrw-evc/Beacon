@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
@@ -22,9 +21,8 @@ type userView struct {
 	Permissions   []string `json:"permissions,omitempty"`
 	// Admins are whom a user without any permission asks for access.
 	Admins []AdminContact `json:"admins,omitempty"`
-	// PasskeysEnabled shows the passkeys of the profile.
-	PasskeysEnabled bool `json:"passkeys_enabled"`
-	passwordView
+	// AccountURL is SPA's account page (password, passkeys, sessions): "Account and security".
+	AccountURL string `json:"account_url,omitempty"`
 }
 
 type AdminContact struct {
@@ -32,22 +30,15 @@ type AdminContact struct {
 	Email string `json:"email,omitempty"`
 }
 
-type passwordView struct {
-	Expired   bool       `json:"password_expired"`
-	Warning   bool       `json:"password_expiry_warning"`
-	ExpiresAt *time.Time `json:"password_expires_at,omitempty"`
-}
-
 func (a *App) view(u model.User, csrf string) userView {
 	v := newUserView(u, csrf)
 	g := a.access.Grant(u)
 	v.Role, v.RoleName, v.Permissions = g.RoleID, g.RoleName, g.Perms.List()
-	v.PasskeysEnabled = a.passkeys.Enabled() && u.Source != model.SourceService
+	if u.Source == model.SourceSPA {
+		a.deps.Store.Read(func(d *store.Data) { v.AccountURL = d.Settings.SPA.AccountURL })
+	}
 	if len(v.Permissions) == 0 {
 		v.Admins = a.adminContacts()
-	}
-	if age := a.policy.Age(u); !age.ExpiresAt.IsZero() {
-		v.passwordView = passwordView{Expired: age.Expired, Warning: age.Warning, ExpiresAt: &age.ExpiresAt}
 	}
 	return v
 }

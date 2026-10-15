@@ -6,11 +6,7 @@ type refChange struct {
 }
 
 func (d *Data) secretRefs() []*string {
-	refs := []*string{&d.Settings.LDAP.BindPasswordRef, &d.Settings.Entra.ClientSecretRef, &d.Settings.APITokenKeyRef}
-	for _, u := range d.Users {
-		refs = append(refs, &u.PasswordRef)
-	}
-	return refs
+	return []*string{&d.Settings.LDAP.BindPasswordRef, &d.Settings.APITokenKeyRef}
 }
 
 func (s *Store) MapRefs(move func(ref string) (string, bool)) (int, func()) {

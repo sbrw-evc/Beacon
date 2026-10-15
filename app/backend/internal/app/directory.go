@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
 
@@ -19,29 +17,22 @@ type SessionRevoker interface {
 	DeleteUser(userID, keep string)
 }
 
+// DirectoryService is the connection to Active Directory the NetBox synchronization reads
+// computer objects from (configuration items). Nobody signs in with it: people sign in through
+// SPA, which has its own directory connections.
 type DirectoryService struct {
-	st       *store.Store
-	secrets  Secrets
-	dir      Directory
-	sessions SessionRevoker
+	st      *store.Store
+	secrets Secrets
+	dir     Directory
 }
 
-func NewDirectoryService(st *store.Store, secrets Secrets, dir Directory, sessions SessionRevoker) *DirectoryService {
-	return &DirectoryService{st: st, secrets: secrets, dir: dir, sessions: sessions}
-}
-
-type DirectoryUsers struct {
-	Total      int        `json:"total"`
-	Admins     int        `json:"admins"`
-	Disabled   int        `json:"disabled"`
-	LastSignIn *time.Time `json:"last_sign_in,omitempty"`
+func NewDirectoryService(st *store.Store, secrets Secrets, dir Directory) *DirectoryService {
+	return &DirectoryService{st: st, secrets: secrets, dir: dir}
 }
 
 type DirectoryView struct {
 	Config          directory.Config `json:"config"`
 	BindPasswordSet bool             `json:"bind_password_set"`
-	Users           DirectoryUsers   `json:"users"`
-	LocalAdmins     int              `json:"local_admins"`
 }
 
 func (s *DirectoryService) View() DirectoryView {
@@ -100,30 +91,14 @@ func (s *DirectoryService) Save(ctx context.Context, actor string, in directory.
 
 func (s *DirectoryService) disable(actor string) (DirectoryView, error) {
 	var out DirectoryView
-	var err error
-	var signedOut []string
 	s.st.Write(func(d *store.Data) {
-		if !d.Settings.LDAP.Enabled {
-			out = directoryView(d)
-			return
+		if d.Settings.LDAP.Enabled {
+			d.Settings.LDAP.Enabled = false
+			d.AddAudit(store.AuditEntry{Actor: actor, Action: "settings.ldap", Detail: "disabled"})
 		}
-		if localAdmins(d) == 0 {
-			err = ErrNoLocalAdmin
-			return
-		}
-		d.Settings.LDAP.Enabled = false
-		d.AddAudit(store.AuditEntry{Actor: actor, Action: "settings.ldap", Detail: "disabled"})
 		out = directoryView(d)
-		for id, u := range d.Users {
-			if u.Source == model.SourceLDAP {
-				signedOut = append(signedOut, id)
-			}
-		}
 	})
-	for _, id := range signedOut {
-		s.sessions.DeleteUser(id, "")
-	}
-	return out, err
+	return out, nil
 }
 
 func (s *DirectoryService) bindPassword(cfg directory.Config, given string) (string, error) {
@@ -156,37 +131,5 @@ func passwordNote(given string) string {
 }
 
 func directoryView(d *store.Data) DirectoryView {
-	return DirectoryView{Config: d.Settings.LDAP.Public(), BindPasswordSet: d.Settings.LDAP.BindPasswordRef != "", LocalAdmins: localAdmins(d),
-		Users: sourceUsers(d, model.SourceLDAP)}
-}
-
-func sourceUsers(d *store.Data, source string) DirectoryUsers {
-	var out DirectoryUsers
-	for _, u := range d.Users {
-		if u.Source != source {
-			continue
-		}
-		out.Total++
-		if u.Role == model.RoleAdmin {
-			out.Admins++
-		}
-		if u.Disabled {
-			out.Disabled++
-		}
-		if u.LastLoginAt != nil && (out.LastSignIn == nil || u.LastLoginAt.After(*out.LastSignIn)) {
-			at := *u.LastLoginAt
-			out.LastSignIn = &at
-		}
-	}
-	return out
-}
-
-func localAdmins(d *store.Data) int {
-	n := 0
-	for _, u := range d.Users {
-		if u.Source == model.SourceLocal && u.Role == model.RoleAdmin && !u.Disabled && u.PasswordRef != "" {
-			n++
-		}
-	}
-	return n
+	return DirectoryView{Config: d.Settings.LDAP.Public(), BindPasswordSet: d.Settings.LDAP.BindPasswordRef != ""}
 }

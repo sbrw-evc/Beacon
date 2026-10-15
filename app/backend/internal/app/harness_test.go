@@ -2,29 +2,30 @@ package app_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa/spatest"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
 
 func TestMain(m *testing.M) {
-	auth.Iterations = 1000
 	os.Exit(m.Run())
 }
 
+// harness serves the app connected to a fake SPA: people sign in there.
 type harness struct {
 	t     *testing.T
 	srv   *httptest.Server
@@ -32,6 +33,7 @@ type harness struct {
 	bao   *secretstest.Fake
 	vault *secrets.Client
 	app   *app.App
+	spa   *spatest.SPA
 }
 
 func newHarness(t *testing.T) *harness {
@@ -40,27 +42,53 @@ func newHarness(t *testing.T) *harness {
 
 // newHarnessWith serves the app over a given store, e.g. one loaded from a snapshot.
 func newHarnessWith(t *testing.T, st *store.Store) *harness {
-	bao, vault := secretstest.New(t)
-	st.Write(func(d *store.Data) { d.Settings.Password = model.DefaultPasswordPolicy() })
-	a := app.New(app.Options{Version: "test"}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
-	srv := httptest.NewServer(a.Handler())
-	t.Cleanup(srv.Close)
-	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault}
+	return newHarnessOpts(t, st, app.Options{Version: "test"})
 }
 
-func (h *harness) addLocal(username, password, role string, changed time.Time) string {
+func newHarnessOpts(t *testing.T, st *store.Store, opt app.Options) *harness {
+	bao, vault := secretstest.New(t)
+	fake := testSPA(t, st)
+	if opt.SPAKey == "" {
+		opt.SPAKey = fake.ConnectionKey()
+	}
+	a := app.New(opt, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
+	srv := httptest.NewServer(a.Handler())
+	t.Cleanup(srv.Close)
+	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
+}
+
+// testSPA starts a fake SPA for the app over st, whose system roles it creates.
+func testSPA(t *testing.T, st *store.Store) *spatest.SPA {
+	st.Write(func(d *store.Data) { d.EnsureSystemRoles(time.Now().UTC()) })
+	return spatest.New(t)
+}
+
+// spaID is the SPA user ID of a test person.
+func spaID(username string) string { return "usr_" + username }
+
+// addLocal adds a person with a role in Umbrella to the fake SPA and their synchronized record
+// to Umbrella; the password is not used: people sign in at SPA.
+func (h *harness) addLocal(username, _ string, role string, changed time.Time) string {
 	h.t.Helper()
+	h.addSPA(spa.User{ID: spaID(username), Username: username, Name: username, Roles: []string{strings.ToLower(role)}})
 	var id string
 	h.st.Write(func(d *store.Data) {
 		id = d.NextID("USR")
-		d.Users[id] = &model.User{ID: id, Username: username, Name: username, Source: model.SourceLocal, Role: role, CreatedAt: changed}
+		d.Users[id] = &model.User{ID: id, Username: username, Name: username, Source: model.SourceSPA, ExternalID: spaID(username),
+			Role: role, ScopeMode: model.ScopeAll, CreatedAt: changed}
 	})
-	ref, err := credentials.NewPasswords(h.vault).Set(context.Background(), id, password)
-	if err != nil {
-		h.t.Fatal(err)
-	}
-	h.st.Write(func(d *store.Data) { d.Users[id].PasswordRef, d.Users[id].PasswordChangedAt = ref, changed })
 	return id
+}
+
+// addSPA adds (or replaces) a person in the fake SPA only.
+func (h *harness) addSPA(u spa.User) {
+	for i := range h.spa.Users {
+		if h.spa.Users[i].ID == u.ID {
+			h.spa.Users[i] = u
+			return
+		}
+	}
+	h.spa.Users = append(h.spa.Users, u)
 }
 
 type client struct {
@@ -96,12 +124,63 @@ func (c *client) call(method, path string, body, out any) int {
 	return resp.StatusCode
 }
 
-func (c *client) login(username, password string) map[string]any {
+// login signs the person in through the fake SPA: start, SPA's authorization, the callback.
+func (c *client) login(username, _ string) map[string]any {
 	c.h.t.Helper()
+	if final := c.signIn(username); final != "/" {
+		c.h.t.Fatalf("login %s ended at %s", username, final)
+	}
 	var out map[string]any
-	if code := c.call(http.MethodPost, "/api/auth/login", map[string]string{"username": username, "password": password}, &out); code != http.StatusOK {
-		c.h.t.Fatalf("login %s = %d %v", username, code, out)
+	if code := c.call(http.MethodGet, "/api/auth/me", nil, &out); code != http.StatusOK {
+		c.h.t.Fatalf("login %s: me = %d %v", username, code, out)
 	}
 	c.csrf, _ = out["csrf"].(string)
 	return out
+}
+
+// signIn runs the sign-in through SPA for the SPA person with this username and returns the
+// path and query Umbrella sent the browser to at the end.
+func (c *client) signIn(username string) string {
+	c.h.t.Helper()
+	c.h.spa.SignedIn = spaID(username)
+	for _, u := range c.h.spa.Users {
+		if u.Username == username {
+			c.h.spa.SignedIn = u.ID
+		}
+	}
+	var last *http.Request
+	hc := *c.http
+	hc.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		last = req
+		if len(via) > 10 {
+			return http.ErrUseLastResponse
+		}
+		return nil
+	}
+	resp, err := hc.Get(c.h.srv.URL + "/api/auth/spa/start?return=/")
+	if err != nil {
+		c.h.t.Fatal(err)
+	}
+	resp.Body.Close()
+	if last == nil {
+		return ""
+	}
+	return last.URL.RequestURI()
+}
+
+func (h *harness) named(name string) model.User {
+	var out model.User
+	h.st.Read(func(d *store.Data) {
+		if u := d.UserByName(name); u != nil {
+			out = *u
+		}
+	})
+	return out
+}
+
+func (c *client) me() (int, map[string]any) {
+	var out map[string]any
+	code := c.call(http.MethodGet, "/api/auth/me", nil, &out)
+	c.csrf, _ = out["csrf"].(string)
+	return code, out
 }

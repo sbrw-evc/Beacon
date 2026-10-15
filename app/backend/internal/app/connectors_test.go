@@ -53,8 +53,8 @@ func newPGHarness(t *testing.T) *harness {
 	t.Cleanup(backend.Close)
 	bao, vault := secretstest.New(t)
 	st := store.New()
-	st.Write(func(d *store.Data) { d.Settings.Password = model.DefaultPasswordPolicy() })
-	a := app.New(app.Options{Version: "test"}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions(), Backend: backend})
+	fake := testSPA(t, st)
+	a := app.New(app.Options{Version: "test", SPAKey: fake.ConnectionKey()}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions(), Backend: backend})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
@@ -67,7 +67,7 @@ func newPGHarness(t *testing.T) *harness {
 	})
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	h := &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a}
+	h := &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
 	deadline := time.Now().Add(15 * time.Second)
 	for !a.IngestReady() {
 		if time.Now().After(deadline) {

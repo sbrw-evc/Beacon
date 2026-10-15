@@ -169,7 +169,6 @@ func (s *TeamsService) Delete(actor, id string) error {
 		for _, u := range d.Users {
 			if u.InTeam(id) {
 				u.TeamIDs = withoutID(u.TeamIDs, id)
-				u.MappedTeams = withoutID(u.MappedTeams, id)
 				cleared++
 			}
 		}
@@ -182,7 +181,6 @@ func (s *TeamsService) Delete(actor, id string) error {
 			}
 		}
 		delete(d.Teams, id)
-		dropMappingRefs(d, "", id)
 		detail := fmt.Sprintf("%s; %d child team(s) moved up, %d member(s) removed from it", path, len(children), cleared)
 		if routes := dropPDRoutes(d, id, ""); len(routes) > 0 {
 			detail += "; PagerDuty routes removed: " + strings.Join(routes, ", ")

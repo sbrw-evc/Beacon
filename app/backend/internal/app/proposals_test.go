@@ -166,7 +166,9 @@ func TestDependencyProposals(t *testing.T) {
 		t.Fatalf("admin post = %d", code)
 	}
 	h.addLocal("viewer1", "ViewerPassw0rd!", "viewer", time.Now())
-	h.st.Write(func(d *store.Data) { d.Roles["viewer"] = &model.Role{ID: "viewer", Name: "Viewer", Permissions: []string{"cmdb:view"}} })
+	h.st.Write(func(d *store.Data) {
+		d.Roles["viewer"] = &model.Role{ID: "viewer", Name: "Viewer", Permissions: []string{"cmdb:view"}}
+	})
 	v := h.client()
 	v.login("viewer1", "ViewerPassw0rd!")
 	if code := v.call(http.MethodPost, "/api/cmdb/proposals", map[string]any{"proposals": []any{}}, nil); code != http.StatusForbidden {

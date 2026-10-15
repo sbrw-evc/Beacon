@@ -40,12 +40,12 @@ func TestOnboardingStepsFollowState(t *testing.T) {
 
 	// A fresh installation: nothing is done; the administrator can fix everything.
 	got, steps := f.onboarding(f.admin)
-	if got.Done || len(got.Steps) != 6 {
+	if got.Done || len(got.Steps) != 7 {
 		t.Fatalf("fresh = %+v", got)
 	}
-	order := []string{app.StepSource, app.StepEvent, app.StepTeam, app.StepCatalog, app.StepDelivery, app.StepPublicURL}
+	order := []string{app.StepSPA, app.StepSource, app.StepEvent, app.StepTeam, app.StepCatalog, app.StepDelivery, app.StepPublicURL}
 	for i, s := range got.Steps {
-		if s.ID != order[i] || s.Done || !s.CanFix || s.Path == "" || s.Optional != (s.ID == app.StepCatalog) {
+		if s.ID != order[i] || (s.Done && s.ID != app.StepSPA) || !s.CanFix || s.Path == "" || s.Optional != (s.ID == app.StepCatalog) {
 			t.Errorf("fresh step %d = %+v", i, s)
 		}
 	}

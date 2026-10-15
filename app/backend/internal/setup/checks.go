@@ -3,11 +3,12 @@ package setup
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
 
@@ -46,10 +47,37 @@ func (m *Module) testPostgres(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, rep)
 }
 
-func (m *Module) testLDAP(w http.ResponseWriter, r *http.Request) {
-	var in directory.TestRequest
+type spaInput struct {
+	Key string `json:"spa_connection_key"`
+	// PublicURL is the address of Umbrella: the redirect address is <it>/api/auth/spa/callback.
+	PublicURL string `json:"public_url"`
+}
+
+type spaReply struct {
+	OK          bool   `json:"ok"`
+	Issuer      string `json:"issuer,omitempty"`
+	Application string `json:"application,omitempty"`
+	Error       string `json:"error,omitempty"`
+}
+
+// testSPA checks a connection key against SPA: its discovery, the federation token and the
+// client secret.
+func (m *Module) testSPA(w http.ResponseWriter, r *http.Request) {
+	var in spaInput
 	if !httpx.Decode(w, r, &in) {
 		return
 	}
-	httpx.JSON(w, http.StatusOK, directory.Report(directory.Test(in.Config, in.BindPassword, in.TestUsername, in.TestPassword)))
+	k, err := spa.ParseKey(in.Key)
+	if err != nil {
+		httpx.JSON(w, http.StatusOK, spaReply{Error: err.Error()})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	cfg, err := k.Check(ctx, strings.TrimRight(in.PublicURL, "/")+spa.CallbackPath)
+	rep := spaReply{OK: err == nil, Issuer: k.Issuer, Application: cfg.Application.Name}
+	if err != nil {
+		rep.Error = err.Error()
+	}
+	httpx.JSON(w, http.StatusOK, rep)
 }

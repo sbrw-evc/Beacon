@@ -6,8 +6,8 @@ import (
 )
 
 func TestNormalizeAddsViewAndDropsUnknown(t *testing.T) {
-	got := Normalize([]string{"users:lock", "nope:view", "users:lock", " roles:edit "})
-	want := []string{"users:view", "users:lock", "roles:view", "roles:edit"}
+	got := Normalize([]string{"users:delete", "nope:view", "users:lock", "users:delete", " roles:edit "})
+	want := []string{"users:view", "users:delete", "roles:view", "roles:edit"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
 	}

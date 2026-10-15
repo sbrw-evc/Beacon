@@ -24,13 +24,17 @@ type ServiceAccount struct {
 	TeamIDs     []string `json:"team_ids"`
 	// ScopeMode and ServiceIDs are the visibility scope, as for users (ScopeAll, ScopeTeams,
 	// ScopeServices).
-	ScopeMode  string    `json:"scope_mode"`
-	ServiceIDs []string  `json:"service_ids"`
-	Disabled   bool      `json:"disabled"`
-	CreatedAt  time.Time `json:"created_at"`
-	CreatedBy  string    `json:"created_by"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	UpdatedBy  string    `json:"updated_by"`
+	ScopeMode  string   `json:"scope_mode"`
+	ServiceIDs []string `json:"service_ids"`
+	Disabled   bool     `json:"disabled"`
+	// OwnerID is the person (a user synchronized from SPA) the account belongs to: its tokens
+	// stop working while SPA disables that person. Accounts made before owners existed get the
+	// person who created them; without one the tokens keep working until an owner is set.
+	OwnerID   string    `json:"owner_id,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy string    `json:"created_by"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedBy string    `json:"updated_by"`
 }
 
 // Username is the name requests of the account carry in the audit log.

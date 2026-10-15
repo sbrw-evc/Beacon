@@ -34,7 +34,7 @@ func TestSnapshotMovesSingleTeamIntoTeamList(t *testing.T) {
 		t.Fatalf("attach = %v %v", ok, err)
 	}
 	st.Read(func(d *store.Data) {
-		if u := d.Users["U-1"]; !slices.Equal(u.TeamIDs, []string{"T-1"}) || !slices.Equal(u.MappedTeams, []string{"T-1"}) || u.TeamID != "" || u.MappedTeam != "" {
+		if u := d.Users["U-1"]; !slices.Equal(u.TeamIDs, []string{"T-1"}) || u.TeamID != "" || u.MappedTeam != "" {
 			t.Errorf("anna = %+v", u)
 		}
 		if u := d.Users["U-2"]; len(u.TeamIDs) != 0 {

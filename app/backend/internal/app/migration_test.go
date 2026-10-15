@@ -60,7 +60,7 @@ func TestPostgresMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	st.Write(func(d *store.Data) {
-		d.Users["USR-1"] = &model.User{ID: "USR-1", Username: "admin", Role: model.RoleAdmin, PasswordRef: "openbao://umbrella/users/USR-1#password_hash"}
+		d.Users["USR-1"] = &model.User{ID: "USR-1", Username: "admin", Role: model.RoleAdmin, Source: model.SourceSPA, ExternalID: "usr_admin"}
 	})
 	if err := st.Flush(); err != nil {
 		t.Fatal(err)
@@ -97,7 +97,7 @@ func TestPostgresMigration(t *testing.T) {
 		t.Fatalf("attach target = %v %v", restored, err)
 	}
 	movedStore.Read(func(d *store.Data) {
-		if u := d.Users["USR-1"]; u == nil || u.PasswordRef != "openbao://umbrella/users/USR-1#password_hash" {
+		if u := d.Users["USR-1"]; u == nil || u.ExternalID != "usr_admin" {
 			t.Fatalf("users in target = %+v", d.Users)
 		}
 		if last := d.Audit[len(d.Audit)-1]; last.Action != "settings.postgres.migrate" {
@@ -134,7 +134,7 @@ func baoConfig(f *secretstest.Fake, mount string) config.OpenBao {
 func TestOpenBaoMigration(t *testing.T) {
 	ctx := context.Background()
 	src, _ := secretstest.New(t)
-	src.Set("umbrella/users/USR-1", map[string]any{"password_hash": "h1"})
+	src.Set("umbrella/system/api-tokens", map[string]any{"hmac_key": "h1"})
 	src.Set("umbrella/ldap", map[string]any{"bind_password": "bind"})
 	src.Set("umbrella/postgres", map[string]any{"password": "pg"})
 	cfg := config.File{OpenBao: baoConfig(src, "umbrella"), PostgresPasswordRef: "openbao://umbrella/postgres#password"}
@@ -146,8 +146,8 @@ func TestOpenBaoMigration(t *testing.T) {
 	st := store.New()
 	st.Write(func(d *store.Data) {
 		d.Settings.LDAP.BindPasswordRef = "openbao://umbrella/ldap#bind_password"
-		d.Users["USR-1"] = &model.User{ID: "USR-1", Username: "admin", PasswordRef: "openbao://umbrella/users/USR-1#password_hash"}
-		d.Users["USR-2"] = &model.User{ID: "USR-2", Username: "anna", Source: model.SourceLDAP}
+		d.Settings.APITokenKeyRef = "openbao://umbrella/system/api-tokens#hmac_key"
+		d.Users["USR-2"] = &model.User{ID: "USR-2", Username: "anna", Source: model.SourceSPA}
 	})
 	rt := &recordingRuntime{}
 	svc := app.NewOpenBaoService(st, vault, rt, cfg)
@@ -176,7 +176,7 @@ func TestOpenBaoMigration(t *testing.T) {
 		t.Fatalf("copied secrets must be removed after a failed switch: %v", paths)
 	}
 	st.Read(func(d *store.Data) {
-		if d.Users["USR-1"].PasswordRef != "openbao://umbrella/users/USR-1#password_hash" || d.Settings.LDAP.BindPasswordRef != "openbao://umbrella/ldap#bind_password" {
+		if d.Settings.APITokenKeyRef != "openbao://umbrella/system/api-tokens#hmac_key" || d.Settings.LDAP.BindPasswordRef != "openbao://umbrella/ldap#bind_password" {
 			t.Fatal("references must be restored after a failed switch")
 		}
 	})
@@ -196,16 +196,15 @@ func TestOpenBaoMigration(t *testing.T) {
 	if rt.next.OpenBao.Addr != dst.Server.URL || rt.next.OpenBao.Mount != "kv2" || rt.next.PostgresPasswordRef != "openbao://kv2/postgres#password" {
 		t.Fatalf("next config = %+v", rt.next)
 	}
-	if dst.Get("kv2/users/USR-1")["password_hash"] != "h1" || dst.Get("kv2/ldap")["bind_password"] != "bind" {
+	if dst.Get("kv2/system/api-tokens")["hmac_key"] != "h1" || dst.Get("kv2/ldap")["bind_password"] != "bind" {
 		t.Fatalf("target secrets = %v", dst.Paths())
 	}
-	if src.Get("umbrella/users/USR-1") == nil {
+	if src.Get("umbrella/system/api-tokens") == nil {
 		t.Fatal("the source must stay untouched")
 	}
 	st.Read(func(d *store.Data) {
-		if d.Users["USR-1"].PasswordRef != "openbao://kv2/users/USR-1#password_hash" || d.Settings.LDAP.BindPasswordRef != "openbao://kv2/ldap#bind_password" ||
-			d.Users["USR-2"].PasswordRef != "" {
-			t.Fatalf("references after migration: %+v %+v", d.Settings.LDAP, d.Users["USR-1"])
+		if d.Settings.APITokenKeyRef != "openbao://kv2/system/api-tokens#hmac_key" || d.Settings.LDAP.BindPasswordRef != "openbao://kv2/ldap#bind_password" {
+			t.Fatalf("references after migration: %+v %s", d.Settings.LDAP, d.Settings.APITokenKeyRef)
 		}
 	})
 	if _, err := svc.Migrate(ctx, "admin", app.OpenBaoMigration{Target: baoConfig(dst, "kv2")}); inputCode(err) != "openbao_target_not_empty" {

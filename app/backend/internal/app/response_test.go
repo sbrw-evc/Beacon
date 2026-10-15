@@ -162,6 +162,7 @@ func TestResponseSettingsAndIncidentActions(t *testing.T) {
 	}
 
 	// A viewer sees neither the settings nor the actions.
+	f.h.st.Write(func(d *store.Data) { d.EnsurePresetRoles(model.LocaleEN, time.Now()) })
 	f.h.addLocal("viewer", "Viewer-pass-2026", model.RoleViewer, time.Now())
 	viewer := f.h.client()
 	viewer.login("viewer", "Viewer-pass-2026")

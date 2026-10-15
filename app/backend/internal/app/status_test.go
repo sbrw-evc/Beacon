@@ -49,7 +49,7 @@ func TestSystemStatusIsDetailed(t *testing.T) {
 	if !s.OpenBao.Configured || s.Postgres.OK || s.Postgres.Error == "" || s.Intake.Ready {
 		t.Fatalf("without PostgreSQL the status says so: %+v %+v %+v", s.OpenBao, s.Postgres, s.Intake)
 	}
-	if s.Inventory.Users[model.SourceLocal] != 1 || s.Inventory.Sessions != 1 {
+	if s.Inventory.Users[model.SourceSPA] != 1 || s.Inventory.Sessions != 1 {
 		t.Fatalf("inventory: %+v", s.Inventory)
 	}
 }

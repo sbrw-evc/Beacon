@@ -2,14 +2,12 @@ package app_test
 
 import (
 	"context"
-	"net/http"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory/directorytest"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
@@ -80,7 +78,7 @@ func TestPresetRolesCreatedOnceAndEditable(t *testing.T) {
 			}
 		}
 		noc := d.Roles[model.RoleNOCLead].Permissions
-		if !slices.Contains(noc, "users:lock") || !slices.Contains(noc, "wallboards:edit") || slices.Contains(noc, "users:delete") {
+		if !slices.Contains(noc, "users:edit") || !slices.Contains(noc, "wallboards:edit") || slices.Contains(noc, "users:delete") {
 			t.Errorf("noc lead = %v", noc)
 		}
 		if d.NewUserRole() != model.RoleViewer {
@@ -127,63 +125,6 @@ func TestPresetRolesSkipTakenNames(t *testing.T) {
 			t.Error("second run does nothing")
 		}
 	})
-}
-
-func TestNewUserRoleForDirectoryUsers(t *testing.T) {
-	h := newHarness(t)
-	srv := ldapServer(t)
-	srv.Put(directorytest.Entry{DN: "uid=boris,dc=example,dc=org", Password: "boris-pass-1", Attrs: map[string][]string{
-		"objectClass": {"inetOrgPerson"}, "uid": {"boris"}, "cn": {"Boris Petrov"}}})
-	srv.Put(directorytest.Entry{DN: "uid=vera,dc=example,dc=org", Password: "vera-pass-1", Attrs: map[string][]string{
-		"objectClass": {"inetOrgPerson"}, "uid": {"vera"}, "cn": {"Vera Orlova"}}})
-	h.addLocal("admin", "Admin-pass-2026", model.RoleAdmin, time.Now())
-	h.st.Write(func(d *store.Data) {
-		d.EnsureSystemRoles(time.Now())
-		d.EnsurePresetRoles(model.LocaleEN, time.Now())
-	})
-	admin := h.client()
-	admin.login("admin", "Admin-pass-2026")
-	if code := admin.call(http.MethodPut, "/api/settings/ldap", map[string]any{"config": ldapConfig(srv.URL), "bind_password": ldapPass}, nil); code != 200 {
-		t.Fatalf("ldap save = %d", code)
-	}
-
-	// The viewer preset is the default: a new directory user can see incidents at once.
-	boris := h.client()
-	boris.login("boris", "boris-pass-1")
-	if u := h.named("boris"); u.Role != model.RoleViewer {
-		t.Fatalf("boris = %q, want the viewer preset", u.Role)
-	}
-	_, me := boris.me()
-	if me["admins"] != nil {
-		t.Errorf("a user with permissions gets no access banner: %v", me["admins"])
-	}
-
-	var problem map[string]any
-	if code := admin.call(http.MethodPut, "/api/roles/admin/new-users", nil, &problem); code != 400 || problem["error"] != "new_user_role_admin" {
-		t.Fatalf("admin as the new user role = %d %v", code, problem)
-	}
-	var role map[string]any
-	if code := admin.call(http.MethodPut, "/api/roles/"+model.RoleOnCall+"/new-users", nil, &role); code != 200 || role["new_users"] != true {
-		t.Fatalf("set new user role = %d %v", code, role)
-	}
-	vera := h.client()
-	vera.login("vera", "vera-pass-1")
-	if u := h.named("vera"); u.Role != model.RoleOnCall {
-		t.Fatalf("vera = %q, want the chosen role", u.Role)
-	}
-	if u := h.named("boris"); u.Role != model.RoleViewer {
-		t.Fatalf("existing users are not changed: boris = %q", u.Role)
-	}
-
-	// Deleting the chosen role falls back to the role without permissions.
-	if code := admin.call(http.MethodDelete, "/api/roles/"+model.RoleOnCall+"?reassign_to="+model.RoleViewer, nil, nil); code != 204 {
-		t.Fatalf("delete = %d", code)
-	}
-	var refs app.Refs
-	admin.call(http.MethodGet, "/api/refs", nil, &refs)
-	if refs.NewUserRole != model.RoleUser {
-		t.Fatalf("new user role after delete = %q", refs.NewUserRole)
-	}
 }
 
 func TestNoAccessBannerNamesAdministrators(t *testing.T) {
@@ -269,47 +210,4 @@ func TestNetBoxContactAccountsKeptForExistingSettings(t *testing.T) {
 			t.Fatal("a new installation starts with the switch off")
 		}
 	})
-}
-
-// Every matching row of the group table adds its team; teams set by hand stay.
-func TestGroupMappingGivesSeveralTeams(t *testing.T) {
-	h := newHarness(t)
-	srv := ldapServer(t)
-	srv.Put(directorytest.Entry{DN: "ou=groups,dc=example,dc=org"})
-	srv.Put(directorytest.Entry{DN: ldapOps, Attrs: map[string][]string{"member": {"uid=anna,dc=example,dc=org"}}})
-	srv.Put(directorytest.Entry{DN: ldapEng, Attrs: map[string][]string{"member": {"uid=anna,dc=example,dc=org"}}})
-	h.addLocal("admin", "Admin-pass-2026", model.RoleAdmin, time.Now())
-	h.addRoleAndTeam("operator", "TEAM-1")
-	h.addRoleAndTeam("viewer", "TEAM-2")
-	h.addRoleAndTeam("other", "TEAM-3")
-	admin := h.client()
-	admin.login("admin", "Admin-pass-2026")
-	cfg := ldapConfig(srv.URL)
-	delete(cfg, "admin_group_dn")
-	admin.call(http.MethodPut, "/api/settings/ldap", map[string]any{"config": cfg, "bind_password": ldapPass}, nil)
-	rows := []any{
-		map[string]any{"source": "ldap", "group": ldapOps, "role_id": "operator", "team_id": "TEAM-1"},
-		map[string]any{"source": "ldap", "group": ldapEng, "team_id": "TEAM-2"},
-	}
-	if code := admin.call(http.MethodPut, "/api/settings/groups", map[string]any{"mappings": rows}, nil); code != 200 {
-		t.Fatalf("save = %d", code)
-	}
-	h.client().login("anna", "anna-pass-1")
-	if u := h.named("anna"); teamsOf(u) != "TEAM-1,TEAM-2" || u.Role != "operator" {
-		t.Fatalf("anna = %+v", u)
-	}
-	id := h.named("anna").ID
-	if code := admin.call(http.MethodPut, "/api/users/"+id, map[string]any{"team_ids": []string{"TEAM-1", "TEAM-2", "TEAM-3"}}, nil); code != 200 {
-		t.Fatalf("hand-made team = %d", code)
-	}
-	// anna leaves eng: TEAM-2 is withdrawn, the hand-made TEAM-3 stays.
-	srv.Put(directorytest.Entry{DN: ldapEng, Attrs: map[string][]string{"member": {}}})
-	var view groupsReply
-	admin.call(http.MethodPost, "/api/settings/groups/sync", nil, &view)
-	if u := h.named("anna"); teamsOf(u) != "TEAM-1,TEAM-3" {
-		t.Fatalf("anna after leaving eng = %v", u.TeamIDs)
-	}
-	if view.Mapped.Teams != 1 {
-		t.Fatalf("mapped = %+v", view.Mapped)
-	}
 }

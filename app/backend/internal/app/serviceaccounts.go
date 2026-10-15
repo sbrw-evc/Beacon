@@ -139,6 +139,8 @@ type ServiceAccountInput struct {
 	ScopeMode   string   `json:"scope_mode"`
 	ServiceIDs  []string `json:"service_ids"`
 	Disabled    bool     `json:"disabled"`
+	// OwnerID is the person the account belongs to; empty on creation is the person creating it.
+	OwnerID string `json:"owner_id"`
 }
 
 // TokenInput issues a token: a name and an optional expiry.
@@ -152,6 +154,9 @@ type ServiceAccountView struct {
 	model.ServiceAccount
 	RoleName string           `json:"role_name"`
 	Tokens   []model.APIToken `json:"tokens"`
+	// OwnerName names the owner; OwnerDisabled: SPA disabled the owner, the tokens do not work.
+	OwnerName     string `json:"owner_name,omitempty"`
+	OwnerDisabled bool   `json:"owner_disabled,omitempty"`
 }
 
 // IssuedToken is a new token: the plaintext is in this answer only.
@@ -167,6 +172,9 @@ func (s *ServiceAccountsService) viewOf(d *store.Data, a *model.ServiceAccount) 
 	u := a.User()
 	if r := d.RoleOf(&u); r != nil {
 		v.RoleName = r.Name
+	}
+	if o := d.Users[a.OwnerID]; o != nil {
+		v.OwnerName, v.OwnerDisabled = o.Profile.DisplayName(o.Username), o.Disabled
 	}
 	for _, t := range d.APITokens {
 		if t.AccountID == a.ID {
@@ -240,11 +248,33 @@ func (in ServiceAccountInput) normalize(d *store.Data, actor model.User, self st
 			return model.ServiceAccount{}, invalid("scope_services_required", nil)
 		}
 	}
-	return model.ServiceAccount{Name: name, Description: desc, Role: in.RoleID, TeamIDs: teams, ScopeMode: mode, ServiceIDs: services, Disabled: in.Disabled}, nil
+	owner := strings.TrimSpace(in.OwnerID)
+	if owner == "" && d.Users[actor.ID] != nil {
+		owner = actor.ID
+	}
+	if owner != "" {
+		if o := d.Users[owner]; o == nil || o.Source == model.SourceService {
+			return model.ServiceAccount{}, invalid("unknown_owner", nil)
+		}
+	}
+	return model.ServiceAccount{Name: name, Description: desc, Role: in.RoleID, TeamIDs: teams, ScopeMode: mode, ServiceIDs: services, Disabled: in.Disabled, OwnerID: owner}, nil
+}
+
+// tokenOwnerActive: the account has no owner (made before owners existed) or its owner is
+// enabled in SPA.
+func tokenOwnerActive(d *store.Data, a *model.ServiceAccount) bool {
+	if a.OwnerID == "" {
+		return true
+	}
+	o := d.Users[a.OwnerID]
+	return o != nil && !o.Disabled
 }
 
 func describeAccount(a *model.ServiceAccount) string {
 	out := a.Name + ", role " + a.Role + ", scope " + a.ScopeMode
+	if a.OwnerID != "" {
+		out += ", owner " + a.OwnerID
+	}
 	if a.Disabled {
 		out += ", disabled"
 	}
@@ -438,7 +468,7 @@ func (s *ServiceAccountsService) Authenticate(ctx context.Context, token, ip str
 				continue
 			}
 			a := d.ServiceAccounts[t.AccountID]
-			if a == nil || a.Disabled || !t.Active(now) {
+			if a == nil || a.Disabled || !t.Active(now) || !tokenOwnerActive(d, a) {
 				return
 			}
 			u, id, err = a.User(), tid, nil

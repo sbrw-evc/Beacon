@@ -47,14 +47,12 @@ type guideFacts struct {
 	users          int
 	directory      bool
 	customRoles    bool
+	spaConnected   bool
+	catalogue      bool
 	responseMode   string
 	responseIntegr bool
 	backup         bool
 	grafana        bool
-	passkeys       bool
-	providers      bool
-	applications   int
-	strongPolicy   bool
 }
 
 func readGuideFacts(d *store.Data) guideFacts {
@@ -106,7 +104,9 @@ func readGuideFacts(d *store.Data) guideFacts {
 	for _, u := range d.Users {
 		f.customRoles = f.customRoles || u.Role != model.RoleAdmin
 	}
-	f.directory = d.Settings.LDAP.Enabled || d.Settings.Entra.Enabled
+	f.directory = d.Settings.LDAP.Enabled
+	f.spaConnected = d.Settings.SPA.Issuer != ""
+	f.catalogue = d.Settings.SPA.CatalogAt != nil && d.Settings.SPA.CatalogErr == ""
 	rs := d.Settings.Response
 	f.responseMode = rs.Mode
 	f.responseIntegr = on(rs.Graph.Mode) || on(rs.Jira.Mode) || on(rs.ZoomAPI.Mode)
@@ -125,12 +125,6 @@ func readGuideFacts(d *store.Data) guideFacts {
 	}
 	f.backup = backupDelivers(al.Notify, people, teams)
 	f.grafana = al.Grafana.DashboardURL != ""
-	f.passkeys = d.Settings.Passkeys.Enabled
-	pr := d.Settings.Providers
-	f.providers = f.directory || pr.Google.Enabled || pr.Apple.Enabled || pr.OIDC.Enabled
-	f.applications = len(d.Applications)
-	pol := d.Settings.Password
-	f.strongPolicy = pol.BlockCommon && pol.HistoryCount > 0 && pol.LockoutAttempts > 0
 	return f
 }
 
@@ -199,10 +193,10 @@ var guides = map[string]func(f guideFacts) []guideStep{
 	},
 	"users": func(f guideFacts) []guideStep {
 		return []guideStep{
-			{id: "user", done: f.users > 1, action: ActionCreate, perms: []string{"users:create"}},
-			{id: "roles", done: f.customRoles, perms: []string{"users:edit"}},
+			{id: "spa", done: f.spa, path: "/settings/spa", perms: []string{"settings.spa:sync"}},
+			{id: "user", done: f.users > 1, perms: []string{"users:view"}},
+			{id: "roles", done: f.customRoles, path: "/roles", perms: []string{"roles:edit"}},
 			{id: "teams", done: f.team, path: "/teams", perms: []string{"teams:edit"}},
-			{id: "directory", done: f.directory, optional: true, path: "/settings/ldap", perms: []string{"settings.ldap:edit"}},
 		}
 	},
 	"rules": func(f guideFacts) []guideStep {
@@ -240,13 +234,12 @@ var guides = map[string]func(f guideFacts) []guideStep{
 			{id: "grafana", done: f.grafana, optional: true, perms: []string{"settings.alerting:edit"}},
 		}
 	},
-	"settings.identity": func(f guideFacts) []guideStep {
+	"settings.spa": func(f guideFacts) []guideStep {
 		return []guideStep{
 			{id: "public_url", done: f.publicURL, path: "/settings/alerting", perms: []string{"settings.alerting:edit"}},
-			{id: "policy", done: f.strongPolicy, path: "/settings/password-policy", perms: []string{"settings.policy:edit"}},
-			{id: "passkeys", done: f.passkeys, perms: []string{"settings.identity:edit"}},
-			{id: "providers", done: f.providers, optional: true, perms: []string{"settings.identity:edit"}},
-			{id: "application", done: f.applications > 0, action: ActionConnect, perms: []string{"settings.identity:edit"}},
+			{id: "connect", done: f.spaConnected, perms: []string{"settings.spa:view"}},
+			{id: "catalogue", done: f.catalogue, perms: []string{"settings.spa:sync"}},
+			{id: "sync", done: f.spa, perms: []string{"settings.spa:sync"}},
 		}
 	},
 	"netbox": func(f guideFacts) []guideStep {

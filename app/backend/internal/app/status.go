@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/entra"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/logbuf"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
@@ -26,10 +25,12 @@ type SessionCounter interface {
 }
 
 type StatusService struct {
-	st       *store.Store
-	secrets  Secrets
-	db       Database
-	dir      Directory
+	st      *store.Store
+	secrets Secrets
+	db      Database
+	dir     Directory
+	// spa tells the SPA connection (set by New: it needs the connection key).
+	spa      func(model.SPAState) SPAStatus
 	sessions SessionCounter
 	queue    *ingest.Queue
 	ready    func() bool
@@ -124,19 +125,15 @@ type LDAPStatus struct {
 	Error      string `json:"error,omitempty"`
 }
 
-type EntraStatus struct {
-	Enabled      bool   `json:"enabled"`
-	Cloud        string `json:"cloud,omitempty"`
-	TenantID     string `json:"tenant_id,omitempty"`
-	ClientID     string `json:"client_id,omitempty"`
-	RedirectURL  string `json:"redirect_url,omitempty"`
-	AdminGroupID string `json:"admin_group_id,omitempty"`
-	UserGroupID  string `json:"user_group_id,omitempty"`
-	Issuer       string `json:"issuer,omitempty"`
-	Credentials  bool   `json:"credentials"`
-	OK           bool   `json:"ok"`
-	LatencyMs    int64  `json:"latency_ms"`
-	Error        string `json:"error,omitempty"`
+// SPAStatus is the connection to SPA, where people sign in.
+type SPAStatus struct {
+	Connected   bool       `json:"connected"`
+	Issuer      string     `json:"issuer,omitempty"`
+	Application string     `json:"application,omitempty"`
+	LastSync    *time.Time `json:"last_sync,omitempty"`
+	OK          bool       `json:"ok"`
+	Users       int        `json:"users"`
+	Error       string     `json:"error,omitempty"`
 }
 
 type PostgresStatus struct {
@@ -189,7 +186,7 @@ type SystemStatus struct {
 	OpenBao   OpenBaoStatus  `json:"openbao"`
 	Postgres  PostgresStatus `json:"postgres"`
 	LDAP      LDAPStatus     `json:"ldap"`
-	Entra     EntraStatus    `json:"entra"`
+	SPA       SPAStatus      `json:"spa"`
 	Intake    IntakeStatus   `json:"intake"`
 	Settings  SettingsStatus `json:"settings"`
 	Users     map[string]int `json:"users"`
@@ -289,21 +286,8 @@ func (s *StatusService) Collect(ctx context.Context) SystemStatus {
 			}
 		})
 	}
-	if e := settings.Entra; e.Enabled {
-		out.Entra = EntraStatus{Enabled: true, Cloud: e.Cloud, TenantID: e.TenantID, ClientID: e.ClientID, RedirectURL: e.RedirectURL, AdminGroupID: e.AdminGroupID, UserGroupID: e.UserGroupID}
-		wg.Go(func() {
-			start := time.Now()
-			secret, err := s.resolve(e.ClientSecretRef)
-			var p entra.Probe
-			if err == nil {
-				p, err = entra.Test(ctx, e, secret)
-			}
-			out.Entra.LatencyMs = since(start)
-			out.Entra.Issuer, out.Entra.Credentials, out.Entra.OK = p.Issuer, p.Credentials, err == nil
-			if err != nil {
-				out.Entra.Error = err.Error()
-			}
-		})
+	if s.spa != nil {
+		out.SPA = s.spa(settings.SPA)
 	}
 	wg.Wait()
 	return out

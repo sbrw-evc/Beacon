@@ -3,13 +3,11 @@ package app_test
 import (
 	"encoding/json"
 	"net/http"
-	"slices"
 	"testing"
 	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory/directorytest"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
@@ -153,39 +151,6 @@ func TestScopeModesAndEnforcement(t *testing.T) {
 		t.Fatalf("all = %d", len(page.Alerts))
 	}
 	f.expect(sup, http.MethodDelete, "/api/wallboards/"+all.ID, nil, http.StatusNoContent, nil)
-}
-
-// The group table can set the scope mode; it is withdrawn when the group no longer gives it.
-func TestGroupMappingSetsScope(t *testing.T) {
-	h := newHarness(t)
-	srv := ldapServer(t)
-	srv.Put(directorytest.Entry{DN: "ou=groups,dc=example,dc=org"})
-	srv.Put(directorytest.Entry{DN: ldapOps, Attrs: map[string][]string{"member": {"uid=anna,dc=example,dc=org"}}})
-	h.addLocal("admin", "Admin-pass-2026", model.RoleAdmin, time.Now())
-	h.addRoleAndTeam("owner", "TEAM-1")
-	admin := h.client()
-	admin.login("admin", "Admin-pass-2026")
-	cfg := ldapConfig(srv.URL)
-	delete(cfg, "admin_group_dn")
-	admin.call(http.MethodPut, "/api/settings/ldap", map[string]any{"config": cfg, "bind_password": ldapPass}, nil)
-	var problem map[string]any
-	bad := []any{map[string]any{"source": "ldap", "group": ldapOps, "scope": "services"}}
-	if code := admin.call(http.MethodPut, "/api/settings/groups", map[string]any{"mappings": bad}, &problem); code != 400 {
-		t.Fatalf("services scope by group = %d", code)
-	}
-	rows := []any{map[string]any{"source": "ldap", "group": ldapOps, "role_id": "owner", "team_id": "TEAM-1", "scope": "teams"}}
-	if code := admin.call(http.MethodPut, "/api/settings/groups", map[string]any{"mappings": rows}, nil); code != 200 {
-		t.Fatalf("save = %d", code)
-	}
-	h.client().login("anna", "anna-pass-1")
-	if u := h.named("anna"); u.ScopeMode != model.ScopeTeams || u.MappedScope != model.ScopeTeams || !slices.Equal(u.TeamIDs, []string{"TEAM-1"}) {
-		t.Fatalf("anna = %+v", u)
-	}
-	srv.Put(directorytest.Entry{DN: ldapOps, Attrs: map[string][]string{"member": {}}})
-	admin.call(http.MethodPost, "/api/settings/groups/sync", nil, nil)
-	if u := h.named("anna"); u.ScopeMode != model.ScopeAll || u.MappedScope != "" {
-		t.Fatalf("anna out of the group = %+v", u)
-	}
 }
 
 // Users of older versions keep their service list as the «chosen services» mode.

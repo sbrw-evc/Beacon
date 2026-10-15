@@ -21,15 +21,15 @@ import (
 func newProxyHarness(t *testing.T, proxies string) *harness {
 	bao, vault := secretstest.New(t)
 	st := store.New()
-	st.Write(func(d *store.Data) { d.Settings.Password = model.DefaultPasswordPolicy() })
+	fake := testSPA(t, st)
 	tp := app.ParseTrustedProxies(proxies)
 	if tp == nil {
 		tp = app.TrustedProxies{}
 	}
-	a := app.New(app.Options{Version: "test", TrustedProxies: tp}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
+	a := app.New(app.Options{Version: "test", TrustedProxies: tp, SPAKey: fake.ConnectionKey()}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a}
+	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
 }
 
 type fetched struct {

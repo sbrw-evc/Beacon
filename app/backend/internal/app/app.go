@@ -27,13 +27,6 @@ import (
 const (
 	CookieName = "umbrella_session"
 	CSRFHeader = "X-CSRF-Token"
-
-	// maxFailures wrong passwords for one account from one address lock that pair;
-	// maxLooseFailures lock the address (any accounts) or the account (any addresses).
-	maxFailures      = 10
-	maxLooseFailures = 50
-	failWindow       = 15 * time.Minute
-	lockout          = 5 * time.Minute
 )
 
 type Options struct {
@@ -48,6 +41,12 @@ type Options struct {
 	TrustedProxies TrustedProxies
 	// Ingest tunes the intake queue and workers; zero fields are the defaults.
 	Ingest ingest.Config
+	// SPAKey and SPAKeyFile are the SPA connection key (SPA_CONNECTION_KEY,
+	// SPA_CONNECTION_KEY_FILE); without them it is read from OpenBao (spa#connection_key).
+	// SPAPublicURL is the address of Umbrella when it differs from the request address.
+	SPAKey       string
+	SPAKeyFile   string
+	SPAPublicURL string
 }
 
 type Deps struct {
@@ -60,26 +59,16 @@ type Deps struct {
 }
 
 type App struct {
-	opt       Options
-	deps      Deps
-	auth      *AuthService
-	users     *UserService
-	accounts  *UsersService
-	settings  *SettingsService
-	status    *StatusService
-	limiter   *loginGuard
-	entraRate *Limiter // Microsoft sign-in starts per client address
-	// passkeys run passkey sign-in; passkeyRate limits its starts per client address.
-	passkeys    *PasskeyService
-	passkeyRate *Limiter
-	// providers are Google, Apple and OpenID Connect sign-in; identity is Umbrella Identity:
-	// the OpenID Connect provider and the federation API of connected applications.
-	providers *ProvidersService
-	identity  *IdentityService
-	policy    *PolicyService
+	opt      Options
+	deps     Deps
+	users    *UserService
+	accounts *UsersService
+	settings *SettingsService
+	status   *StatusService
+	// spa is sign-in through SPA and the synchronization of people from it (spa.go).
+	spa       spaState
 	access    *AccessService
 	directory *DirectoryService
-	entra     *EntraService
 	postgres  *PostgresService
 	openbao   *OpenBaoService
 	roles     *RolesService
@@ -90,7 +79,6 @@ type App struct {
 	inventory  *InventoryDBService
 	cis        *CIService
 	cmdb       *CMDBService
-	groups     *GroupsService
 	monitoring *MonitoringService
 	alertPoll  *alertPoller
 	// hostContext shows the machine of an incident: graphs, logs and events around it.
@@ -129,9 +117,8 @@ func New(opt Options, deps Deps) *App {
 		opt.Web = http.NotFoundHandler()
 	}
 	opt.Ingest = opt.Ingest.WithDefaults()
-	passwords := credentials.NewPasswords(deps.Vault)
 	dir := ldapDirectory{}
-	users := NewUserService(deps.Store, passwords)
+	users := NewUserService(deps.Store)
 	var vault Secrets
 	if deps.Vault != nil {
 		vault = deps.Vault
@@ -155,18 +142,10 @@ func New(opt Options, deps Deps) *App {
 		opt:         opt,
 		deps:        deps,
 		users:       users,
-		accounts:    NewUsersService(deps.Store, passwords, deps.Vault, deps.Sessions),
-		auth:        NewAuthService(deps.Store, passwords, deps.Vault, dir, users),
+		accounts:    NewUsersService(deps.Store, deps.Sessions),
 		settings:    NewSettingsService(deps.Store),
-		limiter:     newLoginGuard(),
-		entraRate:   NewLimiter(entraStartsPerMinute, time.Minute, time.Minute),
-		passkeys:    NewPasskeyService(deps.Store),
-		passkeyRate: NewLimiter(passkeyStartsPerMinute, time.Minute, time.Minute),
-		providers:   NewProvidersService(deps.Store, vault, users, deps.Sessions),
-		policy:      NewPolicyService(deps.Store),
 		access:      NewAccessService(deps.Store),
-		directory:   NewDirectoryService(deps.Store, deps.Vault, dir, deps.Sessions),
-		entra:       NewEntraService(deps.Store, deps.Vault, users, deps.Sessions),
+		directory:   NewDirectoryService(deps.Store, deps.Vault, dir),
 		postgres:    NewPostgresService(deps.Store, deps.Backend, deps.Vault, deps.Runtime, deps.Config),
 		openbao:     NewOpenBaoService(deps.Store, deps.Vault, deps.Runtime, deps.Config),
 		roles:       NewRolesService(deps.Store),
@@ -174,7 +153,6 @@ func New(opt Options, deps Deps) *App {
 		services:    NewServicesService(deps.Store, nb),
 		netbox:      nb,
 		cis:         NewCIService(deps.Store, nb),
-		groups:      NewGroupsService(deps.Store, vault, dir),
 		maintenance: NewMaintenanceService(deps.Store),
 		wallboards:  NewWallboardService(deps.Store),
 		proxies:     opt.TrustedProxies,
@@ -225,7 +203,6 @@ func New(opt Options, deps Deps) *App {
 	}
 	a.cmdb = NewCMDBService(deps.Store, active)
 	a.serviceAccounts = NewServiceAccountsService(deps.Store, vault)
-	a.identity = NewIdentityService(deps.Store, vault, a.serviceAccounts.key, a.access, deps.Sessions)
 	a.proposals = NewProposalsService(deps.Store, a.services)
 	a.inventory = NewInventoryDBService(deps.Store, vault, active)
 	a.monitoring = NewMonitoringService(deps.Store, creds, a.cis)
@@ -233,6 +210,7 @@ func New(opt Options, deps Deps) *App {
 	a.monitoring.polls = a.alertPoll.status
 	a.hostContext = NewHostContextService(deps.Store, creds)
 	a.status = NewStatusService(deps.Store, vault, db, dir, sessions, queue, a.ingestReady, opt)
+	a.status.spa = a.spaSystemStatus
 	return a
 }
 
@@ -242,18 +220,15 @@ func (a *App) Handler() http.Handler {
 		httpx.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("GET /api/meta", a.meta)
-	mux.HandleFunc("POST /api/auth/login", a.login)
 	mux.HandleFunc("POST /api/auth/logout", a.authed(a.logout))
 	mux.HandleFunc("GET /api/auth/me", a.authed(a.me))
 	mux.HandleFunc("PUT /api/auth/me/preferences", a.authed(a.preferences))
-	mux.HandleFunc("PUT /api/auth/me/profile", a.authed(a.updateProfile))
-	mux.HandleFunc("PUT /api/auth/me/password", a.authed(a.changePassword))
 	mux.HandleFunc("PUT /api/auth/me/avatar", a.authed(a.uploadAvatar))
 	mux.HandleFunc("DELETE /api/auth/me/avatar", a.authed(a.deleteAvatar))
 	mux.HandleFunc("GET /api/users/{id}/avatar", a.authed(a.avatar))
 	mux.HandleFunc("PUT /api/settings", a.authed(a.can("status:defaults", a.updateSettings)))
 	mux.HandleFunc("GET /api/system", a.authed(a.can("status:view", a.system)))
-	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerEntra, a.registerPasskeys, a.registerProviders, a.registerIdentity, a.registerPolicy, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerGroups, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
+	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerSPA, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
 		register(mux)
 	}
 	a.registerRoutePreview(mux)
@@ -262,7 +237,7 @@ func (a *App) Handler() http.Handler {
 	return httpx.Secure(mux)
 }
 
-// Run synchronizes NetBox, directory groups and monitoring hosts on their schedules, prepares the ingest and alert
+// Run synchronizes the people of SPA, NetBox and monitoring hosts on their schedules, prepares the ingest and alert
 // tables, processes received requests and runs the alert engine until ctx ends. Without PostgreSQL
 // (tests) the intake answers 503. Run returns only after every worker it started has stopped, so
 // a runtime switch of the database copies data nobody writes any more.
@@ -271,7 +246,7 @@ func (a *App) Run(ctx context.Context) {
 	defer wg.Wait()
 	wg.Go(func() { a.netbox.Run(ctx) })
 	wg.Go(func() { a.inventory.Run(ctx) })
-	wg.Go(func() { a.groups.Run(ctx) })
+	wg.Go(func() { a.runSPASchedule(ctx) })
 	wg.Go(func() { a.monitoring.Run(ctx) })
 	wg.Go(func() { a.alertPoll.Run(ctx) })
 	if a.queue == nil {
@@ -322,18 +297,13 @@ type metaView struct {
 	Mode          string `json:"mode"`
 	SetupRequired bool   `json:"setup_required"`
 	Version       string `json:"version"`
-	LDAPEnabled   bool   `json:"ldap_enabled"`
-	EntraEnabled  bool   `json:"entra_enabled"`
-	// PasskeysEnabled shows "Sign in with a passkey"; Providers the Google, Apple and OpenID
-	// Connect buttons.
-	PasskeysEnabled bool           `json:"passkeys_enabled"`
-	Providers       []SignInMethod `json:"providers"`
+	// SPA tells the sign-in page whether Umbrella is connected to SPA and how people sign in there.
+	SPA spaInfo `json:"spa"`
 }
 
 func (a *App) meta(w http.ResponseWriter, r *http.Request) {
 	s := a.settings.Get()
-	httpx.JSON(w, http.StatusOK, metaView{defaultsView: defaultsOf(s), Mode: "ready", Version: a.opt.Version, LDAPEnabled: s.LDAP.Enabled, EntraEnabled: s.Entra.Enabled,
-		PasskeysEnabled: s.Passkeys.Enabled, Providers: append([]SignInMethod{}, a.providers.Methods()...)})
+	httpx.JSON(w, http.StatusOK, metaView{defaultsView: defaultsOf(s), Mode: "ready", Version: a.opt.Version, SPA: a.spaInfoOf(s.SPA)})
 }
 
 type noSecrets struct{}

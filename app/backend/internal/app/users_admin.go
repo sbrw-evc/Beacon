@@ -1,9 +1,7 @@
 package app
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -11,7 +9,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
@@ -20,7 +17,9 @@ var (
 	ErrUsernameTaken = errors.New("the username is already taken")
 	ErrSelfAction    = errors.New("the action is not allowed on your own account")
 	ErrAdminOnly     = errors.New("only administrators can manage administrators")
-	ErrLastAdmin     = errors.New("the administrator role would have no active member")
+	// ErrStillInSPA: the person still has a role in Umbrella in SPA; the next synchronization
+	// would create the account again. Take the role away in SPA first.
+	ErrStillInSPA = errors.New("the person still has access in SPA")
 )
 
 func init() {
@@ -28,7 +27,7 @@ func init() {
 		orgStatus{ErrUsernameTaken, http.StatusConflict, "username_taken"},
 		orgStatus{ErrSelfAction, http.StatusConflict, "self_action"},
 		orgStatus{ErrAdminOnly, http.StatusForbidden, "admin_only"},
-		orgStatus{ErrLastAdmin, http.StatusConflict, "last_admin"},
+		orgStatus{ErrStillInSPA, http.StatusConflict, "still_in_spa"},
 	)
 }
 
@@ -38,10 +37,6 @@ const (
 
 	maxUsername = 64
 )
-
-type SecretRemover interface {
-	Delete(ctx context.Context, path string) error
-}
 
 type Actor struct {
 	User    model.User
@@ -56,19 +51,9 @@ type UserFilter struct {
 	Status string
 }
 
-type NewUser struct {
-	model.Profile
-	Username           string   `json:"username"`
-	Password           string   `json:"password"`
-	RoleID             string   `json:"role_id"`
-	TeamIDs            []string `json:"team_ids"`
-	ScopeMode          string   `json:"scope_mode"`
-	MustChangePassword *bool    `json:"must_change_password"`
-}
-
+// UserChanges is what Umbrella itself decides about a person: teams and the incident scope.
+// Name, e-mail and role come from SPA.
 type UserChanges struct {
-	Profile *model.Profile `json:"profile"`
-	RoleID  *string        `json:"role_id"`
 	// TeamIDs replaces the teams of the user.
 	TeamIDs *[]string `json:"team_ids"`
 	// ScopeMode: all, teams (services of the user's teams) or services (ServiceIDs).
@@ -80,22 +65,15 @@ type UserChanges struct {
 
 const maxUserServices = 200
 
-type PasswordReset struct {
-	Password           string `json:"password"`
-	MustChangePassword bool   `json:"must_change_password"`
-}
-
 type UsersService struct {
-	mu        sync.Mutex
-	st        *store.Store
-	passwords *credentials.Passwords
-	secrets   SecretRemover
-	sessions  SessionRevoker
-	now       func() time.Time
+	mu       sync.Mutex
+	st       *store.Store
+	sessions SessionRevoker
+	now      func() time.Time
 }
 
-func NewUsersService(st *store.Store, passwords *credentials.Passwords, secrets SecretRemover, sessions SessionRevoker) *UsersService {
-	return &UsersService{st: st, passwords: passwords, secrets: secrets, sessions: sessions, now: func() time.Time { return time.Now().UTC() }}
+func NewUsersService(st *store.Store, sessions SessionRevoker) *UsersService {
+	return &UsersService{st: st, sessions: sessions, now: func() time.Time { return time.Now().UTC() }}
 }
 
 func ValidUsername(v string) bool {
@@ -163,121 +141,15 @@ func (s *UsersService) Get(id string) (model.User, error) {
 	return out, err
 }
 
-func (s *UsersService) Create(ctx context.Context, actor Actor, in NewUser) (model.User, error) {
-	username := strings.TrimSpace(in.Username)
-	if !ValidUsername(username) {
-		return model.User{}, invalid("invalid_username", nil)
-	}
-	profile, err := normalUserProfile(in.Profile)
-	if err != nil {
-		return model.User{}, err
-	}
-	role := in.RoleID
-	if role == "" {
-		s.st.Read(func(d *store.Data) { role = d.NewUserRole() })
-	}
-	scope := userOr(in.ScopeMode, model.ScopeAll)
-	if scope != model.ScopeAll && scope != model.ScopeTeams {
-		return model.User{}, invalid("invalid_scope", nil)
-	}
-	draft := model.User{Username: username, Name: profile.DisplayName(username), Profile: profile, Source: model.SourceLocal,
-		Role: role, TeamIDs: in.TeamIDs, ScopeMode: scope, MustChangePassword: in.MustChangePassword == nil || *in.MustChangePassword}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var policy model.PasswordPolicy
-	s.st.Read(func(d *store.Data) {
-		policy, err = d.Settings.Password, checkNewUser(d, actor, draft)
-		if err == nil {
-			draft.TeamIDs, err = userTeams(d, draft.TeamIDs)
-		}
-	})
-	if err != nil {
-		return model.User{}, err
-	}
-	if err := policy.Validate(in.Password, username); err != nil {
-		return model.User{}, err
-	}
-	s.st.Write(func(d *store.Data) { draft.ID = d.NextID("USR") })
-	ref, err := s.passwords.Set(ctx, draft.ID, in.Password)
-	if err != nil {
-		return model.User{}, err
-	}
-	now := s.now()
-	draft.PasswordRef, draft.PasswordChangedAt, draft.CreatedAt = ref, now, now
-	s.st.Write(func(d *store.Data) {
-		if err = checkNewUser(d, actor, draft); err != nil {
-			return
-		}
-		u := draft
-		d.Users[u.ID] = &u
-		d.AddAudit(store.AuditEntry{At: now, Actor: actor.User.Username, Action: "user.create", Object: u.ID, Detail: describeUser(d, &u)})
-	})
-	if err != nil {
-		_ = s.secrets.Delete(ctx, credentials.Path(draft.ID))
-		return model.User{}, err
-	}
-	return draft, nil
-}
-
-func checkNewUser(d *store.Data, actor Actor, u model.User) error {
-	if d.UserByName(u.Username) != nil {
-		return ErrUsernameTaken
-	}
-	if d.Roles[u.Role] == nil {
-		return invalid("unknown_role", nil)
-	}
-	return guardUserChange(d, actor, nil, &u)
-}
-
-func normalUserProfile(in model.Profile) (model.Profile, error) {
-	p, err := in.Normalize()
-	if err != nil {
-		return p, invalid("invalid_name", err)
-	}
-	if !model.ValidEmail(p.Email) {
-		return p, invalid("invalid_email", nil)
-	}
-	return p, nil
-}
-
 func (s *UsersService) Update(actor Actor, id string, in UserChanges) (model.User, error) {
-	var profile model.Profile
-	if in.Profile != nil {
-		p, err := normalUserProfile(*in.Profile)
-		if err != nil {
-			return model.User{}, err
-		}
-		profile = p
-	}
 	return s.change(actor, id, "user.update", func(d *store.Data, u *model.User) (string, error) {
 		var changes []string
-		if in.Profile != nil && profile != u.Profile {
-			if u.Source != model.SourceLocal {
-				return "", ErrManagedByDirectory
-			}
-			u.Profile, u.Name = profile, profile.DisplayName(u.Username)
-			changes = append(changes, "profile")
-		}
-		role, teams := d.RoleOf(u).ID, u.TeamIDs
-		if in.RoleID != nil {
-			role = *in.RoleID
-		}
-		if d.Roles[role] == nil {
-			return "", invalid("unknown_role", nil)
-		}
+		teams := u.TeamIDs
 		if in.TeamIDs != nil {
 			var err error
 			if teams, err = userTeams(d, *in.TeamIDs); err != nil {
 				return "", err
 			}
-		}
-		if role != d.RoleOf(u).ID {
-			if u.ID == actor.User.ID {
-				return "", ErrSelfAction
-			}
-			u.Role = role
-			changes = append(changes, "role "+role)
 		}
 		if !slices.Equal(teams, u.TeamIDs) {
 			u.TeamIDs = teams
@@ -344,75 +216,10 @@ func userServiceScope(d *store.Data, ids []string) ([]string, error) {
 	return out, nil
 }
 
-func (s *UsersService) SetLocked(actor Actor, id string, locked bool) (model.User, error) {
-	action := "user.unlock"
-	if locked {
-		action = "user.lock"
-	}
-	u, err := s.change(actor, id, action, func(d *store.Data, u *model.User) (string, error) {
-		if u.ID == actor.User.ID {
-			return "", ErrSelfAction
-		}
-		if u.Disabled == locked {
-			return "", nil
-		}
-		u.Disabled = locked
-		return u.Username, nil
-	})
-	if err == nil && locked {
-		s.sessions.DeleteUser(id, "")
-	}
-	return u, err
-}
-
-func (s *UsersService) SetPassword(ctx context.Context, actor Actor, id string, in PasswordReset) (model.User, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var target model.User
-	var policy model.PasswordPolicy
-	err := ErrNotFound
-	s.st.Read(func(d *store.Data) {
-		u := d.Users[id]
-		if u == nil {
-			return
-		}
-		target, policy, err = *u, d.Settings.Password, nil
-		if u.Source != model.SourceLocal {
-			err = ErrManagedByDirectory
-			return
-		}
-		err = guardUserChange(d, actor, u, u)
-	})
-	if err != nil {
-		return model.User{}, err
-	}
-	if err := policy.Validate(in.Password, target.Username); err != nil {
-		return model.User{}, err
-	}
-	ref, err := s.passwords.Replace(ctx, id, target.PasswordRef, in.Password, policy.HistoryCount, false)
-	if err != nil {
-		return model.User{}, err
-	}
-	now := s.now()
-	out, err := s.mutate(actor, id, "user.password_reset", func(d *store.Data, u *model.User) (string, error) {
-		u.PasswordRef, u.PasswordChangedAt, u.MustChangePassword = ref, now, in.MustChangePassword
-		if in.MustChangePassword {
-			return "must change at next sign-in", nil
-		}
-		return "set", nil
-	})
-	if err != nil {
-		return out, err
-	}
-	keep := ""
-	if id == actor.User.ID {
-		keep = actor.Session
-	}
-	s.sessions.DeleteUser(id, keep)
-	return out, nil
-}
-
-func (s *UsersService) Delete(ctx context.Context, actor Actor, id string) error {
+// Delete removes the record of a person who no longer has access in SPA (disabled), an account
+// of the versions before SPA that was never bound to SPA, or a NetBox contact. People who still
+// have a role in Umbrella in SPA are removed in SPA.
+func (s *UsersService) Delete(actor Actor, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	check := func(d *store.Data) (*model.User, error) {
@@ -423,7 +230,13 @@ func (s *UsersService) Delete(ctx context.Context, actor Actor, id string) error
 		if u.ID == actor.User.ID {
 			return nil, ErrSelfAction
 		}
-		return u, guardUserChange(d, actor, u, nil)
+		if err := guardUserChange(d, actor, u, nil); err != nil {
+			return nil, err
+		}
+		if u.Source == model.SourceSPA && !u.Disabled {
+			return nil, ErrStillInSPA
+		}
+		return u, nil
 	}
 	var target model.User
 	var err error
@@ -435,11 +248,6 @@ func (s *UsersService) Delete(ctx context.Context, actor Actor, id string) error
 	})
 	if err != nil {
 		return err
-	}
-	if target.Source == model.SourceLocal {
-		if err := s.secrets.Delete(ctx, credentials.Path(id)); err != nil {
-			return fmt.Errorf("%w: %v", credentials.ErrUnavailable, err)
-		}
 	}
 	s.st.Write(func(d *store.Data) {
 		if _, err = check(d); err != nil {
@@ -491,42 +299,12 @@ func (s *UsersService) mutate(actor Actor, id, action string, fn func(d *store.D
 	return out, err
 }
 
+// guardUserChange: only administrators change administrators (their teams and scope).
 func guardUserChange(d *store.Data, actor Actor, before, after *model.User) error {
 	if (d.IsAdmin(before) || d.IsAdmin(after)) && !d.IsAdmin(&actor.User) {
 		return ErrAdminOnly
 	}
-	if before == nil {
-		return nil
-	}
-	active, local := adminCounts(d, map[string]bool{before.ID: true}, after)
-	switch {
-	case active == 0 && d.IsAdmin(before) && !before.Disabled:
-		return ErrLastAdmin
-	case local == 0 && localAdmins(d) > 0:
-		return ErrNoLocalAdmin
-	}
 	return nil
-}
-
-func adminCounts(d *store.Data, skip map[string]bool, extra ...*model.User) (active, local int) {
-	count := func(u *model.User) {
-		if u == nil || u.Disabled || !d.IsAdmin(u) {
-			return
-		}
-		active++
-		if u.Source == model.SourceLocal && u.PasswordRef != "" {
-			local++
-		}
-	}
-	for id, u := range d.Users {
-		if !skip[id] {
-			count(u)
-		}
-	}
-	for _, u := range extra {
-		count(u)
-	}
-	return active, local
 }
 
 func describeUser(d *store.Data, u *model.User) string {

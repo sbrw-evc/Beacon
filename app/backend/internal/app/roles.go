@@ -16,7 +16,7 @@ import (
 var (
 	ErrRoleNameTaken = errors.New("a role with this name already exists")
 	ErrRoleSystem    = errors.New("system roles cannot be changed this way")
-	ErrRoleInUse     = errors.New("the role still has members")
+	ErrRoleInUse     = errors.New("the role is still given to people in SPA")
 	ErrOwnAdmin      = errors.New("you cannot remove your own administrator role")
 )
 
@@ -148,7 +148,7 @@ func (s *RolesService) Update(actor, id string, in RoleInput) (RoleView, error) 
 	return out, err
 }
 
-func (s *RolesService) Delete(actor model.User, id, reassignTo string) error {
+func (s *RolesService) Delete(actor model.User, id string) error {
 	err := ErrNotFound
 	s.st.Write(func(d *store.Data) {
 		r := d.Roles[id]
@@ -159,96 +159,20 @@ func (s *RolesService) Delete(actor model.User, id, reassignTo string) error {
 			err = ErrRoleSystem
 			return
 		}
-		members := roleUsers(d, id)
-		target := d.Roles[reassignTo]
-		switch {
-		case len(members) > 0 && reassignTo == "":
+		// People get their role in SPA: a role still given there is taken away in SPA first, or
+		// they would lose their access at the next synchronization.
+		if len(roleUsers(d, id)) > 0 {
 			err = ErrRoleInUse
 			return
-		case reassignTo != "" && (target == nil || target.ID == id):
-			err = invalid("invalid_reassign", fmt.Errorf("unknown role %q", reassignTo))
-			return
-		}
-		if len(members) > 0 {
-			if err = checkRoleMove(d, actor, target.ID, members); err != nil {
-				return
-			}
-		}
-		for _, u := range members {
-			u.Role = target.ID
 		}
 		delete(d.Roles, id)
-		dropMappingRefs(d, id, "")
 		if d.Settings.NewUserRole == id {
 			d.Settings.NewUserRole = ""
 		}
-		detail := r.Name
-		if len(members) > 0 {
-			detail = fmt.Sprintf("%s; %d member(s) moved to %s", r.Name, len(members), target.Name)
-		}
-		d.AddAudit(store.AuditEntry{Actor: actor.Username, Action: "role.delete", Object: id, Detail: detail})
+		d.AddAudit(store.AuditEntry{Actor: actor.Username, Action: "role.delete", Object: id, Detail: r.Name})
 		err = nil
 	})
 	return err
-}
-
-func (s *RolesService) AddMembers(actor model.User, id string, userIDs []string) (RoleView, error) {
-	var out RoleView
-	err := ErrNotFound
-	s.st.Write(func(d *store.Data) {
-		r := d.Roles[id]
-		if r == nil {
-			return
-		}
-		var users []*model.User
-		if users, err = orgUsers(d, userIDs); err != nil {
-			return
-		}
-		if err = checkRoleMove(d, actor, id, users); err != nil {
-			return
-		}
-		moved := []*model.User{}
-		for _, u := range users {
-			if u.Role != id {
-				u.Role = id
-				moved = append(moved, u)
-			}
-		}
-		if len(moved) > 0 {
-			d.AddAudit(store.AuditEntry{Actor: actor.Username, Action: "role.members", Object: id, Detail: r.Name + ": " + usernames(moved)})
-		}
-		out = roleView(d, r, roleMembers(d)[id])
-	})
-	return out, err
-}
-
-func checkRoleMove(d *store.Data, actor model.User, target string, users []*model.User) error {
-	leaving := map[string]bool{}
-	for _, u := range users {
-		if d.IsAdmin(u) == (target == model.RoleAdmin) {
-			continue
-		}
-		if !d.IsAdmin(&actor) {
-			return ErrAdminOnly
-		}
-		if u.ID == actor.ID {
-			return ErrOwnAdmin
-		}
-		if d.IsAdmin(u) {
-			leaving[u.ID] = true
-		}
-	}
-	if len(leaving) == 0 {
-		return nil
-	}
-	active, local := adminCounts(d, leaving)
-	switch {
-	case active == 0:
-		return ErrLastAdmin
-	case local == 0 && localAdmins(d) > 0:
-		return ErrNoLocalAdmin
-	}
-	return nil
 }
 
 func checkSystemRoleChange(cur, next *model.Role, in RoleInput) error {

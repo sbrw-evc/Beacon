@@ -1,58 +1,27 @@
 package app
 
 import (
-	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
 
-type loginInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
+// sessionMaxAge is how long the session cookie is kept by the browser.
+var sessionMaxAge = auth.MaxLifetime
 
-func (a *App) login(w http.ResponseWriter, r *http.Request) {
-	var in loginInput
-	if !httpx.Decode(w, r, &in) {
-		return
-	}
-	ip := a.clientIP(r)
-	a.limiter.apply(a.policy.Get())
-	if a.limiter.Locked(in.Username, ip) {
-		writeError(w, ErrTooManyAttempts)
-		return
-	}
-	u, err := a.auth.Authenticate(in.Username, in.Password)
-	if errors.Is(err, ErrInvalidCredentials) {
-		a.limiter.Fail(in.Username, ip)
-		a.auth.Failed(strings.TrimSpace(in.Username), ip)
-	}
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	a.limiter.Reset(in.Username, ip)
-	method := MethodPassword
-	if u.Source == model.SourceLDAP {
-		method = model.SourceLDAP
-	}
-	ss := a.deps.Sessions.CreateWith(u.ID, method)
-	u = a.auth.Signed(u.ID, ip)
-	a.setCookie(w, ss.ID, int(auth.MaxLifetime/time.Second))
-	httpx.JSON(w, http.StatusOK, a.view(u, ss.CSRF))
-}
-
+// logout ends the session in Umbrella; the answer names SPA's sign-out address, which ends the
+// SPA session too and comes back to Umbrella.
 func (a *App) logout(w http.ResponseWriter, r *http.Request) {
 	s := current(r)
 	a.deps.Sessions.Delete(s.ss.ID)
-	a.auth.SignedOut(s.user.Username)
+	a.deps.Store.Write(func(d *store.Data) {
+		d.AddAudit(store.AuditEntry{At: time.Now().UTC(), Actor: s.user.Username, Action: "auth.logout"})
+	})
 	a.setCookie(w, "", -1)
-	w.WriteHeader(http.StatusNoContent)
+	httpx.JSON(w, http.StatusOK, map[string]string{"redirect": a.spaSignOut(r)})
 }
 
 func (a *App) me(w http.ResponseWriter, r *http.Request) {

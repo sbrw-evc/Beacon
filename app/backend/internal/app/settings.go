@@ -62,12 +62,11 @@ func DefaultTimezone(s model.Settings) string {
 }
 
 type defaultsView struct {
-	Theme          string               `json:"default_theme"`
-	Locale         string               `json:"default_locale"`
-	Timezone       string               `json:"default_timezone"`
-	PasswordPolicy model.PasswordPolicy `json:"password_policy"`
+	Theme    string `json:"default_theme"`
+	Locale   string `json:"default_locale"`
+	Timezone string `json:"default_timezone"`
 }
 
 func defaultsOf(s model.Settings) defaultsView {
-	return defaultsView{Theme: s.DefaultTheme, Locale: s.DefaultLocale, Timezone: DefaultTimezone(s), PasswordPolicy: s.Password}
+	return defaultsView{Theme: s.DefaultTheme, Locale: s.DefaultLocale, Timezone: DefaultTimezone(s)}
 }

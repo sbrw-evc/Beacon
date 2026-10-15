@@ -9,23 +9,18 @@ import (
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/netbox"
 )
 
 var (
-	ErrInvalidCredentials   = errors.New("invalid username or password")
 	ErrDirectoryUnavailable = errors.New("directory is unavailable")
-	ErrManagedByDirectory   = errors.New("the account is managed by the directory")
-	ErrWrongPassword        = errors.New("the current password is wrong")
-	ErrSamePassword         = errors.New("the new password equals the current one")
-	ErrAvatarInvalid        = errors.New("the file is not a supported image")
-	ErrAvatarTooLarge       = errors.New("the image is too large")
-	ErrTooManyAttempts      = errors.New("too many failed attempts")
-	ErrNotFound             = errors.New("not found")
-	ErrUnauthenticated      = errors.New("unauthenticated")
-	ErrPasswordExpired      = errors.New("the password has expired")
-	ErrNoLocalAdmin         = errors.New("no active local administrator would remain")
+	// ErrManagedInSPA: name, e-mail, role, password and whether the person may sign in are
+	// managed in SPA, not in Umbrella.
+	ErrManagedInSPA    = errors.New("the account is managed in SPA")
+	ErrAvatarInvalid   = errors.New("the file is not a supported image")
+	ErrAvatarTooLarge  = errors.New("the image is too large")
+	ErrNotFound        = errors.New("not found")
+	ErrUnauthenticated = errors.New("unauthenticated")
 
 	invalidCSRF = errors.New("csrf")
 	forbidden   = errors.New("forbidden")
@@ -54,22 +49,16 @@ type errStatus = struct {
 
 // statuses answers the sentinel errors. Files of the package add their own in init.
 var statuses = []errStatus{
-	{ErrInvalidCredentials, http.StatusUnauthorized, "invalid_credentials"},
 	{ErrUnauthenticated, http.StatusUnauthorized, "unauthenticated"},
 	{ErrDirectoryUnavailable, http.StatusServiceUnavailable, "directory_unavailable"},
 	{credentials.ErrUnavailable, http.StatusServiceUnavailable, "secrets_unavailable"},
-	{ErrManagedByDirectory, http.StatusConflict, "managed_by_directory"},
-	{ErrWrongPassword, http.StatusForbidden, "wrong_password"},
-	{ErrSamePassword, http.StatusBadRequest, "same_password"},
+	{ErrManagedInSPA, http.StatusConflict, "managed_in_spa"},
 	{ErrAvatarInvalid, http.StatusBadRequest, "avatar_invalid"},
 	{ErrAvatarTooLarge, http.StatusRequestEntityTooLarge, "avatar_too_large"},
-	{ErrTooManyAttempts, http.StatusTooManyRequests, "too_many_attempts"},
 	{ErrNotFound, http.StatusNotFound, "not_found"},
 	{ingest.ErrNotFound, http.StatusNotFound, "not_found"},
 	{invalidCSRF, http.StatusForbidden, "csrf"},
 	{forbidden, http.StatusForbidden, "forbidden"},
-	{ErrPasswordExpired, http.StatusForbidden, "password_expired"},
-	{ErrNoLocalAdmin, http.StatusConflict, "no_local_admin"},
 	{ErrSlugTaken, http.StatusConflict, "connector_slug_taken"},
 	{ErrDraftConflict, http.StatusConflict, "draft_conflict"},
 	{ErrServiceNameTaken, http.StatusConflict, "service_name_taken"},
@@ -125,9 +114,6 @@ var structured = []func(error) (answer, bool){
 	shown(netbox.ErrDefaults, http.StatusBadRequest, "netbox_defaults"),
 	as(func(e netboxFailure) answer {
 		return answer{status: http.StatusBadGateway, code: "netbox_failed", detail: e.err}
-	}),
-	as(func(e *model.PolicyError) answer {
-		return answer{status: http.StatusBadRequest, code: "weak_password", detail: e, body: httpx.Problem{Code: "weak_password", Detail: e.Error(), Violations: e.Violations}}
 	}),
 	as(func(e *InputError) answer { return answer{status: http.StatusBadRequest, code: e.Code, detail: e.Err} }),
 }

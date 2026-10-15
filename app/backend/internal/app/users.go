@@ -1,29 +1,24 @@
 package app
 
 import (
-	"bytes"
-	"context"
-	"errors"
 	"strings"
 	"time"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/avatar"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/entra"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
 )
 
+// UserService is what a person changes on their own account in Umbrella: avatar, time zone,
+// language and the Telegram chat. Name, e-mail, password and passkeys are managed in SPA.
 type UserService struct {
-	st        *store.Store
-	passwords *credentials.Passwords
-	now       func() time.Time
+	st  *store.Store
+	now func() time.Time
 }
 
-func NewUserService(st *store.Store, passwords *credentials.Passwords) *UserService {
-	return &UserService{st: st, passwords: passwords, now: func() time.Time { return time.Now().UTC() }}
+func NewUserService(st *store.Store) *UserService {
+	return &UserService{st: st, now: func() time.Time { return time.Now().UTC() }}
 }
 
 func (s *UserService) Get(id string) (model.User, error) {
@@ -55,69 +50,6 @@ func (s *UserService) update(id string, fn func(d *store.Data, u *model.User)) (
 		return out, ErrNotFound
 	}
 	return out, nil
-}
-
-func (s *UserService) local(id string) (model.User, error) {
-	u, err := s.Get(id)
-	if err != nil {
-		return u, err
-	}
-	if u.Source != model.SourceLocal {
-		return u, ErrManagedByDirectory
-	}
-	return u, nil
-}
-
-func (s *UserService) UpdateProfile(id string, in model.Profile) (model.User, error) {
-	if _, err := s.local(id); err != nil {
-		return model.User{}, err
-	}
-	p, err := in.Normalize()
-	if err != nil {
-		return model.User{}, invalid("invalid_name", err)
-	}
-	if !model.ValidEmail(p.Email) {
-		return model.User{}, invalid("invalid_email", nil)
-	}
-	return s.update(id, func(d *store.Data, u *model.User) {
-		u.Profile, u.Name = p, p.DisplayName(u.Username)
-		d.AddAudit(store.AuditEntry{Actor: u.Username, Action: "user.profile", Object: u.ID})
-	})
-}
-
-func (s *UserService) ChangePassword(ctx context.Context, id, current, next string) error {
-	u, err := s.local(id)
-	if err != nil {
-		return err
-	}
-	ok, err := s.passwords.Verify(u.PasswordRef, current)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return ErrWrongPassword
-	}
-	var policy model.PasswordPolicy
-	s.st.Read(func(d *store.Data) { policy = d.Settings.Password })
-	if err := policy.Validate(next, u.Username); err != nil {
-		return err
-	}
-	if next == current {
-		return ErrSamePassword
-	}
-	ref, err := s.passwords.Replace(ctx, u.ID, u.PasswordRef, next, policy.HistoryCount, true)
-	if errors.Is(err, credentials.ErrReused) {
-		return &model.PolicyError{Violations: []string{model.ViolationHistory}}
-	}
-	if err != nil {
-		return err
-	}
-	now := s.now()
-	_, err = s.update(id, func(d *store.Data, u *model.User) {
-		u.PasswordRef, u.PasswordChangedAt, u.MustChangePassword = ref, now, false
-		d.AddAudit(store.AuditEntry{Actor: u.Username, Action: "user.password", Object: u.ID})
-	})
-	return err
 }
 
 func (s *UserService) SetAvatar(id string, data []byte) (model.User, error) {
@@ -210,79 +142,4 @@ func (s *UserService) LinkTelegram(id, chat string) (model.User, error) {
 		u.Telegram = chat
 		d.AddAudit(store.AuditEntry{Actor: u.Username, Action: "user.preferences", Object: u.ID, Detail: "telegram linked by the bot"})
 	})
-}
-
-func (s *UserService) SyncDirectory(id directory.Identity) (model.User, error) {
-	return s.syncExternal(model.SourceLDAP, "", id)
-}
-
-// SyncEntra creates or updates the account of a Microsoft Entra ID user. The account is bound to
-// the Entra object ID, so a reused sign-in name cannot take over somebody else's account.
-func (s *UserService) SyncEntra(a entra.Account) (model.User, error) {
-	return s.syncExternal(model.SourceEntra, a.ObjectID, a.Identity)
-}
-
-func (s *UserService) syncExternal(source, externalID string, id directory.Identity) (model.User, error) {
-	var photo []byte
-	if id.HasPhoto {
-		if img, err := avatar.Normalize(id.Photo); err == nil {
-			photo = img
-		}
-	}
-	profile, _ := model.Profile{LastName: id.LastName, FirstName: id.FirstName, MiddleName: id.MiddleName, Title: id.Title,
-		Department: id.Department, Manager: id.Manager, Email: id.Email}.Normalize()
-	if !model.ValidEmail(profile.Email) {
-		profile.Email = ""
-	}
-	now := s.now()
-	var out model.User
-	s.st.Write(func(d *store.Data) {
-		x := d.UserByName(id.Username)
-		if x == nil && profile.Email != "" {
-			// A person first seen as a NetBox contact takes over that account on first sign-in.
-			if c := userByEmail(d, profile.Email); c != nil && c.Source == model.SourceNetBox {
-				c.Username = id.Username
-				x = c
-			}
-		}
-		if x != nil && x.Source == model.SourceNetBox && !x.Disabled {
-			x.Source, x.ExternalID = source, externalID
-		}
-		if x == nil {
-			x = &model.User{ID: d.NextID("USR"), Username: id.Username, Source: source, ExternalID: externalID, CreatedAt: now}
-			d.Users[x.ID] = x
-		}
-		if x.Source != source || x.Disabled {
-			out = *x
-			return
-		}
-		if externalID != "" {
-			if x.ExternalID == "" {
-				x.ExternalID = externalID
-			}
-			if x.ExternalID != externalID {
-				out = *x
-				return
-			}
-		}
-		x.Profile, x.Name = profile, id.Name
-		if changes := assignFromGroups(d, x, source, id.Admin, id.Groups, id.GroupsKnown); len(changes) > 0 && !x.CreatedAt.Equal(now) {
-			d.AddAudit(store.AuditEntry{At: now, Actor: groupSyncActor, Action: "user.groups", Object: x.ID, Detail: x.Username + " " + strings.Join(changes, ", ")})
-		}
-		if id.Name == id.Username {
-			x.Name = profile.DisplayName(id.Username)
-		}
-		switch {
-		case x.AvatarSource == model.AvatarUpload:
-		case photo != nil && !bytes.Equal(photo, x.Avatar):
-			x.Avatar, x.AvatarSource, x.AvatarAt = photo, model.AvatarLDAP, &now
-		case photo == nil && x.AvatarSource == model.AvatarLDAP:
-			x.Avatar, x.AvatarSource, x.AvatarAt = nil, "", nil
-		}
-		out = *x
-	})
-	if out.Source != source || out.Disabled || out.ExternalID != externalID {
-		return model.User{}, ErrInvalidCredentials
-	}
-	return out, nil
 }

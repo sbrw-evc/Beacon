@@ -9,12 +9,15 @@ import (
 	"unicode"
 
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/entra"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/inventorydb"
 	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/netbox"
 )
 
 const (
+	// SourceSPA marks the people synchronized from SPA, the Single Point of Authorization: the
+	// only accounts that sign in. SourceLocal, SourceLDAP and SourceEntra are the accounts of
+	// versions before SPA; they cannot sign in and are bound to SPA once (app/spa.go).
+	SourceSPA   = "spa"
 	SourceLocal = "local"
 	SourceLDAP  = "ldap"
 	SourceEntra = "entra"
@@ -107,59 +110,45 @@ type User struct {
 	// TeamIDs are the teams the user is a member of; a person may be in several teams.
 	TeamIDs []string `json:"team_ids"`
 	// TeamID and MappedTeam are the single team of older versions, kept only so that their
-	// snapshots decode; the store moves them into TeamIDs and MappedTeams on load.
+	// snapshots decode; the store moves TeamID into TeamIDs on load.
 	TeamID     string `json:"-"`
 	MappedTeam string `json:"-"`
-	// MappedRole and MappedTeams are what a group mapping last gave the user. When the mapping
-	// stops giving them, a role still equal to MappedRole and the teams of MappedTeams are
-	// withdrawn; a role changed by hand since then is kept.
-	MappedRole  string   `json:"mapped_role,omitempty"`
-	MappedTeams []string `json:"mapped_teams,omitempty"`
 	// ScopeMode is what the user sees and may act on: every service (ScopeAll), the services
 	// their teams own or support (ScopeTeams), or the chosen ServiceIDs (ScopeServices).
 	// Administrators are never limited.
 	ScopeMode  string   `json:"scope_mode"`
 	ServiceIDs []string `json:"service_ids,omitempty"`
-	// MappedScope is the scope mode a group mapping last gave the user.
-	MappedScope string `json:"mapped_scope,omitempty"`
 	// Telegram is the chat ID backup notification sends to.
 	Telegram string `json:"telegram"`
 	// Locale is the interface language the user chose (en, ru); empty is the default of the
 	// installation. Voice calls speak it.
-	Locale             string    `json:"locale,omitempty"`
-	MustChangePassword bool      `json:"must_change_password"`
-	PasswordRef        string    `json:"-"`
-	ExternalID         string    `json:"-"`
-	PasswordHash       string    `json:"-"`
-	PasswordChangedAt  time.Time `json:"password_changed_at,omitzero"`
-	// Passkeys are the WebAuthn credentials of the user (Windows Hello, Touch ID, security keys).
-	Passkeys []Passkey `json:"-"`
-	// Groups are the directory groups the user was last seen in (LDAP DNs, Entra object IDs,
-	// OpenID Connect group names): Umbrella Identity gives them to connected applications.
-	Groups      []string   `json:"-"`
+	Locale string `json:"locale,omitempty"`
+	// ExternalID is the SPA user ID of an SPA account (the only key it is bound by).
+	ExternalID string `json:"-"`
+	// Groups are the SPA groups of the person (names), as SPA last gave them.
+	Groups      []string   `json:"groups,omitempty"`
 	Disabled    bool       `json:"disabled"`
 	CreatedAt   time.Time  `json:"created_at"`
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
 }
 
 type Settings struct {
-	DefaultTheme  string           `json:"default_theme"`
-	DefaultLocale string           `json:"default_locale"`
-	DefaultTZ     string           `json:"default_timezone"`
-	Password      PasswordPolicy   `json:"password_policy"`
-	LDAP          directory.Config `json:"ldap"`
-	Entra         entra.Config     `json:"entra"`
-	NetBox        netbox.Config    `json:"netbox"`
+	DefaultTheme  string `json:"default_theme"`
+	DefaultLocale string `json:"default_locale"`
+	DefaultTZ     string `json:"default_timezone"`
+	// LDAP is the Active Directory the NetBox synchronization reads computer objects from (it
+	// is not used for sign-in: people sign in through SPA).
+	LDAP   directory.Config `json:"ldap"`
+	NetBox netbox.Config    `json:"netbox"`
 	// InventoryDB is the optional Inventory DB connection: devices in, alert states out.
 	InventoryDB inventorydb.Config `json:"inventory_db"`
-	Groups      GroupMappings      `json:"groups"`
 	Alerting    Alerting           `json:"alerting"`
 	// Response is incident response: impact, priority policies, escalation, war rooms, Jira.
 	Response Response `json:"response"`
 	// HostContext is how the incident card shows the machine of the incident.
 	HostContext HostContext `json:"host_context"`
-	// NewUserRole is the role of accounts created by a directory sign-in or synchronization or by
-	// NetBox when no group mapping gives one. Empty or unknown: the system role "user".
+	// NewUserRole is the role of the accounts NetBox creates for its contacts. Empty or unknown:
+	// the system role "user". People synchronized from SPA get the role SPA gives them.
 	NewUserRole string `json:"new_user_role"`
 	// TrustedProxies are reverse proxies set in the interface, in addition to
 	// UMBRELLA_TRUSTED_PROXIES: their X-Forwarded-For is believed for the client address.
@@ -171,16 +160,13 @@ type Settings struct {
 	// NetBoxUsersDecided: NetBox settings saved before «create accounts for contacts» existed were
 	// given it on (their behaviour), later ones choose it.
 	NetBoxUsersDecided bool `json:"-"`
-	// PolicyExtended: the password policy got history, common-password blocking and lockout.
-	PolicyExtended bool `json:"-"`
-	// Passkeys are the passkey settings; Providers the external sign-in providers.
-	Passkeys  PasskeySettings `json:"passkeys"`
-	Providers Providers       `json:"providers"`
-	// IdentityKeyRef is the OpenBao reference of the key ID tokens of Umbrella Identity are
-	// signed with.
-	IdentityKeyRef string    `json:"-"`
-	SetupAt        time.Time `json:"setup_at"`
-	SetupBy        string    `json:"setup_by"`
+	// SPA is the connection to SPA as it was last seen (app/spa.go).
+	SPA SPAState `json:"-"`
+	// IdentityCleaned: the secrets of the sign-in before SPA (password hashes, the LDAP
+	// sign-in, Entra ID, providers, Umbrella Identity) were deleted from OpenBao.
+	IdentityCleaned bool      `json:"-"`
+	SetupAt         time.Time `json:"setup_at"`
+	SetupBy         string    `json:"setup_by"`
 }
 
 // InTeam reports whether the user is a member of the team.
@@ -197,9 +183,6 @@ func (u *User) MigrateTeams() bool {
 		u.TeamID, changed = "", true
 	}
 	if u.MappedTeam != "" {
-		if !slices.Contains(u.MappedTeams, u.MappedTeam) {
-			u.MappedTeams = append(u.MappedTeams, u.MappedTeam)
-		}
 		u.MappedTeam, changed = "", true
 	}
 	return changed
@@ -217,4 +200,38 @@ func (u *User) MigrateScope() bool {
 		u.ScopeMode = ScopeServices
 	}
 	return true
+}
+
+// SPAState is what SPA said last and how the last synchronization went.
+type SPAState struct {
+	Issuer      string      `json:"issuer"`
+	ClientID    string      `json:"client_id"`
+	AppID       string      `json:"app_id"`
+	AppName     string      `json:"app_name"`
+	AppType     string      `json:"app_type"`
+	AccountURL  string      `json:"account_url"`
+	SignOutURL  string      `json:"sign_out_url"`
+	Methods     []SPAMethod `json:"methods"`
+	LastSync    *time.Time  `json:"last_sync,omitempty"`
+	OK          bool        `json:"ok"`
+	Error       string      `json:"error,omitempty"`
+	Users       int         `json:"users"`
+	Created     int         `json:"created"`
+	Updated     int         `json:"updated"`
+	Bound       int         `json:"bound"`
+	Disabled    int         `json:"disabled"`
+	Conflicts   []string    `json:"conflicts"`
+	NoRole      []string    `json:"no_role"`
+	ConfigETag  string      `json:"-"`
+	UsersETag   string      `json:"-"`
+	CatalogHash string      `json:"-"`
+	CatalogAt   *time.Time  `json:"catalog_at,omitempty"`
+	CatalogRole int         `json:"catalog_roles"`
+	CatalogErr  string      `json:"catalog_error,omitempty"`
+}
+
+// SPAMethod is a sign-in method SPA offers.
+type SPAMethod struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
 }

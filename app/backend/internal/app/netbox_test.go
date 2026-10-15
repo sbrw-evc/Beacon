@@ -344,8 +344,6 @@ func TestNetBoxDirectory(t *testing.T) {
 		directorytest.Entry{DN: "cn=SRV-DB-01,ou=servers,dc=corp,dc=example", Attrs: map[string][]string{"objectClass": {"computer"}, "cn": {"SRV-DB-01"},
 			"dNSHostName": {"srv-db-01.corp.example"}, "operatingSystem": {"Windows Server 2022"}, "userAccountControl": {"4098"},
 			"lastLogonTimestamp": {"133700000000000000"}}},
-		directorytest.Entry{DN: "cn=petr,dc=corp,dc=example", Password: "Petr-pass-2026", Attrs: map[string][]string{"objectClass": {"user"},
-			"sAMAccountName": {"petr"}, "displayName": {"Petr Sidorov"}, "mail": {"petr@example.org"}}},
 	)
 	ref, err := f.h.vault.PutRef(context.Background(), "ldap", "bind_password", ldapPass)
 	if err != nil {
@@ -372,26 +370,6 @@ func TestNetBoxDirectory(t *testing.T) {
 	}
 	if l := f.list("?flag=directory_missing"); l.Summary.DirectoryMissing != 3 || len(l.Items) != 3 {
 		t.Fatalf("missing = %+v", l.Summary)
-	}
-
-	// The person first known as a NetBox contact signs in with the directory and keeps the account.
-	owner := f.byName("srv-app-01").Owners[0]
-	if owner.Source != model.SourceNetBox || owner.Username != "petr@example.org" {
-		t.Fatalf("contact account = %+v", owner)
-	}
-	petr := f.h.client()
-	petr.login("petr", "Petr-pass-2026")
-	var u model.User
-	f.h.st.Read(func(d *store.Data) { u = *d.Users[owner.ID] })
-	if u.Source != model.SourceLDAP || u.Username != "petr" {
-		t.Fatalf("adopted account = %+v", u)
-	}
-	// Later synchronizations keep the account linked without overwriting it.
-	if s := f.sync().Sync.Stats; s.UsersCreated != 0 || s.UsersUpdated != 0 {
-		t.Fatalf("after adoption = %+v", s)
-	}
-	if got := f.byName("srv-app-01").Owners[0]; got.ID != owner.ID || got.Source != model.SourceLDAP {
-		t.Fatalf("owner after adoption = %+v", got)
 	}
 }
 
