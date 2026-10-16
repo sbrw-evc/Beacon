@@ -1,5 +1,5 @@
 // Package presets holds the built-in connector templates. They use the same document format
-// as connector export, so a preset is just an import that ships with Umbrella.
+// as connector export, so a preset is just an import that ships with Beacon.
 package presets
 
 import (
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
 )
 
 //go:embed *.json *.tmpl

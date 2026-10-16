@@ -6,19 +6,19 @@ import { Brand, Button, Preferences } from '../ui'
 import { strings } from './strings'
 import { Flash } from '../notify'
 
-// People sign in at SPA, the single point of authorization: Umbrella only starts the sign-in
+// People sign in at Keystone: Beacon only starts the sign-in
 // (GET /api/auth/spa/start) and takes the answer at /api/auth/spa/callback, which comes back to
-// the page the person opened or to /login?sso_error=… when SPA or Umbrella refused.
+// the page the person opened or to /login?sso_error=… when Keystone or Beacon refused.
 
 const SIGNED_OUT = 'umbrella.signedOut'
 
-// markSignedOut keeps the sign-in page from sending the person straight back to SPA after they
+// markSignedOut keeps the sign-in page from sending the person straight back to Keystone after they
 // signed out on purpose.
 export function markSignedOut() {
   try {
     sessionStorage.setItem(SIGNED_OUT, '1')
   } catch {
-    // without storage the page offers the button instead of going to SPA at once anyway
+    // without storage the page offers the button instead of going to Keystone at once anyway
   }
 }
 

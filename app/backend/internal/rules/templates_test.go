@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // legacyTemplates is the template list as it was written in Go before templates.json.

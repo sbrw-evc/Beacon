@@ -125,7 +125,7 @@ function Snippet({ text, file, kind }: { text: string; file?: string; kind?: str
 export function QuickResultView({ r, steps }: { r: QuickResult; steps: number }) {
   const t = useT(s)
   const p = r.instructions.preset
-  const attachment = r.attachment ?? (r.mediatype_yaml ? { name: 'umbrella-mediatype.yaml', kind: 'yaml', content: r.mediatype_yaml } : undefined)
+  const attachment = r.attachment ?? (r.mediatype_yaml ? { name: 'beacon-mediatype.yaml', kind: 'yaml', content: r.mediatype_yaml } : undefined)
   return (
     <div className="stack">
       <Banner kind="ok" title={t('src.connect.done', { name: r.connector.name })} />

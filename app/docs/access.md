@@ -18,11 +18,11 @@ The five built-in roles are created **once** — at installation or on the first
 
 ### Where roles are given
 
-People get their role in **SPA**, the single point of authorization ([identity-federation.md](identity-federation.md)). Umbrella publishes every role to SPA as its role catalogue, under the role ID in lower case (`admin`, `user`, `rol-7`), and takes the role from the `roles` claim at sign-in and from the synchronization every 5 minutes. With several roles, administrator wins, then the role with the most permissions. A role that is still given to people cannot be deleted (`role_in_use`): take it away in SPA first. Roles → role → "Give to new users" (`PUT /api/roles/{id}/new-users`) is the role of NetBox contact accounts; the administrator role cannot be chosen.
+People get their role in **Keystone** ([identity-federation.md](identity-federation.md)). Beacon publishes every role to Keystone as its role catalogue, under the role ID in lower case (`admin`, `user`, `rol-7`), and takes the role from the `roles` claim at sign-in and from the synchronization every 5 minutes. With several roles, administrator wins, then the role with the most permissions. A role that is still given to people cannot be deleted (`role_in_use`): take it away in Keystone first. Roles → role → "Give to new users" (`PUT /api/roles/{id}/new-users`) is the role of NetBox contact accounts; the administrator role cannot be chosen.
 
 ### User without permissions
 
-If a role opens no pages at all, after signing in the person lands on the profile and sees the "No access yet" banner with a list of active administrators and their e-mail addresses; another role is given in SPA.
+If a role opens no pages at all, after signing in the person lands on the profile and sees the "No access yet" banner with a list of active administrators and their e-mail addresses; another role is given in Keystone.
 
 ## Teams
 
@@ -48,25 +48,25 @@ An administrator is never restricted. The scope applies to:
 
 Accounts from earlier versions that had a list of services got the "Chosen services" mode.
 
-The built-in "Service owner" role is designed for the "Services of my teams" mode: give the role in SPA, then the team and the mode in Umbrella.
+The built-in "Service owner" role is designed for the "Services of my teams" mode: give the role in Keystone, then the team and the mode in Beacon.
 
 ## Service accounts and API tokens
 
-Other systems (Umbrella Flow, scripts) call the API with an **API token** of a **service account** instead of a session.
-This is Umbrella's side of the cross-application contract (Umbrella Flow repository, `docs/integrations.md` §1).
+Other systems (Current, scripts) call the API with an **API token** of a **service account** instead of a session.
+This is Beacon's side of the cross-application contract (Current repository, `docs/integrations.md` §1).
 
 **Settings → Service accounts** (permissions `serviceaccounts:view` and `serviceaccounts:edit`):
 
 - A service account has a name (Latin letters, digits and `. _ @ -`; the audit log shows it as `service:<name>`), a
   description, a **role**, **teams** and a **visibility scope** exactly like a user (all services, services of its
-  teams, chosen services). It never signs in, gets no notifications and is not touched by SPA or NetBox
+  teams, chosen services). It never signs in, gets no notifications and is not touched by Keystone or NetBox
   synchronization. Only administrators give or change the administrator role. A disabled account's tokens are refused.
-- Every account has an **owner**, a person (by default whoever creates it). While SPA has the owner disabled, the
-  account's tokens are refused with 401 and the list marks the account "owner disabled"; they work again when SPA
+- Every account has an **owner**, a person (by default whoever creates it). While Keystone has the owner disabled, the
+  account's tokens are refused with 401 and the list marks the account "owner disabled"; they work again when Keystone
   gives the person access back, or after another owner is chosen. Accounts made before owners existed got the person
   who created them; an account whose creator is unknown has no owner and keeps working.
 - An account has up to 20 active **tokens**: a name and an optional expiry (30 / 90 days, a year or never in the
-  interface; up to ten years in the API). The token `umb_<32 random bytes, base64url>` is shown **once**; Umbrella
+  interface; up to ten years in the API). The token `umb_<32 random bytes, base64url>` is shown **once**; Beacon
   stores only its HMAC-SHA256 with a key kept in OpenBao (`<mount>/system/api-tokens#hmac_key`, created with the first
   token; moved with the other secrets by an OpenBao migration). The list shows the start and end of a token, when it
   was issued and by whom, its expiry, when and from which address it was last used. A token can be **revoked**; it stays
@@ -97,6 +97,6 @@ curl -H "Authorization: Bearer $UMB_TOKEN" "https://umbrella.example.com/api/int
 Errors: `invalid_username`, `account_name_taken`, `unknown_role`, `unknown_team`, `invalid_scope`,
 `scope_services_required`, `admin_only`, `invalid_token_name`, `invalid_expiry`, `too_many_tokens`, `token_revoked`.
 
-A role for Umbrella Flow needs `integrations.flow:read` (visibility scopes, [flow.md](flow.md#flow--umbrella-visibility-scopes))
-and `cmdb:propose` (dependency proposals, [flow.md](flow.md#flow--umbrella-dependency-proposals)). These two endpoints are not
+A role for Current needs `integrations.flow:read` (visibility scopes, [current.md](current.md#current--beacon-visibility-scopes))
+and `cmdb:propose` (dependency proposals, [current.md](current.md#current--beacon-dependency-proposals)). These two endpoints are not
 limited by the scope of the calling account: the scope endpoint answers for the user asked about.

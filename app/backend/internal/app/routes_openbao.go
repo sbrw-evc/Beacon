@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
 )
 
 func (a *App) registerOpenBao(mux *http.ServeMux) {

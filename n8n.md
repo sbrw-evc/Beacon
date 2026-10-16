@@ -1,15 +1,15 @@
-# n8n: a feature analysis for Umbrella Monitoring
+# n8n: a feature analysis for Beacon
 
-This document analyses n8n, the open-source automation platform, and answers three questions: which of its ideas are worth bringing into Umbrella's connector builder and event-processing engine, how to implement them in our stack (Go 1.24, React 18 + TypeScript + Vite + @xyflow/react, PostgreSQL, OpenBao, local users and LDAP/AD), and in what order.
+This document analyses n8n, the open-source automation platform, and answers three questions: which of its ideas are worth bringing into Beacon's connector builder and event-processing engine, how to implement them in our stack (Go 1.24, React 18 + TypeScript + Vite + @xyflow/react, PostgreSQL, OpenBao, local users and LDAP/AD), and in what order.
 
 Sources were checked on 4 October 2026: the current n8n release is `n8n@2.41.6` (2 October 2026), the documentation is [docs.n8n.io](https://docs.n8n.io) in its new section layout (`build/`, `deploy/`, `administer/`, `connect/`, `integrations/`), and the source code is the `master` branch of the [n8n-io/n8n](https://github.com/n8n-io/n8n) repository. Source paths below are relative to the repository root.
 
-> **Licence.** n8n is distributed under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) (a fair-code model); files and directories with `.ee` in their name are under the separate [n8n Enterprise License](https://github.com/n8n-io/n8n/blob/master/LICENSE_EE.md). This is **not** an open-source licence in the OSI sense: use and modification are allowed only for your own internal purposes or non-commercial use, and redistribution only free of charge and non-commercially. Umbrella is a product, so **we must not copy n8n code, translate it into Go "one to one", or take node JSON schemas, icons, UI text or documentation**. We take only ideas, concepts and architectural techniques, and implement them from scratch. Links to the source code in this document are there to explain the principle, not as a template to port.
+> **Licence.** n8n is distributed under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) (a fair-code model); files and directories with `.ee` in their name are under the separate [n8n Enterprise License](https://github.com/n8n-io/n8n/blob/master/LICENSE_EE.md). This is **not** an open-source licence in the OSI sense: use and modification are allowed only for your own internal purposes or non-commercial use, and redistribution only free of charge and non-commercially. Beacon is a product, so **we must not copy n8n code, translate it into Go "one to one", or take node JSON schemas, icons, UI text or documentation**. We take only ideas, concepts and architectural techniques, and implement them from scratch. Links to the source code in this document are there to explain the principle, not as a template to port.
 
 ## Contents
 
 1. [Key findings](#1-key-findings)
-2. [Concept mapping: the former Umbrella builder and n8n](#2-concept-mapping-the-former-umbrella-builder-and-n8n)
+2. [Concept mapping: the former Beacon builder and n8n](#2-concept-mapping-the-former-beacon-builder-and-n8n)
 3. [The key architectural difference: event stream versus automation](#3-the-key-architectural-difference-event-stream-versus-automation)
 4. [Feature analysis](#4-feature-analysis)
 5. [Applicability summary table](#5-applicability-summary-table)
@@ -22,20 +22,20 @@ Sources were checked on 4 October 2026: the current n8n release is `n8n@2.41.6` 
 
 ## 1. Key findings
 
-- **n8n is a general-purpose automation platform (iPaaS)** designed for relatively infrequent workflow runs with a full record of every run. Umbrella is a pipeline that processes a large stream of events with strict latency and idempotency requirements. So the n8n model cannot be adopted wholesale: our graph editor compiles into a fast pipeline instead of being interpreted node by node with state saved after every step.
+- **n8n is a general-purpose automation platform (iPaaS)** designed for relatively infrequent workflow runs with a full record of every run. Beacon is a pipeline that processes a large stream of events with strict latency and idempotency requirements. So the n8n model cannot be adopted wholesale: our graph editor compiles into a fast pipeline instead of being interpreted node by node with state saved after every step.
 - **The most valuable thing for us** is the in-editor development experience: capturing samples of incoming requests (the webhook's test URL), pinned data, partial execution up to a selected node, viewing each node's input and output, marking stale results (dirty nodes), and re-running on data from history. This is exactly what the former builder lacked, and it is the main thing that separates a convenient low-code tool from a form with JSON.
 - **Second in value** is the lifecycle model: a draft with autosave → publishing a specific version → atomically switching triggers only for the parts that changed, version history with rollback, named versions, approval before publishing.
 - **Third** is trigger reliability: a "durable" polling scheduler in the database with task claiming, leases, a missed-run policy and a polling cursor saved in the same transaction as the result. In n8n this only appeared in 2.32–2.37 and is still marked as not fully stable for polling; we need it from day one.
 - **Expressions**: n8n's `{{ }}` syntax is full JavaScript; it took n8n several years to put it in a sandbox (a V8 isolate is the default only since 2.35). It pays for us to keep our own simple `${field|$fallback|default}` template for substitutions and add a safe condition language without side effects (CEL is recommended, `github.com/google/cel-go`).
-- **User code (Code node)** in n8n requires a separate executor process (task runner) in a separate container; otherwise the code can read the database, the encryption key and secrets. For Umbrella this is low priority; if it is ever needed, only a sandbox with no network or filesystem access (Starlark or WASM) with CPU and memory limits, off the hot path by default.
+- **User code (Code node)** in n8n requires a separate executor process (task runner) in a separate container; otherwise the code can read the database, the encryption key and secrets. For Beacon this is low priority; if it is ever needed, only a sandbox with no network or filesystem access (Starlark or WASM) with CPU and memory limits, off the hot path by default.
 - **Secrets**: n8n encrypts them in the database with the instance key; external stores are a paid feature. We have OpenBao as the only place of storage, and the connector configuration holds only `openbao://...` references. Here we are stronger from the start, and this must be kept.
 - **Scaling**: n8n's queue mode (Redis + Bull + workers) is a consequence of Node.js being single-threaded. In Go, goroutines and PostgreSQL are enough (`SELECT … FOR UPDATE SKIP LOCKED`, advisory locks for leadership); add a message broker only when load proves it necessary.
 - **Do not take**: the catalogue of hundreds of integrations, JavaScript in expressions, saving all executions by default, Wait nodes and long-lived executions in the ingest pipeline, execution order based on node position on the canvas, installing third-party nodes from npm, AI agents.
 - **Plan** (section 6): engine and model foundation → MVP of webhook connectors with OpenBao and versions → in-editor debugging → polling and reliability → branching and error handling → access control and lifecycle → optional extensions.
 
-## 2. Concept mapping: the former Umbrella builder and n8n
+## 2. Concept mapping: the former Beacon builder and n8n
 
-| Former Umbrella | n8n equivalent | Comment |
+| Former Beacon | n8n equivalent | Comment |
 | --- | --- | --- |
 | Connector (graph of @xyflow nodes) | Workflow (nodes + connections, JSON) | Essentially the same thing; n8n stores the graph as `nodes[]` + `connections{}` |
 | `trigger.webhook` | [Webhook](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook) | n8n has a test URL and a production URL, authentication, an IP allowlist, an "Only Run If" condition, response modes |
@@ -58,7 +58,7 @@ Sources were checked on 4 October 2026: the current n8n release is `n8n@2.41.6` 
 
 How n8n executes (see `packages/core/src/execution-engine/workflow-execute.ts`): every trigger that fires creates an **execution**, a record in the database; the engine walks the graph using a node stack, each node receives an array of items and returns an array of arrays (one per output), and after each node (when "Save execution progress" is enabled) or at the end of the execution the state with all intermediate data is serialised into the database. In queue mode the main process puts only the execution ID into Redis; a worker reads the definition and data from the database, executes and writes the result back ([Enable queue mode](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode)). This is convenient for debugging and recovery, but expensive: several database round trips for each incoming event and a large database unless saving is cut down ([Manage execution data](https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/manage-execution-data): by default retention is 14 days or 10,000 executions).
 
-For Umbrella the stream is thousands of events per second at the peaks of an alert "storm", and what matters is the latency from source to incident. So we propose separating two modes:
+For Beacon the stream is thousands of events per second at the peaks of an alert "storm", and what matters is the latency from source to incident. So we propose separating two modes:
 
 | | **Ingest pipeline** | **Automation flow** (later, if needed) |
 | --- | --- | --- |
@@ -73,7 +73,7 @@ The editor (@xyflow) and the graph model are shared; what differs is the set of 
 
 ## 4. Feature analysis
 
-For each feature: **what it is in n8n**, **why the user needs it**, **applicability to Umbrella** (high / medium / low / not needed) and **how to implement it on our side**.
+For each feature: **what it is in n8n**, **why the user needs it**, **applicability to Beacon** (high / medium / low / not needed) and **how to implement it on our side**.
 
 ### 4.1. Workflow model: nodes, connections, items
 
@@ -120,13 +120,13 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **In n8n.** [Schedule Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger) (intervals and cron, the workflow's time zone). Polling triggers for specific services keep their cursor in the workflow's "static data". Since 2.36 there is the [Durable scheduler](https://docs.n8n.io/deploy/host-n8n/configure-n8n/durable-scheduler) (the `packages/@n8n/scheduler` package): upcoming runs are materialised in advance as rows in the database, instances **claim** them (only one executes), a "reaper" releases claims held by crashed instances, there is a **missed-run policy** (do not run / one catch-up run) with a grace period, a **polling timeout** (45 s by default) with a growing retry interval on persistent failures, dead-lettering after N attempts, and **durable poll cursors**: the cursor is kept in a separate table and saved in the same transaction as the result, so that a repeated poll neither loses nor duplicates data. The documentation states plainly that a poll can run twice (at-least-once). For schedules a unique execution deduplication key was added (`deduplicationKey` in the executions table, the `AddExecutionDeduplicationKey` migration). Scheduler metrics: queue, overdue tasks, start delay (p50/p99), stolen leases.
 
-**Why.** Sources that cannot send webhooks (the Zabbix API, OpenSearch queries, HTTP health endpoints). The user cares that after an Umbrella restart polling does not "lose" a window or duplicate events.
+**Why.** Sources that cannot send webhooks (the Zabbix API, OpenSearch queries, HTTP health endpoints). The user cares that after a Beacon restart polling does not "lose" a window or duplicate events.
 
 **Applicability: high.** This is exactly our `trigger.poll`, and n8n's solutions make a good list of requirements.
 
 **How to implement.**
 - Tables `poll_schedules` (connector, version, interval/cron, time zone, missed-run policy, grace period, timeout) and `poll_runs` (scheduled time, status, `claimed_by`, `lease_until`, attempt, error).
-- Claiming: `UPDATE poll_runs SET claimed_by=$1, lease_until=now()+$2 WHERE id IN (SELECT id FROM poll_runs WHERE due_at<=now() AND status='pending' ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT $3) RETURNING …`. Works on any number of Umbrella instances without a leader.
+- Claiming: `UPDATE poll_runs SET claimed_by=$1, lease_until=now()+$2 WHERE id IN (SELECT id FROM poll_runs WHERE due_at<=now() AND status='pending' ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT $3) RETURNING …`. Works on any number of Beacon instances without a leader.
 - A unique key `(schedule_id, due_at)`: a run is never materialised twice.
 - Cursor: a `poll_cursors (connector_id, node_id, cursor jsonb, updated_at)` table; updating the cursor and inserting the accepted events into the normalisation queue happen **in a single PostgreSQL transaction**. A repeated poll is then safe.
 - The HTTP request timeout is shorter than the lease; on persistent errors, exponential backoff of the interval and a "connector degraded" flag (see 4.9).
@@ -141,7 +141,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **Applicability: medium.** For some customers this is the main channel (the lab environment already has Kafka). Not needed in the first MVP.
 
-**How to implement.** A `trigger.stream` trigger type with adapters (Kafka consumer group: commit offsets after recording in PostgreSQL; syslog/SNMP: a separate receiver). Subscriptions are distributed between instances by claiming subscription rows with a lease (as in 4.4) or by the bus's own consumer group mechanism. Umbrella's internal events (connector error, CI change) do not go through user triggers but through built-in mechanisms (see 4.9).
+**How to implement.** A `trigger.stream` trigger type with adapters (Kafka consumer group: commit offsets after recording in PostgreSQL; syslog/SNMP: a separate receiver). Subscriptions are distributed between instances by claiming subscription rows with a lease (as in 4.4) or by the bus's own consumer group mechanism. Beacon's internal events (connector error, CI change) do not go through user triggers but through built-in mechanisms (see 4.9).
 
 ### 4.6. Expressions
 
@@ -163,7 +163,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **Why.** An "escape hatch" when the standard nodes are not enough: parsing an exotic format, complex logic.
 
-**Applicability: low for the pipeline, medium in the longer term.** Code on the hot path is a latency and security risk (Umbrella has access to the CMDB and to notification channel tokens). Most cases are covered by CEL and table nodes.
+**Applicability: low for the pipeline, medium in the longer term.** Code on the hot path is a latency and security risk (Beacon has access to the CMDB and to notification channel tokens). Most cases are covered by CEL and table nodes.
 
 **How to implement (stage 6, on request).**
 - Language: **Starlark** (`go.starlark.net`): Python-like, deterministic, with no access to the filesystem/network/time unless granted; a step limit (`thread.SetMaxExecutionSteps`) and cancellation via context. An alternative for JS syntax is QuickJS compiled to WASM, running under `wazero` with a memory limit and interruption; `goja` in the same process does not isolate memory, so only in a separate process.
@@ -178,7 +178,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **Applicability.**
 
-| n8n node | Applicability | Umbrella equivalent |
+| n8n node | Applicability | Beacon equivalent |
 | --- | --- | --- |
 | IF / Switch | High | `route.switch`: a list of CEL rules → named outputs + "otherwise" |
 | Filter | High | `filter`: a CEL condition; dropped records are counted in a separate "filtered" counter (so it is visible that noise is being cut, not lost) |
@@ -202,7 +202,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 - **Node error policy** (a parameter of every node): `fail_record` (the record goes to parse errors and the rest go on; the default for the pipeline), `skip` (drop and count), `route_error` (to a separate node output, for example into a simplified "raw alert" mapping). Do not stop the whole batch because of one record.
 - **Retries**: only for nodes with external calls (polling, HTTP enrichment): number of attempts, exponential pause with jitter, errors split into retryable (5xx, timeout, 429) and non-retryable (4xx, parse error). A circuit breaker per external system.
 - **Parse errors / DLQ**: an `ingest_failures` table (connector, version, node, error, reference to the raw body, time, retry count) with a "Reprocess" button that uses the current published version (see 4.10).
-- **Instead of an error workflow, built-in meta-monitoring**: an exceeded error threshold, no events for longer than expected (source "silence"), or persistent polling failures produce an **internal Umbrella event** with the CI "connector X", which goes the usual path "incident → on-call notification". The user does not have to build an error-handling workflow by hand, and monitoring of the monitoring works out of the box.
+- **Instead of an error workflow, built-in meta-monitoring**: an exceeded error threshold, no events for longer than expected (source "silence"), or persistent polling failures produce an **internal Beacon event** with the CI "connector X", which goes the usual path "incident → on-call notification". The user does not have to build an error-handling workflow by hand, and monitoring of the monitoring works out of the box.
 - Timeouts: per node and per batch; exceeding one is a record/batch error, not a hung worker.
 
 ### 4.10. Credentials and secrets
@@ -214,8 +214,8 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 **Applicability: high.** Our basic model is already right.
 
 **How to implement.**
-- The only store is OpenBao (KV v2). The connector configuration contains only `openbao://<mount>/<path>#<key>` references; Umbrella authenticates to OpenBao with its own method (AppRole / Kubernetes auth) under a policy limited to its own prefix.
-- **Credential types** as a separate entity with a JSON Schema: `basic`, `bearer`, `header`, `hmac_secret`, `oauth2_client_credentials`, `mtls` (certificate + key), `api_key_query`. A node declares which types it accepts. Secrets are written through the Umbrella API (**write-only**: the value cannot be read from the UI; a mask and the KV version are shown).
+- The only store is OpenBao (KV v2). The connector configuration contains only `openbao://<mount>/<path>#<key>` references; Beacon authenticates to OpenBao with its own method (AppRole / Kubernetes auth) under a policy limited to its own prefix.
+- **Credential types** as a separate entity with a JSON Schema: `basic`, `bearer`, `header`, `hmac_secret`, `oauth2_client_credentials`, `mtls` (certificate + key), `api_key_query`. A node declares which types it accepts. Secrets are written through the Beacon API (**write-only**: the value cannot be read from the UI; a mask and the KV version are shown).
 - OAuth2: client credentials first (machine sources); the access token is cached in memory until it expires; the refresh token (if needed) lives in OpenBao.
 - Rotation: KV versioning; the connector picks up the new value without republishing (a cache with TTL, invalidated by version).
 - Separation of rights: `credential:use` (select in a node) is separate from `credential:manage` (create/replace).
@@ -300,7 +300,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 **How to implement.**
 - Export format: JSON with a `format_version` field, the graph, samples (optional), references to lookup tables/fragments, and **placeholders** for credentials (`{ "credential_slot": "zabbix_api", "type": "bearer" }`).
 - Import: check the schema and node type versions → a wizard that maps placeholders to existing credentials or creates new ones (the value is entered and written straight to OpenBao) → create a draft (not a publication).
-- Presets = built-in templates in the same format, shipped with the binary (`embed.FS`) and versioned together with Umbrella; each has a set of samples for checking (4.12).
+- Presets = built-in templates in the same format, shipped with the binary (`embed.FS`) and versioned together with Beacon; each has a set of samples for checking (4.12).
 - Copying/pasting nodes in the editor via the clipboard in the same format.
 
 ### 4.17. RBAC and projects
@@ -325,7 +325,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **Applicability: medium.**
 
-**How to implement.** A `variables (scope, name, value)` table; accessible in templates and CEL as `vars.name`; changing a variable does not require republishing, but it is recorded in the audit log and shown in the connector's list of dependencies. Secrets never go into variables. Umbrella's own configuration stays in process environment variables and OpenBao, as now.
+**How to implement.** A `variables (scope, name, value)` table; accessible in templates and CEL as `vars.name`; changing a variable does not require republishing, but it is recorded in the audit log and shown in the connector's list of dependencies. Secrets never go into variables. Beacon's own configuration stays in process environment variables and OpenBao, as now.
 
 ### 4.19. Queue mode, scaling and reliability
 
@@ -337,7 +337,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **How to implement.**
 - **Event path**: HTTP intake → authentication/limit checks → a write to `ingest_requests` (a single insert, with batched commits every few ms for peaks) → 202. Separate handler goroutines pick up unprocessed rows (`FOR UPDATE SKIP LOCKED`, in batches), run the compiled pipeline, and **in the same transaction** write the normalised events and mark the request as processed. This is at-least-once without an external broker, with recovery after a crash.
-- **Scaling**: several Umbrella instances behind a load balancer, all equal; singleton tasks (dropping partitions, materialising schedules) run under `pg_try_advisory_lock` or via row claiming, without a dedicated leader.
+- **Scaling**: several Beacon instances behind a load balancer, all equal; singleton tasks (dropping partitions, materialising schedules) run under `pg_try_advisory_lock` or via row claiming, without a dedicated leader.
 - **Broker** (NATS JetStream or Kafka): only if measurements show PostgreSQL becoming the bottleneck; make the queue interface in Go abstract from day one.
 - **Backpressure**: a rate limit and queue size per connector; on overflow, 429/503 to the source (monitoring sources usually retry) rather than growing memory. Fairness between connectors: a "noisy" source must not delay the others (separate queues/quotas for handlers).
 - **Timeouts and cancellation**: `context.Context` per batch and per node; graceful shutdown: stop accepting, finish what has been claimed, release leases.
@@ -348,7 +348,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **In n8n.** There is no single mechanism: Remove Duplicates against execution history, polling cursors, a deduplication key for scheduled executions (`deduplicationKey`; a comment in the migration mentions future webhook idempotency keys).
 
-**Applicability: high. This is Umbrella's core, not a node.**
+**Applicability: high. This is Beacon's core, not a node.**
 
 **How to implement.** An event's idempotency key is computed in `map.event`: by default `(connector_id, external_id, status)` or a hash of selected fields (`fingerprint`). A unique index in the intake table with a window (time-based partitioning): a repeated delivery of the same alert does not create a new event but updates "last seen". For webhooks, an optional `Idempotency-Key` header. Collapsing events into incidents is the next level, separate from delivery idempotency.
 
@@ -360,7 +360,7 @@ For each feature: **what it is in n8n**, **why the user needs it**, **applicabil
 
 **Applicability:** third-party executable code is **not needed**; declarative source descriptions are **medium**.
 
-**How to implement.** The internal Go node interface (4.1) is our "SDK"; new node types are added by the Umbrella team. Instead of third-party plugins, **declarative source descriptions**: a JSON/YAML file (polling URL, request parameters, authentication, path to the array, pagination, cursor, default mapping, samples) from which a preset is built. Such descriptions can be loaded without recompiling and contain no executable code. WASM plugins only if real demand appears, and after the sandbox (4.7).
+**How to implement.** The internal Go node interface (4.1) is our "SDK"; new node types are added by the Beacon team. Instead of third-party plugins, **declarative source descriptions**: a JSON/YAML file (polling URL, request parameters, authentication, path to the array, pagination, cursor, default mapping, samples) from which a preset is built. Such descriptions can be loaded without recompiling and contain no executable code. WASM plugins only if real demand appears, and after the sandbox (4.7).
 
 ### 4.22. AI nodes (briefly)
 
@@ -504,7 +504,7 @@ Estimates are in person-weeks for one experienced full-stack developer, not coun
 | What | Why |
 | --- | --- |
 | **n8n code, node schemas, texts, icons** | The Sustainable Use License forbids commercial use and redistribution; `.ee` files are under a separate commercial licence. We take only ideas, implement them from scratch and do not open n8n sources as a template while writing our own code |
-| The catalogue of hundreds of integrations | Umbrella is not an iPaaS; maintaining hundreds of nodes is expensive. Generic webhook/polling/bus + presets and declarative source descriptions are enough |
+| The catalogue of hundreds of integrations | Beacon is not an iPaaS; maintaining hundreds of nodes is expensive. Generic webhook/polling/bus + presets and declarative source descriptions are enough |
 | JavaScript in `{{ }}` expressions | Risk of arbitrary code execution (it took n8n years and V8 isolation), unpredictable latency, hard to analyse. CEL + templates cover the monitoring use cases |
 | A Code node on the hot path and the executor's "internal" mode | By n8n's own documentation this gives access to the database, keys and secrets; unacceptable for a system holding notification channel tokens and a CMDB |
 | Saving every execution with all its data by default | With an event stream this bloats the database and writes at every step; we use raw requests + sampled traces + aggregates |

@@ -3,12 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type Secrets interface {

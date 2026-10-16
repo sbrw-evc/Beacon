@@ -4,16 +4,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // sessionMaxAge is how long the session cookie is kept by the browser.
 var sessionMaxAge = auth.MaxLifetime
 
-// logout ends the session in Umbrella; the answer names SPA's sign-out address, which ends the
-// SPA session too and comes back to Umbrella.
+// logout ends the session in Beacon; the answer names Keystone's sign-out address, which ends the
+// Keystone session too and comes back to Beacon.
 func (a *App) logout(w http.ResponseWriter, r *http.Request) {
 	s := current(r)
 	a.deps.Sessions.Delete(s.ss.ID)

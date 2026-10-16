@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty/pdtest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty/pdtest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type secrets map[string]string
@@ -172,8 +172,8 @@ func TestBuildSeverity(t *testing.T) {
 	}
 }
 
-// With a public address the event links to the incident, and to Grafana and Umbrella Flow
-// when they are set up, all through Umbrella.
+// With a public address the event links to the incident, and to Grafana and Current
+// when they are set up, all through Beacon.
 func TestBuildLinks(t *testing.T) {
 	a := alert.Alert{ID: "INC-1", PD: alert.PD{Key: "umb-INC-1"}, Title: "Down", Severity: "critical", Sources: map[string]*alert.Source{}}
 	links := func(grafana, flow bool) []string {

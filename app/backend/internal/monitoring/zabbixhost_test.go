@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring/monitoringtest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring/monitoringtest"
 )
 
 func TestZabbixHostEventsAndLogs(t *testing.T) {

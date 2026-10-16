@@ -7,7 +7,7 @@
   "messages": {
     "common": {
       "app": {
-        "brand": "Umbrella",
+        "brand": "Beacon",
         "tagline": "зонтичный мониторинг"
       },
       "actions": {
@@ -455,9 +455,9 @@
         "team": "Команда-владелец",
         "template": "Заготовка",
         "pushTitle": "Push: входящий webhook",
-        "pushSub": "Источник сам присылает события в Umbrella",
+        "pushSub": "Источник сам присылает события в Beacon",
         "pullTitle": "Pull: опрос API по расписанию",
-        "pullSub": "Umbrella сама забирает события по HTTP"
+        "pullSub": "Beacon сам забирает события по HTTP"
       }
     },
     "editor": {
@@ -500,7 +500,7 @@
         "ingestUrl": "Адрес приёма (push)",
         "example": "Пример отправки",
         "token": "токен",
-        "retryHint": "Umbrella отвечает 202 только после записи событий; при ошибке источник должен повторить отправку."
+        "retryHint": "Beacon отвечает 202 только после записи событий; при ошибке источник должен повторить отправку."
       },
       "tabs": {
         "dry": "Проверка на данных",

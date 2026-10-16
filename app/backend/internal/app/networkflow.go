@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// The traffic window of a link to Umbrella Flow: from flowBefore before the incident opened to
+// The traffic window of a link to Current: from flowBefore before the incident opened to
 // now while it lasts, or to flowAfter after it was resolved; the traffic of an item is the last
 // ciFlowWindow.
 const (
@@ -23,8 +23,8 @@ const (
 	ciFlowWindow = time.Hour
 )
 
-// flowConsoleURL is the incident console of Umbrella Flow at base: the item name, its IP
-// address and Inventory DB reference (empty ones are left out) and the time window in RFC 3339.
+// flowConsoleURL is the incident console of Current at base: the item name, its IP
+// address and Ledger reference (empty ones are left out) and the time window in RFC 3339.
 func flowConsoleURL(base, ci, ip, ref string, from, to time.Time) string {
 	q := url.Values{}
 	if ci != "" {
@@ -41,7 +41,7 @@ func flowConsoleURL(base, ci, ip, ref string, from, to time.Time) string {
 	return strings.TrimRight(base, "/") + "/go/incident?" + q.Encode()
 }
 
-// ciRef is the primary IP address and the Inventory DB reference of an item.
+// ciRef is the primary IP address and the Ledger reference of an item.
 func ciRef(ci *model.ConfigItem) (ip, ref string) {
 	if ci == nil {
 		return "", ""
@@ -55,10 +55,10 @@ func ciRef(ci *model.ConfigItem) (ip, ref string) {
 	return ip, ref
 }
 
-// FlowLink is the traffic of an incident in Umbrella Flow at base: the item (from the catalog
+// FlowLink is the traffic of an incident in Current at base: the item (from the catalog
 // when the incident has one, otherwise the name, ip and source_ref of its events) and the time
 // from 30 minutes before it opened to now, or to 10 minutes after it was resolved. Empty while
-// the Flow address is not set.
+// the Current address is not set.
 func FlowLink(base string, al alert.Alert, ci *model.ConfigItem, now time.Time) string {
 	if base == "" {
 		return ""
@@ -83,7 +83,7 @@ func FlowLink(base string, al alert.Alert, ci *model.ConfigItem, now time.Time) 
 	return flowConsoleURL(base, name, ip, ref, start.Add(-flowBefore), to)
 }
 
-// CIFlowLink is the traffic of an item in Umbrella Flow over the last hour.
+// CIFlowLink is the traffic of an item in Current over the last hour.
 func CIFlowLink(base string, ci *model.ConfigItem, now time.Time) string {
 	if base == "" || ci == nil {
 		return ""
@@ -98,7 +98,7 @@ func (a *App) flowSettings() model.NetworkFlow {
 	return f
 }
 
-// flowLink is the address of the traffic of an incident in Umbrella Flow; empty until Flow is set up.
+// flowLink is the address of the traffic of an incident in Current; empty until Current is set up.
 func (a *App) flowLink(al alert.Alert) string {
 	var base string
 	var ci *model.ConfigItem
@@ -147,8 +147,8 @@ func (a *App) flowSave(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, f)
 }
 
-// flowRedirect sends a signed-in user who may see the incident to its traffic in Umbrella
-// Flow, exactly as grafanaRedirect does for Grafana; anybody else goes to the incident.
+// flowRedirect sends a signed-in user who may see the incident to its traffic in Beacon
+// Current, exactly as grafanaRedirect does for Grafana; anybody else goes to the incident.
 func (a *App) flowRedirect(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	fallback := model.IncidentURL("", id)
@@ -178,7 +178,7 @@ func (a *App) flowRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 // ciFlowRedirect sends a signed-in user who may see the catalog to the recent traffic of an
-// item in Umbrella Flow; anybody else goes to the item card.
+// item in Current; anybody else goes to the item card.
 func (a *App) ciFlowRedirect(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	fallback := "/cis?id=" + url.QueryEscape(id)

@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Jira is a Jira Cloud REST API v3 client: basic authentication with the e-mail of an account

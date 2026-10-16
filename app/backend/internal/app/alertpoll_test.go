@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring/monitoringtest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring/monitoringtest"
 )
 
 // Polling Grafana hands a firing alert to the connector of the system once, as a contact point

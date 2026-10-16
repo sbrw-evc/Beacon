@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -23,8 +23,8 @@ const (
 
 // GrafanaLink is the dashboard of an incident: the time from the window before it opened to the
 // window after it ended (now while it lasts) and the variables ci, ci_id, service, team, signal
-// and incident, and ip and ref for the Umbrella Flow "CI traffic" dashboard: the first address
-// and the Inventory DB reference of the item (ci, may be nil), or the ip and source_ref labels
+// and incident, and ip and ref for the Current "CI traffic" dashboard: the first address
+// and the Ledger reference of the item (ci, may be nil), or the ip and source_ref labels
 // of the events.
 func GrafanaLink(set model.Grafana, al alert.Alert, ci *model.ConfigItem, now time.Time) string {
 	if set.DashboardURL == "" {
@@ -149,11 +149,11 @@ func (a *App) grafanaSave(w http.ResponseWriter, r *http.Request) {
 
 // grafanaRedirect sends a signed-in user to the Grafana context of an incident; PagerDuty links
 // point here, so the link stays right when Grafana settings change. Anybody else goes to the
-// incident in Umbrella, which asks them to sign in.
+// incident in Beacon, which asks them to sign in.
 //
 // The session cookie is SameSite=Strict, so a click in PagerDuty, a mail or a messenger (a
 // cross-site navigation) arrives without it. A request without the cookie gets a tiny page of
-// this origin that navigates here again: that navigation starts on Umbrella itself, so the
+// this origin that navigates here again: that navigation starts on Beacon itself, so the
 // browser sends the cookie. The second request carries a marker, so somebody who is really not
 // signed in goes on to the incident page instead of looping.
 func (a *App) grafanaRedirect(w http.ResponseWriter, r *http.Request) {
@@ -215,13 +215,13 @@ func (a *App) hopUser(w http.ResponseWriter, r *http.Request, hop, fallback stri
 	return u, true
 }
 
-// sameSiteHop marks the request made again from Umbrella's own page.
+// sameSiteHop marks the request made again from Beacon's own page.
 const sameSiteHop = "same"
 
 var hopTemplate = template.Must(template.New("hop").Parse(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
-<meta http-equiv="refresh" content="0;url={{.}}"><title>Umbrella</title></head>
-<body><p><a href="{{.}}">Umbrella</a></p></body></html>`))
+<meta http-equiv="refresh" content="0;url={{.}}"><title>Beacon</title></head>
+<body><p><a href="{{.}}">Beacon</a></p></body></html>`))
 
 // hopPage navigates to a path of this origin from a page of this origin, so that the request
 // is same-site and carries the SameSite=Strict session cookie.

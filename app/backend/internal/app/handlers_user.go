@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/avatar"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/avatar"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 func (a *App) respondUser(w http.ResponseWriter, r *http.Request, u model.User, err error) {

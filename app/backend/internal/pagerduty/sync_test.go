@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty/pdtest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty/pdtest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func syncGateway(t *testing.T, sync model.PDSync) (*pagerduty.Gateway, *pdtest.Fake, *results) {
@@ -91,7 +91,7 @@ func TestNotesAndPriority(t *testing.T) {
 		t.Fatal(err)
 	}
 	notes, prios, from := fake.Snapshot()
-	if len(notes["PI1"]) != 1 || notes["PI1"][0] != "[Umbrella] eng: rolling back" || prios["PI1"] != "PRI2" {
+	if len(notes["PI1"]) != 1 || notes["PI1"][0] != "[Beacon] eng: rolling back" || prios["PI1"] != "PRI2" {
 		t.Fatalf("notes=%v priorities=%v", notes, prios)
 	}
 	if len(from) != 2 || from[0] != "bot@example.com" {
@@ -105,7 +105,7 @@ func TestNotesAndPriority(t *testing.T) {
 	}
 }
 
-// On-call people of the route are read and given the notifications, matched with Umbrella
+// On-call people of the route are read and given the notifications, matched with Beacon
 // users by e-mail.
 func TestOnCall(t *testing.T) {
 	g, fake, _ := syncGateway(t, model.PDSync{OnCall: true})

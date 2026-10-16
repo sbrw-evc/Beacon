@@ -1,4 +1,4 @@
-module github.com/sbrw-evc/umbrella-monitoring/app/backend
+module github.com/sbrw-evc/beacon/app/backend
 
 go 1.26.0
 

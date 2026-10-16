@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS connector_stats (
 );
 `
 
-// lockKey serializes schema changes and partition upkeep between Umbrella instances.
+// lockKey serializes schema changes and partition upkeep between Beacon instances.
 const lockKey = 0x756d6272656c6c61
 
 func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {

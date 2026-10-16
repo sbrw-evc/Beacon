@@ -141,7 +141,7 @@ export function NotifyCard() {
       return r.bot ? t('nt.test.okBot', { to: r.to, bot: r.bot }) : t('nt.test.ok', { to: r.to })
     })
 
-  // botText: the state of the bot built into Umbrella, with its name and last error.
+  // botText: the state of the bot built into Beacon, with its name and last error.
   const botText = (b?: BotStatus) => {
     if (!b) return t('nt.bot.state.off')
     const parts = [t(`nt.bot.state.${b.state}`)]

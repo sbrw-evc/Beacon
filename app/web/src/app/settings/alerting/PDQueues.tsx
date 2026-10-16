@@ -21,7 +21,7 @@ type Props = {
 }
 
 // PDQueues shows the queues of PagerDuty (its services): status, escalation policy, teams,
-// open incidents and the Umbrella route sending to each, and links them to the teams.
+// open incidents and the Beacon route sending to each, and links them to the teams.
 export function PDQueues({ view, queues, onQueues, dirty, reloadKey }: Props) {
   const t = useT(strings)
   const action = useAction(strings)

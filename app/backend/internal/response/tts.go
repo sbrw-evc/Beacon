@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Audio formats a voice delivery asks for.

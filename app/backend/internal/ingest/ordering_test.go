@@ -9,8 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
 )
 
 func statusPipeline(t *testing.T) *flow.Pipeline {

@@ -1,8 +1,8 @@
-// Package inventorydb reads devices from Inventory DB (github.com/sbrw-evc/Inventory-DB) and
-// sends it the state of the alerts on them. Inventory DB is an optional source of
+// Package ledger reads devices from Ledger (github.com/sbrw-evc/ledger) and
+// sends it the state of the alerts on them. Ledger is an optional source of
 // configuration items next to NetBox; its side of the exchange is described in its
 // docs/integrations.md.
-package inventorydb
+package ledger
 
 import (
 	"bytes"
@@ -27,30 +27,30 @@ const (
 	TokenKey     = "token"
 	SignatureKey = "signing_secret"
 
-	// RefPrefix starts the source reference of every object Inventory DB exports, for example
+	// RefPrefix starts the source reference of every object Ledger exports, for example
 	// inventory-db:dcim.device:12.
 	RefPrefix = "inventory-db:"
 
 	pageSize = 1000
-	// maxBatch is the most alert events one request carries; Inventory DB takes up to 500.
+	// maxBatch is the most alert events one request carries; Ledger takes up to 500.
 	maxBatch = 200
 )
 
 var Timeout = 30 * time.Second
 
-// Config is the Inventory DB connection kept in the settings. The API token and the signing
+// Config is the Ledger connection kept in the settings. The API token and the signing
 // secret are in OpenBao.
 type Config struct {
 	Enabled bool   `json:"enabled"`
 	URL     string `json:"url"`
-	// IntegrationID is the integration created in Inventory DB (POST /api/v1/integrations).
+	// IntegrationID is the integration created in Ledger (POST /api/v1/integrations).
 	IntegrationID string `json:"integration_id"`
 	TokenRef      string `json:"-"`
 	SecretRef     string `json:"-"`
 	SkipVerify    bool   `json:"skip_verify"`
 	SyncMinutes   int    `json:"sync_minutes"`
 	ImportDevices bool   `json:"import_devices"`
-	// PushStatus sends the state of alerts on imported devices back to Inventory DB.
+	// PushStatus sends the state of alerts on imported devices back to Ledger.
 	PushStatus bool `json:"push_status"`
 }
 
@@ -65,10 +65,10 @@ func (c Config) Normalize() (Config, error) {
 	c.IntegrationID = strings.TrimSpace(c.IntegrationID)
 	u, err := url.Parse(c.URL)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
-		return c, errors.New("Inventory DB address must look like https://inventory.example.com")
+		return c, errors.New("Ledger address must look like https://inventory.example.com")
 	}
 	if c.IntegrationID == "" || strings.ContainsAny(c.IntegrationID, "/?#% ") {
-		return c, errors.New("integration ID must be the id Inventory DB returned, such as int_abc123")
+		return c, errors.New("integration ID must be the id Ledger returned, such as int_abc123")
 	}
 	if c.SyncMinutes < 0 || c.SyncMinutes > maxSyncMinutes {
 		return c, fmt.Errorf("synchronization interval must be 0 to %d minutes", maxSyncMinutes)
@@ -93,7 +93,7 @@ type Identities struct {
 	AssetTag string   `json:"asset_tag,omitempty"`
 }
 
-// CI is one configuration item of the Inventory DB feed: a site, rack or device.
+// CI is one configuration item of the Ledger feed: a site, rack or device.
 type CI struct {
 	SourceRef    string         `json:"source_ref"`
 	Type         string         `json:"type"`
@@ -146,7 +146,7 @@ type feedPage struct {
 	Items      []CI `json:"items"`
 }
 
-// AlertEvent is the state of an alert as Inventory DB takes it.
+// AlertEvent is the state of an alert as Ledger takes it.
 type AlertEvent struct {
 	AlertID   string     `json:"alert_id"`
 	Status    string     `json:"status"`
@@ -191,7 +191,7 @@ func New(cfg Config, token, secret string) (*Client, error) {
 		http: &http.Client{Timeout: Timeout, Transport: tr}, now: time.Now}, nil
 }
 
-// Error is a request Inventory DB answered with an error status.
+// Error is a request Ledger answered with an error status.
 type Error struct {
 	Status int
 	Detail string
@@ -199,9 +199,9 @@ type Error struct {
 
 func (e *Error) Error() string {
 	if e.Detail == "" {
-		return fmt.Sprintf("Inventory DB answered %d", e.Status)
+		return fmt.Sprintf("Ledger answered %d", e.Status)
 	}
-	return fmt.Sprintf("Inventory DB answered %d: %s", e.Status, e.Detail)
+	return fmt.Sprintf("Ledger answered %d: %s", e.Status, e.Detail)
 }
 
 func (c *Client) base() string {
@@ -212,12 +212,12 @@ func (c *Client) send(req *http.Request, out any) error {
 	req.Header.Set("Accept", "application/json")
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("Inventory DB %s: %w", c.cfg.URL, err)
+		return fmt.Errorf("Ledger %s: %w", c.cfg.URL, err)
 	}
 	defer resp.Body.Close()
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
 	if err != nil {
-		return fmt.Errorf("Inventory DB %s: %w", c.cfg.URL, err)
+		return fmt.Errorf("Ledger %s: %w", c.cfg.URL, err)
 	}
 	if resp.StatusCode >= 300 {
 		var e struct {
@@ -233,7 +233,7 @@ func (c *Client) send(req *http.Request, out any) error {
 		return nil
 	}
 	if err := json.Unmarshal(raw, out); err != nil {
-		return fmt.Errorf("Inventory DB answer is not JSON: %w", err)
+		return fmt.Errorf("Ledger answer is not JSON: %w", err)
 	}
 	return nil
 }
@@ -276,7 +276,7 @@ func (c *Client) Test(ctx context.Context) (Probe, error) {
 	return Probe{Items: p.Count}, err
 }
 
-// Sign is the signature Inventory DB checks: v1=hex(HMAC-SHA256(secret, "<timestamp>.<body>")).
+// Sign is the signature Ledger checks: v1=hex(HMAC-SHA256(secret, "<timestamp>.<body>")).
 func Sign(secret, timestamp string, body []byte) string {
 	m := hmac.New(sha256.New, []byte(secret))
 	m.Write([]byte(timestamp + "."))

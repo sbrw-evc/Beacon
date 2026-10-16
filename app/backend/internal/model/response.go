@@ -574,8 +574,8 @@ func DefaultVoice() VoiceSettings {
 
 // DefaultVoiceTemplates are the built-in texts of voice calls.
 var DefaultVoiceTemplates = map[string]string{
-	LocaleRU: "Внимание! Инцидент Umbrella номер {number}. Приоритет {priority}. {title}. Объект: {ci}. Затронутые сервисы: {services}. Команда: {team}. Открыт в {opened}. Статус: {status}. {ack_hint}",
-	LocaleEN: "Attention! Umbrella incident number {number}. Priority {priority}. {title}. Item: {ci}. Affected services: {services}. Team: {team}. Opened at {opened}. Status: {status}. {ack_hint}",
+	LocaleRU: "Внимание! Инцидент Beacon номер {number}. Приоритет {priority}. {title}. Объект: {ci}. Затронутые сервисы: {services}. Команда: {team}. Открыт в {opened}. Статус: {status}. {ack_hint}",
+	LocaleEN: "Attention! Beacon incident number {number}. Priority {priority}. {title}. Item: {ci}. Affected services: {services}. Team: {team}. Opened at {opened}. Status: {status}. {ack_hint}",
 }
 
 // VoicePlaceholders are what voice templates may use.

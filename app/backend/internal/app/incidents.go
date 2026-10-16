@@ -10,12 +10,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/rules"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/rules"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 var errAlertsNotReady = errors.New("the alert tables are not ready yet")
@@ -94,8 +94,8 @@ type incidentView struct {
 	Alert    alert.Alert   `json:"alert"`
 	Timeline []alert.Entry `json:"timeline"`
 	Grafana  string        `json:"grafana_url,omitempty"`
-	// Flow is the link to the traffic of the incident in Umbrella Flow through Umbrella
-	// (/go/incidents/{id}/flow); empty while the Flow address is not set.
+	// Flow is the link to the traffic of the incident in Current through Beacon
+	// (/go/incidents/{id}/flow); empty while the Current address is not set.
 	Flow string `json:"flow_url,omitempty"`
 	// Connectors names the connectors of the sources.
 	Connectors map[string]string `json:"connectors"`

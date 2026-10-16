@@ -13,8 +13,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/textx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/textx"
 )
 
 const (
@@ -212,7 +212,7 @@ func (s *statDelta) add(o statDelta) {
 }
 
 const (
-	// drainLockKey makes batches run one at a time across workers and Umbrella instances, so
+	// drainLockKey makes batches run one at a time across workers and Beacon instances, so
 	// events are folded into alerts in the order the requests were received.
 	drainLockKey = 0x756d622d696e6773
 )

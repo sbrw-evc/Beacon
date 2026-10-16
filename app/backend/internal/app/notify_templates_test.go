@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // Message templates: checked when saved, kept when a form does not send them, previewed with a

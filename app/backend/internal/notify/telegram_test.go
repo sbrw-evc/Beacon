@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/telegram"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/telegram"
 )
 
 type onCall []alert.Person
@@ -32,7 +32,7 @@ func TestTelegramButtonsAndThread(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(k.Rows) != 2 || k.Rows[0][0].Data != notify.CallbackAck+"INC-7" || k.Rows[0][1].Data != notify.CallbackResolve+"INC-7" ||
-		k.Rows[0][1].Text != "✔️ Решить" || k.Rows[1][0].Text != "Открыть в Umbrella" {
+		k.Rows[0][1].Text != "✔️ Решить" || k.Rows[1][0].Text != "Открыть в Beacon" {
 		t.Fatalf("keyboard: %+v", k)
 	}
 	var ref string

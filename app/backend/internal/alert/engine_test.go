@@ -11,10 +11,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store/storetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store/storetest"
 )
 
 type recorder struct {
@@ -367,7 +367,7 @@ func TestActionsAndPagerDuty(t *testing.T) {
 		t.Error("backup notification is sent once")
 	}
 
-	// Acknowledged in Umbrella while PagerDuty was down: after the trigger is taken, the
+	// Acknowledged in Beacon while PagerDuty was down: after the trigger is taken, the
 	// acknowledgement follows.
 	if _, err := e.Act(ctx, b.ID, "ack", "eng", ""); err != nil {
 		t.Fatal(err)
@@ -546,7 +546,7 @@ func TestWindowDoesNotStrandPagerDutyIncidents(t *testing.T) {
 	}
 	e.PDResult(ctx, cmds[0].Alert.ID, alert.PDResolve, "default", "", nil)
 
-	// Acknowledged in Umbrella during the window: acknowledged in PagerDuty.
+	// Acknowledged in Beacon during the window: acknowledged in PagerDuty.
 	other := active(t, e)[0]
 	if _, err := e.Act(ctx, other.ID, "ack", "eng", ""); err != nil {
 		t.Fatal(err)

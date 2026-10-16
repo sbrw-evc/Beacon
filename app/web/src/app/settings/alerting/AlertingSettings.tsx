@@ -10,7 +10,7 @@ import './alerting.css'
 
 export function AlertingSettings() {
   // Whether links work in backup notification and the PagerDuty webhook address depend on the
-  // Umbrella address; the cards read it again when it is saved.
+  // Beacon address; the cards read it again when it is saved.
   const [epoch, setEpoch] = useState(0)
   return (
     <>

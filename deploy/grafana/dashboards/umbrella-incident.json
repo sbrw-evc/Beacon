@@ -1,6 +1,6 @@
 {
   "uid": "umbrella-incident",
-  "title": "Umbrella incident",
+  "title": "Beacon incident",
   "tags": [
     "umbrella"
   ],
@@ -94,7 +94,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "Umbrella opens this dashboard from an incident with the time window around it and these variables.\n\n| Variable | Value |\n|---|---|\n| `incident` | ${incident} |\n| `ci` | ${ci} |\n| `ci_id` | ${ci_id} |\n| `service` | ${service} |\n| `team` | ${team} |\n| `signal` | ${signal} |\n\nCopy it and add panels that filter by `$ci`, `$service` or `$signal`, then set its address in Umbrella → Settings → Alerting → Grafana."
+        "content": "Beacon opens this dashboard from an incident with the time window around it and these variables.\n\n| Variable | Value |\n|---|---|\n| `incident` | ${incident} |\n| `ci` | ${ci} |\n| `ci_id` | ${ci_id} |\n| `service` | ${service} |\n| `team` | ${team} |\n| `signal` | ${signal} |\n\nCopy it and add panels that filter by `$ci`, `$service` or `$signal`, then set its address in Beacon → Settings → Alerting → Grafana."
       }
     }
   ]

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type roleReply struct {
@@ -45,8 +45,8 @@ func TestCustomRoleGrantsExactPermissions(t *testing.T) {
 	f.expect(f.admin, http.MethodPost, "/api/roles", map[string]any{}, http.StatusBadRequest, "invalid_role_name")
 	f.expect(f.admin, http.MethodPut, "/api/roles/"+role.ID+"/members", map[string]any{"user_ids": []string{bobID}}, http.StatusNotFound, "not_found")
 
-	// SPA gives the role: the next sign-in carries it.
-	f.h.addSPA(spa.User{ID: spaID("bob"), Username: "bob", Name: "bob", Roles: []string{strings.ToLower(role.ID)}})
+	// Keystone gives the role: the next sign-in carries it.
+	f.h.addSPA(keystone.User{ID: spaID("bob"), Username: "bob", Name: "bob", Roles: []string{strings.ToLower(role.ID)}})
 	bob = f.h.client()
 	bob.login("bob", orgUserPass)
 
@@ -69,7 +69,7 @@ func TestCustomRoleGrantsExactPermissions(t *testing.T) {
 	}
 	f.expect(bob, http.MethodGet, "/api/settings/ldap", nil, http.StatusForbidden, "forbidden")
 
-	// A role SPA still gives is taken away there first.
+	// A role Keystone still gives is taken away there first.
 	f.expect(f.admin, http.MethodDelete, "/api/roles/"+role.ID, nil, http.StatusConflict, "role_in_use")
 	f.h.st.Write(func(d *store.Data) { d.Users[bobID].Role = model.RoleUser })
 	f.expect(f.admin, http.MethodDelete, "/api/roles/"+role.ID, nil, http.StatusNoContent, "")

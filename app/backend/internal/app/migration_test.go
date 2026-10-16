@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store/storetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store/storetest"
 )
 
 type recordingRuntime struct {

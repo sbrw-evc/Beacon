@@ -1,6 +1,6 @@
 // Package telegram is a small client of the Telegram Bot API: sending and editing messages
 // with inline buttons, answering button presses and reading updates by long polling. Both
-// backup notification and the bot built into Umbrella use it.
+// backup notification and the bot built into Beacon use it.
 package telegram
 
 import (

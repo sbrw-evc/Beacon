@@ -57,7 +57,7 @@ var pages = []Page{
 	}},
 	{"cmdb", GroupOverview, Text{"CMDB map", "Карта CMDB"}, []Feature{
 		view,
-		{"propose", Text{"Submit dependency proposals (Umbrella Flow)", "Отправка предложений зависимостей (Umbrella Flow)"}},
+		{"propose", Text{"Submit dependency proposals (Current)", "Отправка предложений зависимостей (Current)"}},
 	}},
 	{"cis", GroupOverview, Text{"Configuration items", "Конфигурационные единицы"}, []Feature{
 		view,
@@ -92,7 +92,7 @@ var pages = []Page{
 		{"edit", Text{"Change the connection and synchronization settings", "Изменение подключения и настроек синхронизации"}},
 		{"sync", Text{"Run synchronization", "Запуск синхронизации"}},
 	}},
-	{"inventorydb", GroupAuto, Text{"Inventory DB", "Inventory DB"}, []Feature{
+	{"inventorydb", GroupAuto, Text{"Ledger", "Ledger"}, []Feature{
 		view,
 		test,
 		{"edit", Text{"Change the connection, synchronization and alert state settings", "Изменение подключения, синхронизации и отправки статусов тревог"}},
@@ -110,9 +110,9 @@ var pages = []Page{
 		{"test", Text{"Check the Jira, Microsoft Teams and Zoom connections", "Проверка подключений Jira, Microsoft Teams и Zoom"}},
 		{"edit", Text{"Change impact rules, priority policies, escalations and integrations", "Изменение правил влияния, политик приоритетов, эскалаций и интеграций"}},
 	}},
-	{"integrations.flow", GroupAuto, Text{"Umbrella Flow integration", "Интеграция с Umbrella Flow"}, []Feature{
+	{"integrations.flow", GroupAuto, Text{"Current integration", "Интеграция с Current"}, []Feature{
 		{View, Text{"No page of its own: given together with the functions below", "Своей страницы нет: выдаётся вместе с функциями ниже"}},
-		{"read", Text{"Read the visibility scopes of users for Umbrella Flow", "Чтение областей видимости пользователей для Umbrella Flow"}},
+		{"read", Text{"Read the visibility scopes of users for Current", "Чтение областей видимости пользователей для Current"}},
 	}},
 	{"credentials", GroupAuto, Text{"Credentials", "Учётные данные"}, []Feature{
 		view,
@@ -120,11 +120,11 @@ var pages = []Page{
 	}},
 	{"users", GroupOrg, Text{"Users", "Пользователи"}, []Feature{
 		view,
-		{"edit", Text{"Change the teams and the incident scope of users (people and roles are managed in SPA)", "Изменение команд и области инцидентов пользователей (люди и роли управляются в SPA)"}},
-		{"delete", Text{"Delete the records of people who no longer have access in SPA", "Удаление записей людей, у которых больше нет доступа в SPA"}},
+		{"edit", Text{"Change the teams and the incident scope of users (people and roles are managed in Keystone)", "Изменение команд и области инцидентов пользователей (люди и роли управляются в Keystone)"}},
+		{"delete", Text{"Delete the records of people who no longer have access in Keystone", "Удаление записей людей, у которых больше нет доступа в Keystone"}},
 	}},
 	{"teams", GroupOrg, Text{"Teams", "Команды"}, []Feature{view, edit}},
-	{"roles", GroupOrg, Text{"Roles", "Роли"}, []Feature{view, {"edit", Text{"Create, change and delete roles (they are published to SPA)", "Создание, изменение и удаление ролей (публикуются в SPA)"}}}},
+	{"roles", GroupOrg, Text{"Roles", "Роли"}, []Feature{view, {"edit", Text{"Create, change and delete roles (they are published to Keystone)", "Создание, изменение и удаление ролей (публикуются в Keystone)"}}}},
 	{"settings.alerting", GroupSettings, Text{"Alerting", "Оповещения"}, []Feature{
 		view,
 		{"test", Text{"Check connections and send test messages", "Проверка подключений и тестовые сообщения"}},
@@ -134,7 +134,7 @@ var pages = []Page{
 	{"settings.ldap", GroupSettings, Text{"Active Directory for the CMDB", "Active Directory для CMDB"}, []Feature{view, test, {"edit", Text{"Change the connection", "Изменение подключения"}}}},
 	{"settings.postgres", GroupSettings, Text{"PostgreSQL", "PostgreSQL"}, []Feature{view, test, migrate}},
 	{"settings.openbao", GroupSettings, Text{"OpenBao", "OpenBao"}, []Feature{view, test, migrate}},
-	{"settings.spa", GroupSettings, Text{"SPA connection", "Подключение к SPA"}, []Feature{
+	{"settings.spa", GroupSettings, Text{"Keystone connection", "Подключение к Keystone"}, []Feature{
 		view,
 		{"sync", Text{"Synchronize people and publish roles now", "Синхронизация людей и публикация ролей вручную"}},
 	}},

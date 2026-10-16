@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // memBackend gives back one saved snapshot, as the state store does after a restart.
@@ -22,7 +22,7 @@ func (b *memBackend) Load(context.Context) ([][]byte, error)    { return [][]byt
 func (b *memBackend) Save(_ context.Context, data []byte) error { b.snap = data; return nil }
 func (b *memBackend) Close()                                    {}
 
-// restarted is a store loaded from a snapshot of before: what Umbrella has after a restart.
+// restarted is a store loaded from a snapshot of before: what Beacon has after a restart.
 func restarted(t *testing.T, before func(d *store.Data)) *store.Store {
 	t.Helper()
 	old := store.New()

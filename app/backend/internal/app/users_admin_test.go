@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const adminPass = "Admin-pass-2026"
@@ -107,7 +107,7 @@ func TestUsersPermissions(t *testing.T) {
 	var p problem
 	expect(t, "viewer edit", viewer.call(http.MethodPut, "/api/users/"+adminID, map[string]any{}, &p), 403, p)
 	expect(t, "viewer delete", viewer.call(http.MethodDelete, "/api/users/"+adminID, nil, &p), 403, p)
-	// People are created, locked and given passwords in SPA: Umbrella has no such routes.
+	// People are created, locked and given passwords in Keystone: Beacon has no such routes.
 	for _, path := range []string{"/api/users", "/api/users/" + adminID + "/lock", "/api/auth/login"} {
 		if code := admin.call(http.MethodPost, path, map[string]any{"username": "x", "password": "Xx-pass-20261"}, &p); code != 404 && code != 405 {
 			t.Fatalf("POST %s = %d, want no route", path, code)
@@ -160,11 +160,11 @@ func TestUsersLifecycle(t *testing.T) {
 		t.Fatalf("delete active = %+v", p)
 	}
 
-	// SPA disables the person: the next synchronization locks the record and signs them out.
-	h.addSPA(spa.User{ID: spaID("ivan"), Username: "ivan", Name: "ivan", Disabled: true, Roles: []string{"user"}})
+	// Keystone disables the person: the next synchronization locks the record and signs them out.
+	h.addSPA(keystone.User{ID: spaID("ivan"), Username: "ivan", Name: "ivan", Disabled: true, Roles: []string{"user"}})
 	expect(t, "sync", admin.call(http.MethodPost, "/api/settings/spa/sync", nil, nil), 200, nil)
 	if !h.user(id).Disabled {
-		t.Fatal("the person disabled in SPA stays active")
+		t.Fatal("the person disabled in Keystone stays active")
 	}
 	expect(t, "disabled session", ivan.call(http.MethodGet, "/api/auth/me", nil, nil), 401, nil)
 	expect(t, "locked filter", admin.call(http.MethodGet, "/api/users?status=locked", nil, &list), 200, list)
@@ -203,7 +203,7 @@ func TestUsersSafetyRules(t *testing.T) {
 func TestUsersDirectoryAccounts(t *testing.T) {
 	h, admin, _ := adminSession(t)
 	h.addTeam("TEAM-1", "")
-	// An account of the versions before SPA, never bound to SPA: it is locked by the first
+	// An account of the versions before Keystone, never bound to Keystone: it is locked by the first
 	// synchronization and can be removed.
 	id := h.addLDAP("anna", model.RoleUser)
 	var u managed
@@ -213,7 +213,7 @@ func TestUsersDirectoryAccounts(t *testing.T) {
 	}
 	expect(t, "sync", admin.call(http.MethodPost, "/api/settings/spa/sync", nil, nil), 200, nil)
 	if !h.user(id).Disabled {
-		t.Fatal("an account SPA does not know stays active")
+		t.Fatal("an account Keystone does not know stays active")
 	}
 	expect(t, "ldap delete", admin.call(http.MethodDelete, "/api/users/"+id, nil, nil), 204, nil)
 	if h.user(id) != nil {

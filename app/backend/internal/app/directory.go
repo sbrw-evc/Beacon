@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 var errAccountChanged = errors.New("the server or the service account changed: enter the service account password again")
@@ -19,7 +19,7 @@ type SessionRevoker interface {
 
 // DirectoryService is the connection to Active Directory the NetBox synchronization reads
 // computer objects from (configuration items). Nobody signs in with it: people sign in through
-// SPA, which has its own directory connections.
+// Keystone, which has its own directory connections.
 type DirectoryService struct {
 	st      *store.Store
 	secrets Secrets

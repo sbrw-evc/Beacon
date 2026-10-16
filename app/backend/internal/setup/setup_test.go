@@ -19,15 +19,15 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/setup"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa/spatest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone/keystonetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/setup"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const setupCode = "setup-code-for-tests"
@@ -159,9 +159,9 @@ func (e *env) setup(path string, body, out any) int {
 	return e.call(http.MethodPost, "/api/setup/"+path, body, map[string]string{setup.TokenHeader: setupCode}, out)
 }
 
-// signIn runs the sign-in through the fake SPA as the SPA person id and returns where Umbrella
+// signIn runs the sign-in through the fake Keystone as the Keystone person id and returns where Beacon
 // sent the browser at the end; after a sign-in that ends at "/" it reads the CSRF token.
-func (e *env) signIn(fake *spatest.SPA, id string) string {
+func (e *env) signIn(fake *keystonetest.Keystone, id string) string {
 	e.t.Helper()
 	fake.SignedIn = id
 	var last *http.Request
@@ -247,8 +247,8 @@ func (p pgEnv) body() map[string]any {
 func TestWizardEndToEnd(t *testing.T) {
 	pg := postgres(t)
 	bao, _ := secretstest.New(t)
-	fake := spatest.New(t)
-	fake.Users = []spa.User{
+	fake := keystonetest.New(t)
+	fake.Users = []keystone.User{
 		{ID: "usr_admin", Username: "admin", Name: "Main Admin", Email: "admin@example.org", Roles: []string{"admin"}},
 		{ID: "usr_boris", Username: "boris", Name: "Boris Petrov", Roles: []string{model.RoleViewer}},
 		{ID: "usr_nobody", Username: "nobody", Name: "No Role"},
@@ -295,7 +295,7 @@ func TestWizardEndToEnd(t *testing.T) {
 	}
 	complete["public_url"] = " " + e.srv.URL + "/ "
 	if code := e.setup("complete", complete, &res); code != 400 || res["error"] != "spa_key_invalid" {
-		t.Fatalf("bad SPA key = %d %v", code, res)
+		t.Fatalf("bad Keystone key = %d %v", code, res)
 	}
 	complete["spa_connection_key"] = fake.ConnectionKey()
 	if code := e.setup("complete", complete, &res); code != 200 {
@@ -306,7 +306,7 @@ func TestWizardEndToEnd(t *testing.T) {
 	}
 
 	if v := bao.Get("umbrella/spa"); v["connection_key"] != fake.ConnectionKey() {
-		t.Fatalf("SPA key in OpenBao = %v", v)
+		t.Fatalf("Keystone key in OpenBao = %v", v)
 	}
 	e.result.Store.Read(func(d *store.Data) {
 		if len(d.Users) != 0 {
@@ -349,7 +349,7 @@ func TestWizardEndToEnd(t *testing.T) {
 		t.Fatalf("password sign-in must be gone: %d", code)
 	}
 
-	// The first administrator is whoever SPA gives the role admin.
+	// The first administrator is whoever Keystone gives the role admin.
 	if end := e.signIn(fake, "usr_admin"); end != "/" {
 		t.Fatalf("admin sign-in ended at %s", end)
 	}
@@ -407,7 +407,7 @@ func TestWizardEndToEnd(t *testing.T) {
 		t.Fatalf("boris sign-in ended at %s", end)
 	}
 	var boris map[string]any
-	// The viewer preset made by the wizard is in the catalogue SPA gives roles from.
+	// The viewer preset made by the wizard is in the catalogue Keystone gives roles from.
 	if code := e.call(http.MethodGet, "/api/auth/me", nil, nil, &boris); code != 200 || boris["role"] != model.RoleViewer || boris["role_name"] != "Наблюдатель" {
 		t.Fatalf("viewer = %d %v", code, boris)
 	}
@@ -416,7 +416,7 @@ func TestWizardEndToEnd(t *testing.T) {
 	}
 	e.newClient()
 	if end := e.signIn(fake, "usr_nobody"); !strings.Contains(end, "sso_error=") {
-		t.Fatalf("a person without a role in Umbrella ended at %s", end)
+		t.Fatalf("a person without a role in Beacon ended at %s", end)
 	}
 
 	if err := e.result.Store.Flush(); err != nil {
@@ -444,6 +444,6 @@ func TestWizardEndToEnd(t *testing.T) {
 		}
 	})
 	if v := bao.Get("umbrella/spa"); v["connection_key"] != fake.ConnectionKey() {
-		t.Fatalf("an empty SPA key must keep the stored one: %v", v)
+		t.Fatalf("an empty Keystone key must keep the stored one: %v", v)
 	}
 }

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type userView struct {
@@ -21,7 +21,7 @@ type userView struct {
 	Permissions   []string `json:"permissions,omitempty"`
 	// Admins are whom a user without any permission asks for access.
 	Admins []AdminContact `json:"admins,omitempty"`
-	// AccountURL is SPA's account page (password, passkeys, sessions): "Account and security".
+	// AccountURL is Keystone's account page (password, passkeys, sessions): "Account and security".
 	AccountURL string `json:"account_url,omitempty"`
 }
 

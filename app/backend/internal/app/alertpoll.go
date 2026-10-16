@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // pollable: the kinds of systems whose alerts can be polled.
@@ -24,7 +24,7 @@ func pollable(kind string) bool {
 }
 
 // Polling the alerts of Grafana (Graylog: graylogpoll.go): besides its contact point (a webhook to the connector),
-// Umbrella can read the firing alerts through the Alerting API. Each poll hands the alerts that
+// Beacon can read the firing alerts through the Alerting API. Each poll hands the alerts that
 // began to fire and those that stopped to the connector of the system, in the body a Grafana
 // webhook contact point sends, so one connector serves both ways and folds them into the same
 // incidents. Only changes are sent: an alert that keeps firing is not delivered again.

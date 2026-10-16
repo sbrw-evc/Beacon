@@ -41,7 +41,7 @@ export type ServiceAccount = {
   created_by: string
   owner_id: string
   owner_name?: string
-  /** SPA disabled the owner: the tokens of the account are refused. */
+  /** Keystone disabled the owner: the tokens of the account are refused. */
   owner_disabled?: boolean
   tokens: APIToken[]
 }

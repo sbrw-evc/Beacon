@@ -95,7 +95,7 @@ function levelTone(level?: string) {
 }
 
 // MachineTab shows the machine of an incident around its start: graphs of the monitoring
-// systems that know it, the events Umbrella received about it and its log lines.
+// systems that know it, the events Beacon received about it and its log lines.
 export function MachineTab({ d, onOpen }: { d: Detail; onOpen: (id: string) => void }) {
   const t = useT(allStrings)
   const { locale } = useLocale()
@@ -156,7 +156,7 @@ export function MachineTab({ d, onOpen }: { d: Detail; onOpen: (id: string) => v
     for (const o of m.incidents)
       if (o.id !== id) marks.push({ at: Date.parse(o.opened_at), tone: 'incident', label: `${at(o.opened_at)} · ${o.id}: ${o.title}` })
   }
-  // Without a host only the metric of the alert can be drawn (a rule of Umbrella has its own source).
+  // Without a host only the metric of the alert can be drawn (a rule of Beacon has its own source).
   const shown = m ? m.panels.filter((p) => p.alert || m.hosts.length > 0) : []
   const from = m ? Date.parse(m.from) : 0
   const to = m ? Date.parse(m.to) : 0

@@ -64,7 +64,7 @@ function TopBar({ onSignOut, pages }: { onSignOut: () => void; pages: PageDef[] 
   const title = useTitle(pages)
   return (
     <header className="m-top">
-      <Link to={HOME_PATH} className="m-top-brand" aria-label="Umbrella">
+      <Link to={HOME_PATH} className="m-top-brand" aria-label="Beacon">
         <img src="/logo.svg" alt="" width={28} height={28} />
       </Link>
       <h1 className="m-top-title">{title}</h1>

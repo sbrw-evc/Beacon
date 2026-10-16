@@ -7,23 +7,23 @@ LDFLAGS = -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.builtAt=$(
 
 build:
 	cd web && npm ci && npm run build
-	cd backend && go build -ldflags "$(LDFLAGS)" -o umbrella ./cmd/umbrella
+	cd backend && go build -ldflags "$(LDFLAGS)" -o beacon ./cmd/beacon
 
 test:
 	cd backend && go vet ./... && go test ./...
 	cd web && npm run typecheck && npm test
 
 run: build
-	cd backend && ./umbrella -web ../web/dist
+	cd backend && ./beacon -web ../web/dist
 
 dev-api:
-	cd backend && go run ./cmd/umbrella
+	cd backend && go run ./cmd/beacon
 
 dev-web:
 	cd web && npm run dev
 
 image:
-	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILT_AT=$(BUILT_AT) -t umbrella-monitoring:$(VERSION) -t umbrella-monitoring:latest .
+	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILT_AT=$(BUILT_AT) -t beacon:$(VERSION) -t beacon:latest .
 
 openbao-dev:
 	docker run -d --rm --name umbrella-openbao-dev -p 127.0.0.1:8200:8200 -e BAO_DEV_ROOT_TOKEN_ID=dev-root openbao/openbao:2.7.1 server -dev -dev-listen-address=0.0.0.0:8200

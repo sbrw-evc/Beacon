@@ -6,8 +6,8 @@ export const ldapStrings: Dict = {
     'ld.hint.cert':
       'Paste the CA certificate that issued the directory certificate, or (test environments only) turn off certificate verification. The address must match a name in the certificate.',
     'ld.hint.loopback':
-      'Umbrella runs in a container, so localhost is the Umbrella container itself. Use the directory host name, for example ldaps://dc1.corp.umbrella.lab:636 in the shared Docker network.',
-    'ld.attrs.hint': 'LDAP attributes Umbrella reads at every sign-in. Leave a field empty to skip it.',
+      'Beacon runs in a container, so localhost is the Beacon container itself. Use the directory host name, for example ldaps://dc1.corp.umbrella.lab:636 in the shared Docker network.',
+    'ld.attrs.hint': 'LDAP attributes Beacon reads at every sign-in. Leave a field empty to skip it.',
     'ld.attr.username_attr': 'Login',
     'ld.attr.name_attr': 'Display name',
     'ld.attr.last_name_attr': 'Last name',
@@ -65,8 +65,8 @@ export const ldapStrings: Dict = {
     'ld.hint.cert':
       'Вставьте сертификат CA, выпустивший сертификат каталога, или (только в тестовой среде) отключите проверку сертификата. Адрес должен совпадать с именем в сертификате.',
     'ld.hint.loopback':
-      'Umbrella работает в контейнере, и localhost — это сам контейнер Umbrella. Укажите имя хоста каталога, например ldaps://dc1.corp.umbrella.lab:636 в общей сети Docker.',
-    'ld.attrs.hint': 'Атрибуты LDAP, которые Umbrella читает при каждом входе. Оставьте поле пустым, чтобы не использовать атрибут.',
+      'Beacon работает в контейнере, и localhost — это сам контейнер Beacon. Укажите имя хоста каталога, например ldaps://dc1.corp.umbrella.lab:636 в общей сети Docker.',
+    'ld.attrs.hint': 'Атрибуты LDAP, которые Beacon читает при каждом входе. Оставьте поле пустым, чтобы не использовать атрибут.',
     'ld.attr.username_attr': 'Логин',
     'ld.attr.name_attr': 'Отображаемое имя',
     'ld.attr.last_name_attr': 'Фамилия',

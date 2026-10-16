@@ -71,7 +71,7 @@ DELETE FROM alert_timeline WHERE kind = 'pagerduty' AND code = 'pd_failed'
 	AND 'PagerDuty is not enabled' IN (args->>'error', args->>'detail');
 `
 
-// lockKey serializes folding events into alerts between workers and Umbrella instances, so
+// lockKey serializes folding events into alerts between workers and Beacon instances, so
 // two events of the same item and signal never open two alerts.
 const lockKey = 0x756d622d616c7274
 
@@ -96,7 +96,7 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 var ErrNotFound = errors.New("alert not found")
 
 // LinkKey is the key acknowledgement links in notifications are signed with. It is made once
-// and shared by every Umbrella instance through the database.
+// and shared by every Beacon instance through the database.
 func LinkKey(ctx context.Context, pool *pgxpool.Pool) ([]byte, error) {
 	fresh := make([]byte, 32)
 	if _, err := rand.Read(fresh); err != nil {

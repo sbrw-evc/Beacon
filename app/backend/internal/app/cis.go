@@ -12,9 +12,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/netbox"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/netbox"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -73,8 +73,8 @@ type CIView struct {
 	NotMonitored bool `json:"not_monitored"`
 	Editable     bool `json:"editable"`
 	Registrable  bool `json:"registrable"`
-	// FlowURL leads to the recent traffic of the item in Umbrella Flow through Umbrella
-	// (/go/cis/{id}/flow); empty while the Flow address is not set.
+	// FlowURL leads to the recent traffic of the item in Current through Beacon
+	// (/go/cis/{id}/flow); empty while the Current address is not set.
 	FlowURL string `json:"flow_url,omitempty"`
 }
 

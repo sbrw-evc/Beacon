@@ -9,19 +9,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/response"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/rules"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/tgbot"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/response"
+	"github.com/sbrw-evc/beacon/app/backend/internal/rules"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/tgbot"
 )
 
 const (
@@ -41,12 +41,12 @@ type Options struct {
 	TrustedProxies TrustedProxies
 	// Ingest tunes the intake queue and workers; zero fields are the defaults.
 	Ingest ingest.Config
-	// SPAKey and SPAKeyFile are the SPA connection key (SPA_CONNECTION_KEY,
+	// KeystoneKey and KeystoneKeyFile are the Keystone connection key (SPA_CONNECTION_KEY,
 	// SPA_CONNECTION_KEY_FILE); without them it is read from OpenBao (spa#connection_key).
-	// SPAPublicURL is the address of Umbrella when it differs from the request address.
-	SPAKey       string
-	SPAKeyFile   string
-	SPAPublicURL string
+	// KeystonePublicURL is the address of Beacon when it differs from the request address.
+	KeystoneKey       string
+	KeystoneKeyFile   string
+	KeystonePublicURL string
 }
 
 type Deps struct {
@@ -65,7 +65,7 @@ type App struct {
 	accounts *UsersService
 	settings *SettingsService
 	status   *StatusService
-	// spa is sign-in through SPA and the synchronization of people from it (spa.go).
+	// spa is sign-in through Keystone and the synchronization of people from it (keystone.go).
 	spa       spaState
 	access    *AccessService
 	directory *DirectoryService
@@ -75,7 +75,7 @@ type App struct {
 	teams     *TeamsService
 	services  *ServicesService
 	netbox    *NetBoxService
-	// inventory is the optional Inventory DB connection: devices in, alert states out.
+	// inventory is the optional Ledger connection: devices in, alert states out.
 	inventory  *InventoryDBService
 	cis        *CIService
 	cmdb       *CMDBService
@@ -86,7 +86,7 @@ type App struct {
 
 	// serviceAccounts are the machine identities that call the API with tokens.
 	serviceAccounts *ServiceAccountsService
-	// proposals are the dependency proposals of Umbrella Flow shown on the CMDB map.
+	// proposals are the dependency proposals of Current shown on the CMDB map.
 	proposals *ProposalsService
 
 	creds         *CredentialsService
@@ -106,7 +106,7 @@ type App struct {
 	proxies          TrustedProxies
 	rules            *RulesService
 	ruleEngine       *rules.Engine
-	// tgBot is the Telegram bot built into Umbrella (PostgreSQL only: it needs the link key).
+	// tgBot is the Telegram bot built into Beacon (PostgreSQL only: it needs the link key).
 	tgBot *tgbot.Bot
 	ready atomic.Bool
 	rates rates
@@ -237,7 +237,7 @@ func (a *App) Handler() http.Handler {
 	return httpx.Secure(mux)
 }
 
-// Run synchronizes the people of SPA, NetBox and monitoring hosts on their schedules, prepares the ingest and alert
+// Run synchronizes the people of Keystone, NetBox and monitoring hosts on their schedules, prepares the ingest and alert
 // tables, processes received requests and runs the alert engine until ctx ends. Without PostgreSQL
 // (tests) the intake answers 503. Run returns only after every worker it started has stopped, so
 // a runtime switch of the database copies data nobody writes any more.
@@ -297,7 +297,7 @@ type metaView struct {
 	Mode          string `json:"mode"`
 	SetupRequired bool   `json:"setup_required"`
 	Version       string `json:"version"`
-	// SPA tells the sign-in page whether Umbrella is connected to SPA and how people sign in there.
+	// Keystone tells the sign-in page whether Beacon is connected to Keystone and how people sign in there.
 	SPA spaInfo `json:"spa"`
 }
 

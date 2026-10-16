@@ -15,9 +15,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/textx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/textx"
 )
 
 const (
@@ -97,7 +97,7 @@ type policy struct {
 	pdOn bool
 	// pd is the PagerDuty settings: the mode for each severity and the backup delay.
 	pd model.PagerDuty
-	// notifyOn: a notification channel of Umbrella is turned on.
+	// notifyOn: a notification channel of Beacon is turned on.
 	notifyOn bool
 	// delay and minSeverity: when backup notification goes out and for which alerts; ownDelay
 	// is the delay the settings name (nil: automatic).
@@ -164,7 +164,7 @@ func (p policy) pdMode(severity string) string {
 	return p.pd.ModeFor(severity)
 }
 
-// channelsFirst: the channels of Umbrella take the alert at once, without waiting for
+// channelsFirst: the channels of Beacon take the alert at once, without waiting for
 // PagerDuty: the mode of its severity says so (backup, parallel), or keeps it from PagerDuty
 // (off, while PagerDuty itself is on), or PagerDuty skipped it (below its threshold).
 func (p policy) channelsFirst(a *Alert) bool {
@@ -178,13 +178,13 @@ func (p policy) channelsFirst(a *Alert) bool {
 	return a.PD.State == PDSkipped
 }
 
-// standby: the alert waits for the channels of Umbrella before PagerDuty. That needs backup
+// standby: the alert waits for the channels of Beacon before PagerDuty. That needs backup
 // mode and channels that will take the alert; otherwise it goes to PagerDuty at once.
 func (p policy) standby(a *Alert) bool {
 	return p.pdMode(a.Severity) == model.PDModeBackup && p.notifyOn && SeverityRank(a.Severity) >= SeverityRank(p.minSeverity)
 }
 
-// fallbackDelay is how long an open alert waits before the channels of Umbrella.
+// fallbackDelay is how long an open alert waits before the channels of Beacon.
 func (p policy) fallbackDelay(a *Alert) time.Duration {
 	if !p.channelsFirst(a) {
 		return p.delay

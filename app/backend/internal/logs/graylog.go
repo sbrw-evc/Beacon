@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Graylog is read through its search API: the messages API of Graylog 5.1 and later

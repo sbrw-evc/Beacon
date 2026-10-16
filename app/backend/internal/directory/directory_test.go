@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory/directorytest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory/directorytest"
 )
 
 const (

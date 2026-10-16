@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
 )
 
 // The zero config is the default one, and set fields are kept.

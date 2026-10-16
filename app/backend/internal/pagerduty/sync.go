@@ -11,17 +11,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Two-way synchronization through the REST API, beyond the Events API and the webhooks:
 //   - incident states are read back on a schedule, so an acknowledgement or a resolution made
-//     in PagerDuty reaches Umbrella even when a webhook was lost or PagerDuty cannot reach it;
-//   - comments made in Umbrella become notes of the incident;
+//     in PagerDuty reaches Beacon even when a webhook was lost or PagerDuty cannot reach it;
+//   - comments made in Beacon become notes of the incident;
 //   - the response priority (P1–P5) is set on the incident;
-//   - who is on call is read, shown and given the notifications of Umbrella;
-//   - the queues (services) are read and linked to the teams of Umbrella (queues.go).
+//   - who is on call is read, shown and given the notifications of Beacon;
+//   - the queues (services) are read and linked to the teams of Beacon (queues.go).
 
 var (
 	ErrNoFrom       = errors.New("no PagerDuty user to write as (From e-mail) is set")
@@ -37,8 +37,8 @@ const (
 	lookupBatch = 50
 	// directoryEvery is how often the on-call people and the queues are read.
 	directoryEvery = 5 * time.Minute
-	// notePrefix marks the notes Umbrella writes, so their webhooks are not taken as news.
-	notePrefix = "[Umbrella] "
+	// notePrefix marks the notes Beacon writes, so their webhooks are not taken as news.
+	notePrefix = "[Beacon] "
 )
 
 // incident is what the read-back needs of a PagerDuty incident.
@@ -108,7 +108,7 @@ func (g *Gateway) incidentByKey(ctx context.Context, key string) (*incident, err
 	return &resp.Incidents[0], nil
 }
 
-// note writes a comment made in Umbrella as a note of the PagerDuty incident and records the
+// note writes a comment made in Beacon as a note of the PagerDuty incident and records the
 // outcome on the timeline. It is not a delivery: the state of the alert does not change.
 func (g *Gateway) note(ctx context.Context, cmd alert.Command) {
 	set, _ := g.settings()
@@ -335,11 +335,11 @@ type OnCall struct {
 	Level  int        `json:"level"`
 	Policy string     `json:"policy"`
 	Until  *time.Time `json:"until,omitempty"`
-	// UserID is the Umbrella user with the same e-mail, if any.
+	// UserID is the Beacon user with the same e-mail, if any.
 	UserID string `json:"user_id,omitempty"`
 }
 
-// SetUsers lets the on-call people be matched with Umbrella users.
+// SetUsers lets the on-call people be matched with Beacon users.
 func (g *Gateway) SetUsers(f UserFinder) { g.users = f }
 
 // RefreshOnCall reads who is on call for the PagerDuty services of the default integration
@@ -439,7 +439,7 @@ func (g *Gateway) OnCallByRoute() map[string][]OnCall {
 }
 
 // OnCallPeople are the people on call at the first level for the PagerDuty route of an alert,
-// as people the notifications of Umbrella reach (with the contacts of the matching Umbrella
+// as people the notifications of Beacon reach (with the contacts of the matching Beacon
 // user). None while the synchronization of on-call people is off.
 func (g *Gateway) OnCallPeople(a alert.Alert) []alert.Person {
 	set, _ := g.settings()
@@ -504,5 +504,5 @@ func (g *Gateway) RunSync(ctx context.Context) {
 	}
 }
 
-// isOwnNote tells a note Umbrella wrote itself.
+// isOwnNote tells a note Beacon wrote itself.
 func isOwnNote(content string) bool { return strings.HasPrefix(content, notePrefix) }

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
 )
 
-// Umbrella Flow events: one object or an array; the method comes from the method field or the
+// Current events: one object or an array; the method comes from the method field or the
 // signal prefix; the item from ci, then ip; the source reference, IP and traffic link become
 // labels, and the same id resolves the event it fired.
 func TestNetworkFlowEvents(t *testing.T) {
@@ -46,7 +46,7 @@ func TestNetworkFlowEvents(t *testing.T) {
 	for _, f := range e.Fields {
 		fields[f.Name] = f.Value
 	}
-	if fields["Трафик в Umbrella Flow"] != want["flow_url"] || fields["Inventory DB"] != want["source_ref"] || fields["Окончание"] != "" {
+	if fields["Трафик в Current"] != want["flow_url"] || fields["Ledger"] != want["source_ref"] || fields["Окончание"] != "" {
 		t.Errorf("fields = %+v", e.Fields)
 	}
 

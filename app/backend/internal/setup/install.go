@@ -7,25 +7,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type completeInput struct {
 	Locale   string `json:"locale"`
 	Theme    string `json:"theme"`
 	Timezone string `json:"timezone"`
-	// PublicURL is the address people reach Umbrella at (links in notifications, PagerDuty
+	// PublicURL is the address people reach Beacon at (links in notifications, PagerDuty
 	// webhooks); the wizard fills it from the browser address. Empty keeps what is stored.
 	PublicURL string         `json:"public_url"`
 	OpenBao   config.OpenBao `json:"openbao"`
 	Postgres  pgInput        `json:"postgres"`
-	// SPAKey is the connection key SPA shows for Umbrella (optional: it can also come from
-	// SPA_CONNECTION_KEY). Nobody signs in to Umbrella before it is connected to SPA; the first
-	// administrator is whoever SPA gives the role admin.
-	SPAKey string `json:"spa_connection_key"`
+	// KeystoneKey is the connection key Keystone shows for Beacon (optional: it can also come from
+	// SPA_CONNECTION_KEY). Nobody signs in to Beacon before it is connected to Keystone; the first
+	// administrator is whoever Keystone gives the role admin.
+	KeystoneKey string `json:"spa_connection_key"`
 }
 
 type stepError struct {
@@ -61,8 +61,8 @@ func (m *Module) apply(ctx context.Context, in completeInput) (Result, error) {
 		return res, fail(http.StatusBadRequest, "public_url_invalid", err)
 	}
 	var spaKey string
-	if strings.TrimSpace(in.SPAKey) != "" {
-		k, err := spa.ParseKey(in.SPAKey)
+	if strings.TrimSpace(in.KeystoneKey) != "" {
+		k, err := keystone.ParseKey(in.KeystoneKey)
 		if err != nil {
 			return res, fail(http.StatusBadRequest, "spa_key_invalid", err)
 		}
@@ -102,7 +102,7 @@ func (m *Module) apply(ctx context.Context, in completeInput) (Result, error) {
 		return res, fail(http.StatusBadGateway, "openbao_write_failed", err)
 	}
 	if spaKey != "" {
-		if _, err := vault.PutRef(ctx, spa.SecretPath, spa.SecretKey, spaKey); err != nil {
+		if _, err := vault.PutRef(ctx, keystone.SecretPath, keystone.SecretKey, spaKey); err != nil {
 			return res, fail(http.StatusBadGateway, "openbao_write_failed", err)
 		}
 	}
@@ -134,7 +134,7 @@ func (m *Module) apply(ctx context.Context, in completeInput) (Result, error) {
 		d.EnsureSystemRoles(now)
 		d.EnsurePresetRoles(in.Locale, now)
 		d.AddAudit(store.AuditEntry{At: now, Actor: "setup", Action: "setup.complete",
-			Detail: "storage " + pg.Where() + ", SPA key " + onOff(spaKey != "")})
+			Detail: "storage " + pg.Where() + ", Keystone key " + onOff(spaKey != "")})
 	})
 	if err := st.Flush(); err != nil {
 		backend.Close()

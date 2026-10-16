@@ -46,7 +46,7 @@ export function formatBytes(n: number) {
   return `${v >= 100 || i === 0 ? Math.round(v) : v.toFixed(1)} ${UNITS[i]}`
 }
 
-// ProposalsPanel lists the service dependencies Umbrella Flow proposes from steady traffic between
+// ProposalsPanel lists the service dependencies Current proposes from steady traffic between
 // configuration items. Accepting creates the dependency (services:edit); rejecting hides the
 // proposal until its traffic grows ten times.
 export function ProposalsPanel({ epoch, onDecided, onSelect }: { epoch: number; onDecided: () => void; onSelect: (id: string) => void }) {

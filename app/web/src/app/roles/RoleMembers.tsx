@@ -4,7 +4,7 @@ import type { UserRef } from '../org/types'
 import type { Role } from './permissions'
 import { strings } from './strings'
 
-// RoleMembers lists who has the role. Roles are given in SPA, the single point of authorization,
+// RoleMembers lists who has the role. Roles are given in Keystone,
 // under the ID the catalogue publishes (the role ID in lower case).
 export function RoleMembers({ role }: { role: Role; roles?: Role[]; users?: UserRef[]; editable?: boolean; onMoved?: (target: string, ids: string[]) => Promise<void> }) {
   const t = useT(strings)

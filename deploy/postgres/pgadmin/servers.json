@@ -1,8 +1,8 @@
 {
   "Servers": {
     "1": {
-      "Name": "Umbrella",
-      "Group": "Umbrella Monitoring",
+      "Name": "Beacon",
+      "Group": "Beacon",
       "Host": "postgres",
       "Port": 5432,
       "MaintenanceDB": "umbrella",

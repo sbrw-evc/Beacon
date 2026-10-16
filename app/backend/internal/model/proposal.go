@@ -17,7 +17,7 @@ const (
 )
 
 // ProposalEnd is one side of a proposed dependency as the source names it, and the
-// configuration item Umbrella resolved it to.
+// configuration item Beacon resolved it to.
 type ProposalEnd struct {
 	SourceRef string `json:"source_ref,omitempty"`
 	Name      string `json:"name,omitempty"`
@@ -38,7 +38,7 @@ type ProposalEvidence struct {
 	FlowURL   string `json:"flow_url,omitempty"`
 }
 
-// DependencyProposal is a dependency between business services a source (Umbrella Flow)
+// DependencyProposal is a dependency between business services a source (Current)
 // derived from steady traffic between their configuration items. People accept or reject it
 // on the CMDB map.
 type DependencyProposal struct {

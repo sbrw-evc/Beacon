@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/netbox"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/netbox"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -38,7 +38,7 @@ func init() {
 	)
 }
 
-// netboxFailure is an error NetBox (or the way to it) returned while Umbrella acted there.
+// netboxFailure is an error NetBox (or the way to it) returned while Beacon acted there.
 type netboxFailure struct{ err error }
 
 func (e netboxFailure) Error() string { return e.err.Error() }

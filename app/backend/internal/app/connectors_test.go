@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store/storetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store/storetest"
 )
 
 type connFixture struct {
@@ -54,7 +54,7 @@ func newPGHarness(t *testing.T) *harness {
 	bao, vault := secretstest.New(t)
 	st := store.New()
 	fake := testSPA(t, st)
-	a := app.New(app.Options{Version: "test", SPAKey: fake.ConnectionKey()}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions(), Backend: backend})
+	a := app.New(app.Options{Version: "test", KeystoneKey: fake.ConnectionKey()}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions(), Backend: backend})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
@@ -67,7 +67,7 @@ func newPGHarness(t *testing.T) *harness {
 	})
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	h := &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
+	h := &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, keystone: fake}
 	deadline := time.Now().Add(15 * time.Second)
 	for !a.IngestReady() {
 		if time.Now().After(deadline) {

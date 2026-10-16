@@ -1,5 +1,6 @@
 web/node_modules/
 web/dist/
 backend/umbrella
+backend/beacon
 backend/data/
 web/*.tsbuildinfo

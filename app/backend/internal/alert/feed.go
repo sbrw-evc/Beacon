@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// FeedChannel is the PostgreSQL notification channel that tells every Umbrella instance an
+// FeedChannel is the PostgreSQL notification channel that tells every Beacon instance an
 // incident or its timeline changed, whichever instance or worker wrote it.
 const FeedChannel = "umbrella_incidents"
 

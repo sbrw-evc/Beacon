@@ -24,10 +24,10 @@ export const openBaoStrings: Dict = {
     'ob.ok.text': 'Version {version}. Signed in, the {mount} store is readable and writable; the test secret was deleted.',
     'ob.fail': 'OpenBao check failed',
     'ob.loopback':
-      'Umbrella runs in a container, so localhost is the Umbrella container itself. Use the OpenBao service name in the shared Docker network, for example http://openbao:8200, or http://host.docker.internal:8200 when OpenBao runs on the host.',
+      'Beacon runs in a container, so localhost is the Beacon container itself. Use the OpenBao service name in the shared Docker network, for example http://openbao:8200, or http://host.docker.internal:8200 when OpenBao runs on the host.',
     'ob.policies': 'Policies',
     'ob.expires': 'Token expires',
-    'ob.policy.hint': 'The Umbrella policy needs create, read, update and delete on {mount}/data/* and read, list and delete on {mount}/metadata/*.',
+    'ob.policy.hint': 'The Beacon policy needs create, read, update and delete on {mount}/data/* and read, list and delete on {mount}/metadata/*.',
   },
   ru: {
     'ob.addr': 'Адрес',
@@ -52,9 +52,9 @@ export const openBaoStrings: Dict = {
     'ob.ok.text': 'Версия {version}. Вход выполнен, хранилище {mount} доступно на чтение и запись; тестовый секрет удалён.',
     'ob.fail': 'Проверка OpenBao не прошла',
     'ob.loopback':
-      'Umbrella работает в контейнере, и localhost — это сам контейнер Umbrella. Укажите имя сервиса OpenBao в общей сети Docker, например http://openbao:8200, или http://host.docker.internal:8200, если OpenBao запущен на хосте.',
+      'Beacon работает в контейнере, и localhost — это сам контейнер Beacon. Укажите имя сервиса OpenBao в общей сети Docker, например http://openbao:8200, или http://host.docker.internal:8200, если OpenBao запущен на хосте.',
     'ob.policies': 'Политики',
     'ob.expires': 'Токен действует до',
-    'ob.policy.hint': 'Политике Umbrella нужны create, read, update и delete на {mount}/data/* и read, list и delete на {mount}/metadata/*.',
+    'ob.policy.hint': 'Политике Beacon нужны create, read, update и delete на {mount}/data/* и read, list и delete на {mount}/metadata/*.',
   },
 }

@@ -11,7 +11,7 @@ export const connectionStrings: Dict = {
     'conn.migrate': 'Move data',
     'conn.confirm': 'I understand, move the data',
     'conn.done': 'Done',
-    'err.switching': 'Umbrella is switching its connections. Try again in a moment.',
+    'err.switching': 'Beacon is switching its connections. Try again in a moment.',
     'err.switch_unavailable': 'Connections cannot be switched in this mode.',
   },
   ru: {
@@ -24,7 +24,7 @@ export const connectionStrings: Dict = {
     'conn.migrate': 'Перенести данные',
     'conn.confirm': 'Понятно, перенести данные',
     'conn.done': 'Готово',
-    'err.switching': 'Umbrella переключает подключения. Повторите через несколько секунд.',
+    'err.switching': 'Beacon переключает подключения. Повторите через несколько секунд.',
     'err.switch_unavailable': 'В этом режиме переключить подключения нельзя.',
   },
 }

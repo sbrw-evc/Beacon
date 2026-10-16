@@ -5,18 +5,18 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/netbox"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/netbox"
 )
 
 var (
 	ErrDirectoryUnavailable = errors.New("directory is unavailable")
 	// ErrManagedInSPA: name, e-mail, role, password and whether the person may sign in are
-	// managed in SPA, not in Umbrella.
-	ErrManagedInSPA    = errors.New("the account is managed in SPA")
+	// managed in Keystone, not in Beacon.
+	ErrManagedInSPA    = errors.New("the account is managed in Keystone")
 	ErrAvatarInvalid   = errors.New("the file is not a supported image")
 	ErrAvatarTooLarge  = errors.New("the image is too large")
 	ErrNotFound        = errors.New("not found")

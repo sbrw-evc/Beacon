@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/textx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/textx"
 )
 
 // Delivery errors carry a code the interface translates (alert.DeliveryError). ErrDisabled is
@@ -92,14 +92,14 @@ type Gateway struct {
 	priorities map[string]string
 	// syncMu serializes the read-back runs (the loop and «Synchronize now»).
 	syncMu sync.Mutex
-	// users finds Umbrella users by e-mail, for the on-call people.
+	// users finds Beacon users by e-mail, for the on-call people.
 	users UserFinder
 	// queues are the PagerDuty services as queues, as last read; queueHook runs after a read.
 	queues    []Queue
 	queueHook QueueHook
 }
 
-// UserFinder finds the Umbrella user of a PagerDuty user by e-mail; nil without one.
+// UserFinder finds the Beacon user of a PagerDuty user by e-mail; nil without one.
 type UserFinder func(email string) *model.User
 
 func New(st *store.Store, sec Resolver) *Gateway {
@@ -342,7 +342,7 @@ func people(list []alert.Person) []string {
 // Build makes the Events API v2 event of a command. Only trigger carries the payload.
 func Build(publicURL string, grafana, flow bool, routingKey string, cmd alert.Command) Event {
 	a := cmd.Alert
-	ev := Event{RoutingKey: routingKey, EventAction: string(cmd.Action), DedupKey: a.PD.Key, Client: "Umbrella"}
+	ev := Event{RoutingKey: routingKey, EventAction: string(cmd.Action), DedupKey: a.PD.Key, Client: "Beacon"}
 	base := strings.TrimRight(publicURL, "/")
 	if base != "" {
 		ev.ClientURL = model.IncidentURL(base, a.ID)
@@ -386,7 +386,7 @@ func Build(publicURL string, grafana, flow bool, routingKey string, cmd alert.Co
 		details["labels"] = a.Labels
 	}
 	// The description and fields of the newest firing source, the description cut short: the
-	// incident in Umbrella has the whole of it.
+	// incident in Beacon has the whole of it.
 	var latest *alert.Source
 	for _, s := range a.Sources {
 		if s.Status == alert.SourceFiring && (latest == nil || s.LastSeen.After(latest.LastSeen)) {
@@ -418,12 +418,12 @@ func Build(publicURL string, grafana, flow bool, routingKey string, cmd alert.Co
 		CustomDetails: details,
 	}
 	if base != "" {
-		ev.Links = []Link{{Href: model.IncidentURL(base, a.ID), Text: "Umbrella incident"}}
+		ev.Links = []Link{{Href: model.IncidentURL(base, a.ID), Text: "Beacon incident"}}
 		if grafana {
 			ev.Links = append(ev.Links, Link{Href: model.GrafanaHopURL(base, a.ID), Text: "Incident context in Grafana"})
 		}
 		if flow {
-			ev.Links = append(ev.Links, Link{Href: model.FlowHopURL(base, a.ID), Text: "Traffic in Umbrella Flow"})
+			ev.Links = append(ev.Links, Link{Href: model.FlowHopURL(base, a.ID), Text: "Traffic in Current"})
 		}
 	}
 	return ev
@@ -479,7 +479,7 @@ func (g *Gateway) SendTest(ctx context.Context, key string) error {
 		}
 	}
 	now := time.Now().UTC()
-	a := alert.Alert{ID: "TEST", PD: alert.PD{Key: fmt.Sprintf("umb-test-%d", now.Unix())}, Title: "Umbrella → PagerDuty connection test",
+	a := alert.Alert{ID: "TEST", PD: alert.PD{Key: fmt.Sprintf("umb-test-%d", now.Unix())}, Title: "Beacon → PagerDuty connection test",
 		CIName: "umbrella", Severity: "info", Signal: "umbrella.test", OpenedAt: now, Sources: map[string]*alert.Source{}}
 	if err := g.post(ctx, set.Events(), Build("", false, false, key, alert.Command{Action: alert.PDTrigger, Alert: a})); err != nil {
 		return err

@@ -7,10 +7,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const maxCIAliases = 20
@@ -63,7 +63,7 @@ func aliasConflicts(d *store.Data, id string, aliases []string) []string {
 	return out
 }
 
-// SetAliases replaces the other names events call an item by. Aliases are kept in Umbrella, so
+// SetAliases replaces the other names events call an item by. Aliases are kept in Beacon, so
 // items imported from NetBox take them too.
 func (s *CIService) SetAliases(actor, id string, aliases []string) (CIView, error) {
 	aliases, err := normalAliases(aliases)

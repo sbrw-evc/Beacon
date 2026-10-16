@@ -4,7 +4,7 @@ import { strings } from './strings'
 const own: Dict = {
   en: {
     'pr.title': 'Proposed dependencies ({n})',
-    'pr.hint': 'Umbrella Flow sees steady traffic between these configuration items. Accepting creates the dependency between their business services; a rejected proposal stays hidden unless its traffic grows ten times. Proposals Flow stops sending disappear after 14 days.',
+    'pr.hint': 'Current sees steady traffic between these configuration items. Accepting creates the dependency between their business services; a rejected proposal stays hidden unless its traffic grows ten times. Proposals Current stops sending disappear after 14 days.',
     'pr.dep': '{from} depends on {to}',
     'pr.exists': 'already set',
     'pr.noServices': 'The items belong to no business services yet: bind them to services to accept.',
@@ -12,7 +12,7 @@ const own: Dict = {
     'pr.volume': '{bytes}, {flows} flows in 7 days',
     'pr.days': 'seen on {n} of 7 days',
     'pr.lastSeen': 'last {at}',
-    'pr.flow': 'Traffic in Flow',
+    'pr.flow': 'Traffic in Current',
     'pr.accept': 'Accept',
     'pr.accept.none': 'The dependencies are already set or the items have no services.',
     'pr.reject': 'Reject',
@@ -23,7 +23,7 @@ const own: Dict = {
   },
   ru: {
     'pr.title': 'Предлагаемые зависимости ({n})',
-    'pr.hint': 'Umbrella Flow видит устойчивый трафик между этими КЕ. Принятие создаёт зависимость между их бизнес-сервисами; отклонённое предложение скрыто, пока трафик не вырастет в десять раз. Предложения, которые Flow перестал присылать, исчезают через 14 дней.',
+    'pr.hint': 'Current видит устойчивый трафик между этими КЕ. Принятие создаёт зависимость между их бизнес-сервисами; отклонённое предложение скрыто, пока трафик не вырастет в десять раз. Предложения, которые Current перестал присылать, исчезают через 14 дней.',
     'pr.dep': '{from} зависит от {to}',
     'pr.exists': 'уже задана',
     'pr.noServices': 'КЕ пока не входят в бизнес-сервисы: привяжите их к сервисам, чтобы принять.',
@@ -31,7 +31,7 @@ const own: Dict = {
     'pr.volume': '{bytes}, потоков за 7 дней: {flows}',
     'pr.days': 'виден {n} дн. из 7',
     'pr.lastSeen': 'последний раз {at}',
-    'pr.flow': 'Трафик во Flow',
+    'pr.flow': 'Трафик в Current',
     'pr.accept': 'Принять',
     'pr.accept.none': 'Зависимости уже заданы или у КЕ нет сервисов.',
     'pr.reject': 'Отклонить',

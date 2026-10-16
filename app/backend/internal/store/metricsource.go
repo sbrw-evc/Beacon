@@ -1,6 +1,6 @@
 package store
 
-import "github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+import "github.com/sbrw-evc/beacon/app/backend/internal/model"
 
 // MetricSource returns what RED and USE rules query by a source ID: a metric source, or a
 // Prometheus monitoring system, which serves as a metric source with its own address and

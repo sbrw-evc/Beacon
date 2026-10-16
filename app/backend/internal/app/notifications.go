@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/tgbot"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/tgbot"
 )
 
 const (
@@ -56,7 +56,7 @@ type NotifyView struct {
 	AutoDelaySeconds int  `json:"auto_delay_seconds"`
 	// DefaultTemplates are the built-in message templates by name: what Templates replace.
 	DefaultTemplates map[string]string `json:"default_templates"`
-	// BotStatus is the state of the Telegram bot built into Umbrella.
+	// BotStatus is the state of the Telegram bot built into Beacon.
 	BotStatus *tgbot.Status `json:"bot_status,omitempty"`
 }
 
@@ -116,7 +116,7 @@ type TelegramInput struct {
 	Enabled bool   `json:"enabled"`
 	Token   string `json:"token"`
 	APIURL  string `json:"api_url"`
-	// Bot turns on the bot built into Umbrella; nil keeps the saved value (older clients).
+	// Bot turns on the bot built into Beacon; nil keeps the saved value (older clients).
 	Bot *bool `json:"bot,omitempty"`
 }
 
@@ -439,7 +439,7 @@ func (a *App) notifyTest(w http.ResponseWriter, r *http.Request) {
 
 var ackTemplate = template.Must(template.New("ack").Parse(`<!doctype html>
 <html lang="{{.Lang}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex"><title>Umbrella · {{.ID}}</title>
+<meta name="robots" content="noindex"><title>Beacon · {{.ID}}</title>
 <style>
 :root{color-scheme:light dark;--bg:#f5f7fb;--card:#fff;--text:#111827;--muted:#6b7280;--accent:#2563eb;--border:#e5e7eb}
 @media (prefers-color-scheme:dark){:root{--bg:#0b1020;--card:#151b2e;--text:#e5e7eb;--muted:#9ca3af;--accent:#60a5fa;--border:#273049}}
@@ -449,7 +449,7 @@ h1{font-size:18px;margin:0 0 4px}p{margin:8px 0}.muted{color:var(--muted)}
 button{margin-top:12px;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
 a{color:var(--accent)}
 </style></head><body><main>
-<p class="muted">Umbrella</p>
+<p class="muted">Beacon</p>
 {{if .Title}}<h1>{{.ID}} · {{.Title}}</h1>{{end}}
 <p>{{.Message}}</p>
 {{if .Form}}<form method="post"><button type="submit">{{.Button}}</button></form>{{end}}

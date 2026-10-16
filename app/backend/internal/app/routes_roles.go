@@ -13,7 +13,7 @@ func (a *App) registerRoles(mux *http.ServeMux) {
 	a.route(mux, "GET /api/roles/{id}", "roles:view", fetch(func(r *http.Request) (RoleView, error) {
 		return a.roles.Get(r.PathValue("id"))
 	}))
-	// The roles are the catalogue SPA gives out: every change is published to SPA.
+	// The roles are the catalogue Keystone gives out: every change is published to Keystone.
 	a.route(mux, "POST /api/roles", "roles:edit", submit(http.StatusCreated, func(r *http.Request, in RoleInput) (RoleView, error) {
 		return published(a)(a.roles.Create(actorName(r), in))
 	}))

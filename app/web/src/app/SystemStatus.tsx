@@ -316,7 +316,7 @@ export function SystemStatus() {
           )}
           {ld.error && <Banner kind="error" title={ld.error} />}
         </Card>
-        <Card title="SPA" state={spState} t={t}>
+        <Card title="Keystone" state={spState} t={t}>
           {sp.connected ? (
             <Rows
               rows={[

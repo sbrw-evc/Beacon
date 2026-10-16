@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // EventKeys are the forms of the ci field of an event a configuration item may be known by:
@@ -56,7 +56,7 @@ func CIKeys(ci *model.ConfigItem) []string {
 type world struct {
 	cis   map[string]model.ConfigItem
 	index map[string][]string
-	// refs are the items by the source reference Inventory DB gives them (lower case).
+	// refs are the items by the source reference Ledger gives them (lower case).
 	refs        map[string][]string
 	hostLinks   map[string]string
 	services    []model.Service
@@ -134,15 +134,15 @@ func (w *world) resolve(name string, labels map[string]string) *model.ConfigItem
 
 // Labels an event may carry besides the ci field to name its item more precisely.
 const (
-	// LabelSourceRef is the source reference of the item in Inventory DB
-	// (inventory-db:dcim.device:100), as Umbrella Flow sends it.
+	// LabelSourceRef is the source reference of the item in Ledger
+	// (inventory-db:dcim.device:100), as Current sends it.
 	LabelSourceRef = "source_ref"
 	// LabelIP is an IP address of the item, tried when the ci field matches no item.
 	LabelIP = "ip"
 )
 
 // resolveCI finds the configuration item an event is about. A source_ref label that names the
-// Inventory DB reference of exactly one item wins. Otherwise a ci label wins over the ci field.
+// Ledger reference of exactly one item wins. Otherwise a ci label wins over the ci field.
 // The hosts linked by hand on the monitoring systems page come first: a linked host resolves
 // to its item, a host marked as no item is excluded. Then the item is matched by ID, name,
 // short name, IP address or the DNS name of its computer object. An ambiguous name matches
@@ -365,7 +365,7 @@ type Catalog struct{ w *world }
 // NewCatalog copies the catalog of st.
 func NewCatalog(st *store.Store) Catalog { return Catalog{w: snapshot(st)} }
 
-// Find resolves an item named by its Inventory DB reference, name and IP address; a host
+// Find resolves an item named by its Ledger reference, name and IP address; a host
 // marked as no item, an ambiguous name or nothing found is nil.
 func (c Catalog) Find(sourceRef, name, ip string) *model.ConfigItem {
 	if strings.TrimSpace(name) == "" {

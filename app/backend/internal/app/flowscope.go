@@ -5,19 +5,19 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// Scope modes as Umbrella Flow names them (docs/integrations.md §3.2).
+// Scope modes as Current names them (docs/integrations.md §3.2).
 const (
 	flowScopeAll      = "all"
 	flowScopeTeams    = "teams"
 	flowScopeSelected = "selected"
 )
 
-// FlowScopeCI is a configuration item a user of Umbrella Flow may see the traffic of.
+// FlowScopeCI is a configuration item a user of Current may see the traffic of.
 type FlowScopeCI struct {
 	ID         string   `json:"id"`
 	Name       string   `json:"name"`
@@ -30,7 +30,7 @@ type FlowScopeService struct {
 	Name string `json:"name"`
 }
 
-// FlowScope is the visibility scope of a user for Umbrella Flow: everything, or the business
+// FlowScope is the visibility scope of a user for Current: everything, or the business
 // services of the scope and the configuration items bound to them.
 type FlowScope struct {
 	Username string             `json:"username"`

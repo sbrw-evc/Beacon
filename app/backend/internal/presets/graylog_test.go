@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
 )
 
 // A Graylog HTTP notification: the host comes from the group-by values, the priority is the

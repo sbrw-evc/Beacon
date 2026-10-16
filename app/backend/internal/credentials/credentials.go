@@ -1,5 +1,5 @@
-// Package credentials holds what the secret store of Umbrella shares with its callers.
-// Passwords of people are not kept any more: people sign in through SPA.
+// Package credentials holds what the secret store of Beacon shares with its callers.
+// Passwords of people are not kept any more: people sign in through Keystone.
 package credentials
 
 import (
@@ -18,6 +18,6 @@ type Vault interface {
 }
 
 // Path and HistoryPath are where the password hashes of a user and their history were kept
-// before SPA; they are deleted once (app.Migrate).
+// before Keystone; they are deleted once (app.Migrate).
 func Path(userID string) string        { return "users/" + userID }
 func HistoryPath(userID string) string { return "users/" + userID + "/history" }

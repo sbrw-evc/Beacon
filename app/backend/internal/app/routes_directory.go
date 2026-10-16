@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory"
 )
 
 func (a *App) registerDirectory(mux *http.ServeMux) {

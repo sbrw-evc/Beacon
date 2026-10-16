@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // Onboarding steps: what has to exist before an event reaches a person.
@@ -22,7 +22,7 @@ const (
 	StepCatalog   = "catalog"
 	StepDelivery  = "delivery"
 	StepPublicURL = "public_url"
-	// StepSPA: Umbrella is connected to SPA and the people of SPA are synchronized.
+	// StepSPA: Beacon is connected to Keystone and the people of Keystone are synchronized.
 	StepSPA = "spa"
 )
 
@@ -161,7 +161,7 @@ func (a *App) Onboarding(ctx context.Context, perms access.Set) Onboarding {
 		eventPath = "/connectors/" + f.published[0]
 	}
 	steps := []OnboardingStep{
-		{ID: StepSPA, Done: f.spa, Path: "/settings/spa", CanFix: all("settings.spa:sync")},
+		{ID: StepSPA, Done: f.spa, Path: "/settings/keystone", CanFix: all("settings.spa:sync")},
 		{ID: StepSource, Done: len(f.published) > 0, Path: sourcePath, CanFix: all("connectors:edit", "connectors:publish", "credentials:edit")},
 		{ID: StepEvent, Done: a.anyEvent(ctx), Path: eventPath, CanFix: all("connectors:view")},
 		{ID: StepTeam, Done: f.team, Path: "/teams", CanFix: all("teams:edit")},
@@ -182,7 +182,7 @@ type publicURLView struct {
 	PublicURL string `json:"public_url"`
 }
 
-// SetPublicURL saves the address people and PagerDuty reach Umbrella at.
+// SetPublicURL saves the address people and PagerDuty reach Beacon at.
 func (s *SettingsService) SetPublicURL(actor, v string) (string, error) {
 	pub, err := model.NormalizePublicURL(v)
 	if err != nil {

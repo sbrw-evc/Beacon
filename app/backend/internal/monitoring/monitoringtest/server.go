@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// Zabbix answers the JSON-RPC methods Umbrella uses. Version decides where the token is
+// Zabbix answers the JSON-RPC methods Beacon uses. Version decides where the token is
 // expected: the Authorization header from 6.4 on, the auth field before.
 type Zabbix struct {
 	URL      string

@@ -5,24 +5,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/inventorydb/inventorydbtest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ledger/ledgertest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type inventoryFixture struct {
 	h     *harness
-	inv   *inventorydbtest.Server
+	inv   *ledgertest.Server
 	admin *client
 }
 
 func newInventoryFixture(t *testing.T) inventoryFixture {
 	h := newHarness(t)
 	h.addLocal("admin", "Admin-pass-2026", model.RoleAdmin, time.Now())
-	inv := inventorydbtest.Start(t)
-	inv.Set(inventorydbtest.Device(1, "srv-db-01", "10.0.0.1"), inventorydbtest.Device(2, "srv-app-01", "10.0.0.2"),
-		inventorydbtest.Device(3, "sw-core-01", "10.0.0.3"),
+	inv := ledgertest.Start(t)
+	inv.Set(ledgertest.Device(1, "srv-db-01", "10.0.0.1"), ledgertest.Device(2, "srv-app-01", "10.0.0.2"),
+		ledgertest.Device(3, "sw-core-01", "10.0.0.3"),
 		map[string]any{"source_ref": "inventory-db:dcim.site:1", "type": "site", "name": "DC1", "status": "active"})
 	admin := h.client()
 	admin.login("admin", "Admin-pass-2026")
@@ -30,7 +30,7 @@ func newInventoryFixture(t *testing.T) inventoryFixture {
 }
 
 func (f inventoryFixture) config(extra map[string]any) map[string]any {
-	cfg := map[string]any{"enabled": true, "url": f.inv.URL + "/", "integration_id": inventorydbtest.Integration, "sync_minutes": 15,
+	cfg := map[string]any{"enabled": true, "url": f.inv.URL + "/", "integration_id": ledgertest.Integration, "sync_minutes": 15,
 		"import_devices": true, "push_status": true}
 	for k, v := range extra {
 		cfg[k] = v
@@ -41,7 +41,7 @@ func (f inventoryFixture) config(extra map[string]any) map[string]any {
 func (f inventoryFixture) connect() {
 	f.h.t.Helper()
 	var view app.InventoryDBView
-	body := map[string]any{"config": f.config(nil), "token": inventorydbtest.Token, "secret": inventorydbtest.Secret}
+	body := map[string]any{"config": f.config(nil), "token": ledgertest.Token, "secret": ledgertest.Secret}
 	if code := f.admin.call(http.MethodPut, "/api/inventory-db", body, &view); code != 200 || !view.TokenSet || !view.SecretSet || !view.Config.Enabled {
 		f.h.t.Fatalf("save = %d %+v", code, view)
 	}
@@ -84,17 +84,17 @@ func TestInventoryDBIsOffByDefault(t *testing.T) {
 func TestInventoryDBSaveChecksConnection(t *testing.T) {
 	f := newInventoryFixture(t)
 	var report app.InventoryDBTestReport
-	if code := f.admin.call(http.MethodPost, "/api/inventory-db/test", map[string]any{"config": f.config(nil), "token": inventorydbtest.Token}, &report); code != 200 || !report.OK || report.Probe.Items != 4 {
+	if code := f.admin.call(http.MethodPost, "/api/inventory-db/test", map[string]any{"config": f.config(nil), "token": ledgertest.Token}, &report); code != 200 || !report.OK || report.Probe.Items != 4 {
 		t.Fatalf("test = %d %+v", code, report)
 	}
 	if code := f.admin.call(http.MethodPut, "/api/inventory-db", map[string]any{"config": f.config(nil), "token": "wrong", "secret": "s"}, nil); code != http.StatusBadRequest {
 		t.Fatalf("wrong token saved: %d", code)
 	}
-	if code := f.admin.call(http.MethodPut, "/api/inventory-db", map[string]any{"config": f.config(nil), "token": inventorydbtest.Token}, nil); code != http.StatusBadRequest {
+	if code := f.admin.call(http.MethodPut, "/api/inventory-db", map[string]any{"config": f.config(nil), "token": ledgertest.Token}, nil); code != http.StatusBadRequest {
 		t.Fatalf("saved without a signing secret: %d", code)
 	}
 	f.connect()
-	if got := f.h.bao.Get("umbrella/inventory-db"); got["token"] != inventorydbtest.Token || got["signing_secret"] != inventorydbtest.Secret {
+	if got := f.h.bao.Get("umbrella/inventory-db"); got["token"] != ledgertest.Token || got["signing_secret"] != ledgertest.Secret {
 		t.Fatalf("secrets not in OpenBao: %v", f.h.bao.Paths())
 	}
 	// Saving again keeps the stored token and secret; another address needs them again.
@@ -129,14 +129,14 @@ func TestInventoryDBSyncCreatesLinksAndRemovesItems(t *testing.T) {
 	}
 	// Imported items are read-only.
 	if code := f.admin.call(http.MethodPut, "/api/cis/"+db.ID, map[string]any{"name": "x", "kind": "device", "status": "active"}, nil); code == 200 {
-		t.Fatal("an Inventory DB item was edited")
+		t.Fatal("a Ledger item was edited")
 	}
 	// A second run changes nothing.
 	if s := f.sync("").Stats; s.Created+s.Updated+s.Linked+s.Deleted+s.Unlinked != 0 {
 		t.Fatalf("second sync = %+v", s)
 	}
 	// Device 2 is gone: its item is deleted; device 3 is gone: the hand-made item is unlinked.
-	f.inv.Set(inventorydbtest.Device(1, "srv-db-01", "10.0.0.9"))
+	f.inv.Set(ledgertest.Device(1, "srv-db-01", "10.0.0.9"))
 	if s := f.sync("?confirm=removal").Stats; s.Deleted != 1 || s.Unlinked != 1 || s.Updated != 1 {
 		t.Fatalf("removal = %+v", s)
 	}

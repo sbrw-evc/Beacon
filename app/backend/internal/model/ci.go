@@ -59,11 +59,11 @@ type NetBoxRef struct {
 	URL  string `json:"url"`
 }
 
-// InventoryRef points at the Inventory DB device a configuration item is read from.
+// InventoryRef points at the Ledger device a configuration item is read from.
 type InventoryRef struct {
 	ID  int    `json:"id"`
 	URL string `json:"url"`
-	// Ref is the source reference Inventory DB gives the device (inventory-db:dcim.device:12).
+	// Ref is the source reference Ledger gives the device (inventory-db:dcim.device:12).
 	Ref string `json:"ref"`
 }
 
@@ -93,7 +93,7 @@ type ConfigItem struct {
 	Tags        []string   `json:"tags"`
 	Attrs       CIAttrs    `json:"attrs"`
 	NetBox      *NetBoxRef `json:"netbox,omitempty"`
-	// InventoryDB is set on items read from Inventory DB.
+	// InventoryDB is set on items read from Ledger.
 	InventoryDB *InventoryRef `json:"inventory_db,omitempty"`
 	Directory   *CIDirectory  `json:"directory,omitempty"`
 	CreatedAt   time.Time     `json:"created_at"`
@@ -103,11 +103,11 @@ type ConfigItem struct {
 	SyncedAt    *time.Time    `json:"synced_at,omitempty"`
 
 	// Aliases are other names events call the item by (a host name in a monitoring system, a
-	// Prometheus instance). They are kept in Umbrella, also for items imported from NetBox.
+	// Prometheus instance). They are kept in Beacon, also for items imported from NetBox.
 	Aliases []string `json:"aliases,omitempty"`
 }
 
-// Imported items mirror NetBox or Inventory DB and change only there.
+// Imported items mirror NetBox or Ledger and change only there.
 func (c *ConfigItem) Imported() bool {
 	return c.Source == SourceNetBox || c.Source == SourceInventoryDB
 }
@@ -119,7 +119,7 @@ type SyncStats struct {
 	Updated  int `json:"updated"`
 	Deleted  int `json:"deleted"`
 	Unlinked int `json:"unlinked"`
-	// Linked: existing items an Inventory DB device was attached to by name.
+	// Linked: existing items a Ledger device was attached to by name.
 	Linked       int `json:"linked,omitempty"`
 	Contacts     int `json:"contacts"`
 	UsersCreated int `json:"users_created"`
@@ -151,7 +151,7 @@ type SyncState struct {
 	Stats      SyncStats `json:"stats"`
 }
 
-// PushedAlert is the alert state last sent to Inventory DB, to send only changes and to report
+// PushedAlert is the alert state last sent to Ledger, to send only changes and to report
 // the alert resolved once it is no longer active.
 type PushedAlert struct {
 	Key   string    `json:"key"`

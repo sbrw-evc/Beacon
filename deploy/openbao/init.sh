@@ -69,7 +69,7 @@ mv "$UMBRELLA_DIR/role_id.tmp" "$UMBRELLA_DIR/role_id"
 if [ ! -s "$UMBRELLA_DIR/secret_id" ] || ! bao write -f auth/approle/role/umbrella/secret-id/lookup secret_id="$(cat "$UMBRELLA_DIR/secret_id")" >/dev/null 2>&1; then
   bao write -f -field=secret_id auth/approle/role/umbrella/secret-id > "$UMBRELLA_DIR/secret_id.tmp"
   mv "$UMBRELLA_DIR/secret_id.tmp" "$UMBRELLA_DIR/secret_id"
-  log "new AppRole secret_id for Umbrella"
+  log "new AppRole secret_id for Beacon"
 fi
 chmod 0644 "$UMBRELLA_DIR/role_id" "$UMBRELLA_DIR/secret_id" 2>/dev/null || true
 

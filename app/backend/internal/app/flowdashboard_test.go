@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// flowColumns are the columns of the Umbrella Flow ClickHouse tables (Network repository,
+// flowColumns are the columns of the Current ClickHouse tables (Network repository,
 // app/backend/internal/schema/columns.go); rollup marks the ones the flows_1m / flows_5m /
 // flows_1h aggregates keep.
 var flowColumns = map[string]bool{
@@ -30,8 +30,8 @@ var flowColumns = map[string]bool{
 	"Bytes": true, "Packets": true,
 }
 
-// The "CI traffic" dashboard of deploy/grafana (docs/integrations.md §3.5): the Flow ClickHouse
-// datasource, the variables Umbrella's incident link fills, and queries over the Flow tables
+// The "CI traffic" dashboard of deploy/grafana (docs/integrations.md §3.5): the Current ClickHouse
+// datasource, the variables Beacon's incident link fills, and queries over the Current tables
 // that use only their columns (the aggregates only the rollup ones).
 func TestFlowCITrafficDashboard(t *testing.T) {
 	raw, err := os.ReadFile("../../../../deploy/grafana/flow-ci-traffic.json")
@@ -95,7 +95,7 @@ func TestFlowCITrafficDashboard(t *testing.T) {
 			}
 			m := table.FindStringSubmatch(q.RawSQL)
 			if m == nil {
-				t.Fatalf("panel %q reads no Flow table: %s", p.Title, q.RawSQL)
+				t.Fatalf("panel %q reads no Current table: %s", p.Title, q.RawSQL)
 			}
 			if !strings.Contains(q.RawSQL, "$__timeFilter(TimeReceived)") || !strings.Contains(q.RawSQL, "${ref:sqlstring}") {
 				t.Fatalf("panel %q: no time or reference filter", p.Title)

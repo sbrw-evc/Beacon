@@ -14,7 +14,7 @@ POST /api/ingest/{slug}
   → connector_events (upsert by idempotency key), ingest_failures, connector_stats
 ```
 
-Definitions (connectors, drafts, versions, samples, credentials) are kept in the state snapshot, like the other Umbrella objects, and move with it when migrating to another PostgreSQL database. High-frequency data lives in separate PostgreSQL tables: `ingest_requests` (daily partitions), `ingest_idempotency`, `connector_events`, `ingest_failures`, `connector_stats`; they are not copied when migrating to another database. The tables are created at startup; until they are ready, the intake address answers 503 (`ingest_unavailable`).
+Definitions (connectors, drafts, versions, samples, credentials) are kept in the state snapshot, like the other Beacon objects, and move with it when migrating to another PostgreSQL database. High-frequency data lives in separate PostgreSQL tables: `ingest_requests` (daily partitions), `ingest_idempotency`, `connector_events`, `ingest_failures`, `connector_stats`; they are not copied when migrating to another database. The tables are created at startup; until they are ready, the intake address answers 503 (`ingest_unavailable`).
 
 Retention: the request archive — 7 days, failures and statistics — 30 days, idempotency keys (`Idempotency-Key`) — 24 hours (the periods are set by the `UMBRELLA_INGEST_KEEP_*` variables, see [README](../README.md)). Cleanup and partition creation run once an hour under an advisory lock.
 
@@ -47,16 +47,16 @@ The catalog holds both **incoming** secrets (connectors use them to check reques
 The **Connect a source** button on the "Connectors" page (and on "Monitoring systems", and at `/monitoring?connect=1`) does in one step what used to require three pages:
 
 1. creates a Bearer token (credentials "Intake token: …");
-2. creates a connector from the Zabbix, Alertmanager, Grafana, Graylog, Umbrella Flow or generic webhook template with this token (the address is derived from the name; if it is taken, a number is appended);
+2. creates a connector from the Zabbix, Alertmanager, Grafana, Graylog, Current or generic webhook template with this token (the address is derived from the name; if it is taken, a number is appended);
 3. publishes it.
 
-The response shows the intake address (the public Umbrella address from the alerting settings, or the address the interface was opened at) and the token — **once**; after that it is stored only in OpenBao. For Zabbix you get the [`umbrella-mediatype.yaml`](../../deploy/zabbix/umbrella-mediatype.yaml) media type with the address and token already filled in, for Alertmanager — a ready `alertmanager.yml` receiver, for Grafana — contact point parameters, for Umbrella Flow — the address and token for its settings ([flow.md](flow.md)), for webhook — a `curl` example. From the "Alert intake" tab of a monitoring system, the connector immediately becomes that system's intake.
+The response shows the intake address (the public Beacon address from the alerting settings, or the address the interface was opened at) and the token — **once**; after that it is stored only in OpenBao. For Zabbix you get the [`beacon-mediatype.yaml`](../../deploy/zabbix/beacon-mediatype.yaml) media type with the address and token already filled in, for Alertmanager — a ready `alertmanager.yml` receiver, for Grafana — contact point parameters, for Current — the address and token for its settings ([current.md](current.md)), for webhook — a `curl` example. From the "Alert intake" tab of a monitoring system, the connector immediately becomes that system's intake.
 
 `POST /api/connectors/quick` (permissions `connectors:edit`, `connectors:publish`, `credentials:edit`; with `monitoring_id` — also `monitoring:edit`): body `{preset: "zabbix"|"alertmanager"|"grafana"|"graylog"|"network-flow"|"webhook", name?, monitoring_id?}`, response `{connector, credential_id, ingest_url, token, instructions: {preset, ingest_url, auth_header, snippet?, snippet_kind?}, mediatype_yaml?, monitoring_id?}`. If a step fails, whatever was created before it is deleted.
 
 ## Test event
 
-The **Send a test event** button (in the editor of a published connector, after a quick connection and on the "Alert intake" tab of a system) puts a request in the connector template's format into the intake queue (for a custom format — the first sample), and the workers run it through the published version exactly like a real delivery. The resulting event gets the title "Тестовое событие Umbrella" ("Umbrella test event"; the title is fixed in the code), the labels `umbrella_test=true` and `umbrella_test_id`, its own signal (so it does not merge with real incidents) and the given CI name (`umbrella-test` by default). If the connector produced no event, one is created anyway — the test still shows the route.
+The **Send a test event** button (in the editor of a published connector, after a quick connection and on the "Alert intake" tab of a system) puts a request in the connector template's format into the intake queue (for a custom format — the first sample), and the workers run it through the published version exactly like a real delivery. The resulting event gets the title "Тестовое событие Beacon" ("Beacon test event"; the title is fixed in the code), the labels `umbrella_test=true` and `umbrella_test_id`, its own signal (so it does not merge with real incidents) and the given CI name (`umbrella-test` by default). If the connector produced no event, one is created anyway — the test still shows the route.
 
 A test incident is not sent to PagerDuty (state "skipped"), fallback notification channels skip it by the `umbrella_test` label, and after 5 minutes it resolves itself (reason "the test event is over"). The interface shows the incident number, the CI and the route: business services, the team and people.
 
@@ -74,7 +74,7 @@ The "Connectors" page (`/connectors`), the editor — `/connectors/{id}`:
 - test: running a sample, running up to a chosen node, running all samples (regression before publishing); the input and output of every node (JSON or table), counters on nodes and links, pinning a node output, marking stale results after edits; a test writes nothing;
 - the "Requests", "Failures" (reprocessing selected or all of them on the current version), "Events", "Statistics" tabs.
 
-Templates: Prometheus Alertmanager, Grafana Alerting, Graylog, Umbrella Flow (`network-flow`, NetFlow / IPFIX / sFlow traffic events — [flow.md](flow.md)), Zabbix (webhook), generic webhook — with built-in samples.
+Templates: Prometheus Alertmanager, Grafana Alerting, Graylog, Current (`network-flow`, NetFlow / IPFIX / sFlow traffic events — [current.md](current.md)), Zabbix (webhook), generic webhook — with built-in samples.
 
 A template is a `backend/internal/presets/*.json` file in the connector export format. The optional `quick` object makes it available to quick connection: its order in the dialog (`order`), the default connector name (`name`, en/ru), the kinds of monitoring systems (`monitoring_kinds`), the number of source setup steps (`steps`, their text is in the interface strings `src.steps.<id>.<n>`), a setup snippet (`snippet`) and a file to import (`attachment`) — Go `text/template` templates with `{{.URL}}` and `{{.Token}}` (functions `quote`, `yaml`, `json`) — and the test event body (`test_body`, with `{{.Nonce}}`, `{{.CI}}`, `{{.Title}}`). A template with `starter` defines the graph of a new connector created without a template.
 
@@ -110,4 +110,4 @@ Permissions of the `connectors` page: `view`, `edit` (drafts, samples, tests), `
 - Stage 4: `enrich.lookup`, lookup tables, `vars.*` variables, fragments.
 - Stage 5: scopes and owning teams, version diff, publication approval, tag filters, declarative source descriptions.
 - Stage 6 — on request.
-- Several Umbrella instances: the workers are already safe (`SKIP LOCKED`), but the rate limit is counted in each process separately.
+- Several Beacon instances: the workers are already safe (`SKIP LOCKED`), but the rate limit is counted in each process separately.

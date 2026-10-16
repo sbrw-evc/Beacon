@@ -27,8 +27,8 @@ import { Toaster } from '../notify'
 
 const TOKEN_HEADER = 'X-Setup-Token'
 
-// Nobody signs in to Umbrella with a password: people sign in at SPA, and the first administrator
-// is whoever SPA gives the role «Administrator». The SPA step takes the connection key (optional:
+// Nobody signs in to Beacon with a password: people sign in at Keystone, and the first administrator
+// is whoever Keystone gives the role «Administrator». The Keystone step takes the connection key (optional:
 // it can also come from SPA_CONNECTION_KEY).
 type StepId = 'code' | 'prefs' | 'openbao' | 'postgres' | 'spa' | 'review'
 const STEPS: StepId[] = ['code', 'prefs', 'openbao', 'postgres', 'spa', 'review']
@@ -95,7 +95,7 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
   const [ob, setOb] = useState<OpenBaoDraft>(openBaoDraft)
   const [pg, setPg] = useState<Postgres>(() => ({ ...postgresDraft(), reuse_existing: false }))
   const [spaKey, setSpaKey] = useState('')
-  // The address people reach Umbrella at: the wizard is opened at it in most installations.
+  // The address people reach Beacon at: the wizard is opened at it in most installations.
   const [publicURL, setPublicURL] = useState(() => window.location.origin)
   const [obCheck, setObCheck] = useState<Probe<OpenBaoReport>>(null)
   const [pgCheck, setPgCheck] = useState<Probe<PostgresReport>>(null)
@@ -452,7 +452,7 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
                     <Rows rows={[[t('spa.redirect'), <code key="r">{`${(publicURL.trim() || window.location.origin).replace(/\/+$/, '')}/api/auth/spa/callback`}</code>]]} />
                     <Banner kind="info" title={t('spa.admin')} />
                     {spaCheck && spaCheck.key === spaCheckKey && (
-                      <Banner kind={spaCheck.ok ? 'ok' : 'error'} title={spaCheck.ok ? t('spa.ok', { app: spaCheck.result?.application || 'Umbrella' }) : t('spa.fail')}>
+                      <Banner kind={spaCheck.ok ? 'ok' : 'error'} title={spaCheck.ok ? t('spa.ok', { app: spaCheck.result?.application || 'Beacon' }) : t('spa.fail')}>
                         {spaCheck.ok ? spaCheck.result?.issuer : spaCheck.error}
                       </Banner>
                     )}
@@ -497,7 +497,7 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
                         ]}
                       />
                       <Summary
-                        title="SPA"
+                        title="Keystone"
                         edit={() => setStep('spa')}
                         t={t}
                         rows={[[t('spa.key'), spaKey.trim() ? t('spa.key.set') : t('spa.key.env')]]}

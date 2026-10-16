@@ -12,17 +12,17 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/logs"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/rules"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/logs"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring"
+	"github.com/sbrw-evc/beacon/app/backend/internal/rules"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // The machine of an incident: graphs from the monitoring systems whose hosts are the
-// configuration item of the incident, log lines from the log sources and the events Umbrella
+// configuration item of the incident, log lines from the log sources and the events Beacon
 // received about the item, over a window around the start of the incident.
 
 const (
@@ -865,7 +865,7 @@ WHERE (($1 <> '' AND ci_id = $1) OR ($1 = '' AND lower(doc->>'ci_name') = ANY($2
 	AND (cardinality($5::text[]) = 0 OR service_ids && $5)
 ORDER BY first_seen DESC LIMIT $6`
 
-// machineHistory adds the events Umbrella received about the machine and its incidents in
+// machineHistory adds the events Beacon received about the machine and its incidents in
 // the window.
 func (a *App) machineHistory(ctx context.Context, al alert.Alert, scope []string, v *machineView) {
 	v.Events, v.Incidents = []machineEvent{}, []machineIncident{}

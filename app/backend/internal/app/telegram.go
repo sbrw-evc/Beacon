@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/telegram"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/tgbot"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/telegram"
+	"github.com/sbrw-evc/beacon/app/backend/internal/tgbot"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 	tgLockKey = 0x75_6d_62_74_67 // "umbtg"
 )
 
-// botBackend is what the Telegram bot built into Umbrella sees of the application.
+// botBackend is what the Telegram bot built into Beacon sees of the application.
 type botBackend struct{ a *App }
 
 func (b botBackend) Config() (tgbot.Config, error) {

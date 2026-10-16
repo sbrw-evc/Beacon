@@ -15,13 +15,13 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify/notifytest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/response"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store/storetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify/notifytest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/response"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store/storetest"
 )
 
 // call is a request one of the fake APIs took.
@@ -79,7 +79,7 @@ func (f *fakeAPI) handle(w http.ResponseWriter, r *http.Request) {
 	case p == "/oauth/token":
 		reply(200, map[string]any{"access_token": "zoom-access", "expires_in": 3600})
 	case p == "/me":
-		reply(200, map[string]any{"id": "svc-id", "userPrincipalName": "umbrella@corp.example", "displayName": "Umbrella"})
+		reply(200, map[string]any{"id": "svc-id", "userPrincipalName": "umbrella@corp.example", "displayName": "Beacon"})
 	case strings.HasPrefix(p, "/users/") && strings.Contains(p, "@") && r.Method == http.MethodGet && !strings.HasSuffix(p, "/meetings"):
 		upn := strings.TrimPrefix(p, "/users/")
 		if strings.HasPrefix(upn, "nobody") {
@@ -98,7 +98,7 @@ func (f *fakeAPI) handle(w http.ResponseWriter, r *http.Request) {
 	case strings.HasSuffix(p, "/meetings"):
 		reply(201, map[string]any{"id": 8123, "join_url": "https://zoom.example/j/8123"})
 	case p == "/rest/api/3/myself":
-		reply(200, map[string]any{"displayName": "Umbrella bot"})
+		reply(200, map[string]any{"displayName": "Beacon bot"})
 	case strings.HasPrefix(p, "/rest/api/3/project/"):
 		reply(200, map[string]any{"name": "Operations"})
 	case p == "/rest/api/3/issue":
@@ -537,7 +537,7 @@ func TestResponseOffAndOldIncidents(t *testing.T) {
 func TestIntegrationChecks(t *testing.T) {
 	v := setup(t, model.ModeLive)
 	ctx := context.Background()
-	if info, err := v.r.TestJira(ctx); err != nil || info != "Umbrella bot · Operations" {
+	if info, err := v.r.TestJira(ctx); err != nil || info != "Beacon bot · Operations" {
 		t.Fatalf("jira: %q %v", info, err)
 	}
 	if info, err := v.r.TestGraph(ctx); err != nil || info != "umbrella@corp.example" {

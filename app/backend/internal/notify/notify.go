@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -102,7 +102,7 @@ func New(st *store.Store, sec Resolver) *Service {
 func (s *Service) SetResults(r Results) { s.results = r }
 
 // OnCallSource gives the people on call for an alert (PagerDuty), who get the notifications
-// of Umbrella too.
+// of Beacon too.
 type OnCallSource interface {
 	OnCallPeople(a alert.Alert) []alert.Person
 }

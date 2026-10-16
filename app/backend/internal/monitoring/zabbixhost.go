@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // The events and log lines a monitoring system keeps about one host, read for the machine of an
@@ -21,7 +21,7 @@ type HostEvent struct {
 	ID    string    `json:"id"`
 	At    time.Time `json:"at"`
 	Title string    `json:"title"`
-	// Severity is the Umbrella name of the severity; Level is the system's own word.
+	// Severity is the Beacon name of the severity; Level is the system's own word.
 	Severity     string     `json:"severity"`
 	Level        string     `json:"level"`
 	Status       string     `json:"status"`
@@ -48,7 +48,7 @@ type HostLogs struct {
 	Items int
 }
 
-// Zabbix severities: names and the Umbrella severity they open, as in the Zabbix preset.
+// Zabbix severities: names and the Beacon severity they open, as in the Zabbix preset.
 var zabbixLevels = []struct{ name, severity string }{
 	{"Not classified", model.SeverityInfo},
 	{"Information", model.SeverityInfo},

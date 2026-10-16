@@ -5,7 +5,7 @@ import { postgresStrings } from '../../../connections/postgresStrings'
 const page: Dict = {
   en: {
     'pgs.current': 'Current connection',
-    'pgs.current.text': 'The PostgreSQL database where Umbrella saves its state.',
+    'pgs.current.text': 'The PostgreSQL database where Beacon saves its state.',
     'pgs.host': 'Host',
     'pgs.port': 'Port',
     'pgs.database': 'Database',
@@ -20,7 +20,7 @@ const page: Dict = {
     'pgs.test.fail': 'PostgreSQL does not answer',
 
     'pgs.stats': 'Statistics',
-    'pgs.stats.text': 'Live counters of the Umbrella database from pg_stat_database, table sizes and the longest running operations.',
+    'pgs.stats.text': 'Live counters of the Beacon database from pg_stat_database, table sizes and the longest running operations.',
     'pgs.stats.auto': 'Refresh every 10 seconds',
     'pgs.stats.collected': 'Collected {at}',
     'pgs.tx': 'Transactions',
@@ -72,16 +72,16 @@ const page: Dict = {
 
     'pgs.move': 'Move to another database',
     'pgs.move.text':
-      'Copy all Umbrella data to another PostgreSQL database and switch Umbrella to it. The current database is not changed. The new password is saved to OpenBao.',
-    'pgs.move.overwrite': 'Replace the Umbrella data in that database',
+      'Copy all Beacon data to another PostgreSQL database and switch Beacon to it. The current database is not changed. The new password is saved to OpenBao.',
+    'pgs.move.overwrite': 'Replace the Beacon data in that database',
     'pgs.move.overwriteText': 'The data saved there will be replaced with the current data of this installation.',
-    'pgs.move.confirm': 'Move Umbrella to another database?',
+    'pgs.move.confirm': 'Move Beacon to another database?',
     'pgs.move.step1': 'Users, settings, the audit log, incidents with their history and the queue of received requests are copied to {where}.',
     'pgs.move.step2': 'The password of the new database is saved to OpenBao.',
-    'pgs.move.step3': 'Umbrella switches to the new database; for a few seconds it does not answer requests. Sessions stay open.',
+    'pgs.move.step3': 'Beacon switches to the new database; for a few seconds it does not answer requests. Sessions stay open.',
     'pgs.move.step4': 'The current database {current} is left as it is.',
-    'pgs.move.replace': 'The Umbrella data already stored in the new database will be replaced.',
-    'pgs.move.done': 'Umbrella now works with {where}',
+    'pgs.move.replace': 'The Beacon data already stored in the new database will be replaced.',
+    'pgs.move.done': 'Beacon now works with {where}',
     'pgs.move.doneText': 'All data is copied. The previous database was not changed and can be removed when it is no longer needed.',
 
     'unit.b': 'B',
@@ -94,14 +94,14 @@ const page: Dict = {
     'unit.min': 'min',
     'unit.h': 'h',
 
-    'err.postgres_same_database': 'This is the database Umbrella already uses.',
-    'err.postgres_has_state': 'The database already holds Umbrella data. Confirm that it should be replaced.',
-    'err.postgres_migration_failed': 'The data was not moved. Umbrella keeps working with the current database.',
+    'err.postgres_same_database': 'This is the database Beacon already uses.',
+    'err.postgres_has_state': 'The database already holds Beacon data. Confirm that it should be replaced.',
+    'err.postgres_migration_failed': 'The data was not moved. Beacon keeps working with the current database.',
     'err.postgres_stats_failed': 'PostgreSQL statistics could not be read.',
   },
   ru: {
     'pgs.current': 'Текущее подключение',
-    'pgs.current.text': 'База PostgreSQL, в которой Umbrella сохраняет своё состояние.',
+    'pgs.current.text': 'База PostgreSQL, в которой Beacon сохраняет своё состояние.',
     'pgs.host': 'Хост',
     'pgs.port': 'Порт',
     'pgs.database': 'База данных',
@@ -116,7 +116,7 @@ const page: Dict = {
     'pgs.test.fail': 'PostgreSQL не отвечает',
 
     'pgs.stats': 'Статистика',
-    'pgs.stats.text': 'Счётчики базы Umbrella из pg_stat_database, размеры таблиц и самые долгие операции.',
+    'pgs.stats.text': 'Счётчики базы Beacon из pg_stat_database, размеры таблиц и самые долгие операции.',
     'pgs.stats.auto': 'Обновлять каждые 10 секунд',
     'pgs.stats.collected': 'Собрано {at}',
     'pgs.tx': 'Транзакции',
@@ -169,16 +169,16 @@ const page: Dict = {
 
     'pgs.move': 'Перенос в другую базу',
     'pgs.move.text':
-      'Скопировать все данные Umbrella в другую базу PostgreSQL и переключить Umbrella на неё. Текущая база не изменяется. Новый пароль сохраняется в OpenBao.',
-    'pgs.move.overwrite': 'Заменить данные Umbrella в этой базе',
+      'Скопировать все данные Beacon в другую базу PostgreSQL и переключить Beacon на неё. Текущая база не изменяется. Новый пароль сохраняется в OpenBao.',
+    'pgs.move.overwrite': 'Заменить данные Beacon в этой базе',
     'pgs.move.overwriteText': 'Сохранённые там данные будут заменены текущими данными этой установки.',
-    'pgs.move.confirm': 'Перенести Umbrella в другую базу?',
+    'pgs.move.confirm': 'Перенести Beacon в другую базу?',
     'pgs.move.step1': 'Пользователи, настройки, журнал аудита, инциденты с историей и очередь принятых запросов копируются в {where}.',
     'pgs.move.step2': 'Пароль новой базы сохраняется в OpenBao.',
-    'pgs.move.step3': 'Umbrella переключается на новую базу и несколько секунд не отвечает на запросы. Сеансы сохраняются.',
+    'pgs.move.step3': 'Beacon переключается на новую базу и несколько секунд не отвечает на запросы. Сеансы сохраняются.',
     'pgs.move.step4': 'Текущая база {current} остаётся без изменений.',
-    'pgs.move.replace': 'Данные Umbrella, уже сохранённые в новой базе, будут заменены.',
-    'pgs.move.done': 'Umbrella работает с {where}',
+    'pgs.move.replace': 'Данные Beacon, уже сохранённые в новой базе, будут заменены.',
+    'pgs.move.done': 'Beacon работает с {where}',
     'pgs.move.doneText': 'Все данные скопированы. Прежняя база не изменена, её можно удалить, когда она станет не нужна.',
 
     'unit.b': 'Б',
@@ -191,9 +191,9 @@ const page: Dict = {
     'unit.min': 'мин',
     'unit.h': 'ч',
 
-    'err.postgres_same_database': 'Umbrella уже использует эту базу.',
-    'err.postgres_has_state': 'В базе уже есть данные Umbrella. Подтвердите их замену.',
-    'err.postgres_migration_failed': 'Данные не перенесены. Umbrella продолжает работать с текущей базой.',
+    'err.postgres_same_database': 'Beacon уже использует эту базу.',
+    'err.postgres_has_state': 'В базе уже есть данные Beacon. Подтвердите их замену.',
+    'err.postgres_migration_failed': 'Данные не перенесены. Beacon продолжает работать с текущей базой.',
     'err.postgres_stats_failed': 'Не удалось прочитать статистику PostgreSQL.',
   },
 }

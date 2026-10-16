@@ -14,13 +14,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/presets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/presets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // Quick connect and the test event: one dialog sets up a source end to end (a generated
@@ -33,7 +33,7 @@ const (
 	testHeader   = "x-umbrella-test"
 	testCIHeader = "x-umbrella-test-ci"
 	// TestEventTitle is the title of the incident a test event opens.
-	TestEventTitle = "Тестовое событие Umbrella"
+	TestEventTitle = "Тестовое событие Beacon"
 	testEventCI    = "umbrella-test"
 )
 
@@ -144,7 +144,7 @@ func freeSlug(d *store.Data, slug string) string {
 	}
 }
 
-// baseURL is the address sources reach Umbrella at: the public address from the notification
+// baseURL is the address sources reach Beacon at: the public address from the notification
 // settings, or the one the browser used.
 func (a *App) baseURL(r *http.Request) string {
 	var pub string

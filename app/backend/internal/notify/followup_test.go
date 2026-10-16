@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
 )
 
 // Without PagerDuty the message is about a new incident: it does not say PagerDuty failed.
@@ -54,7 +54,7 @@ func TestFollowUp(t *testing.T) {
 		t.Fatalf("mails: %+v", m)
 	}
 	for _, want := range []string{"Инцидент взят в работу", "INC-7 · HTTP 5xx на app-01", "Взял(а): petrov, 05.10.2026 16:05 +07",
-		"Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7"} {
+		"Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7"} {
 		if !strings.Contains(m[0].Body, want) {
 			t.Fatalf("body has no %q:\n%s", want, m[0].Body)
 		}

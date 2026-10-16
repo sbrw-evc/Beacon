@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
 )
 
 // generatedTokenBytes: 32 random bytes, 43 characters in base64url.

@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func TestGrafanaLink(t *testing.T) {
@@ -29,7 +29,7 @@ func TestGrafanaLink(t *testing.T) {
 		q.Get("var-incident") != "INC-3" || q.Get("var-signal") != "disk" || q.Has("var-ip") || q.Has("var-ref") {
 		t.Fatalf("link = %s", u)
 	}
-	// ip and ref for the Flow "CI traffic" dashboard: from the event labels, the item wins.
+	// ip and ref for the Current "CI traffic" dashboard: from the event labels, the item wins.
 	al.Labels = map[string]string{"ip": "10.0.0.9", "source_ref": "inventory-db:dcim.device:7"}
 	if q = mustQuery(t, app.GrafanaLink(set, al, nil, opened)); q.Get("var-ip") != "10.0.0.9" || q.Get("var-ref") != "inventory-db:dcim.device:7" {
 		t.Fatalf("labels = %v", q)
@@ -85,7 +85,7 @@ func TestGrafanaRedirect(t *testing.T) {
 	}
 
 	// A click in PagerDuty is a cross-site navigation: the SameSite=Strict session cookie is not
-	// sent. The answer is a page of Umbrella that opens the link again, now same-site.
+	// sent. The answer is a page of Beacon that opens the link again, now same-site.
 	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := noFollow.Get(f.h.srv.URL + "/go/incidents/" + id + "/grafana")
 	if err != nil {

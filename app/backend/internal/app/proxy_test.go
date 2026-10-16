@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store/storetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store/storetest"
 )
 
 // newPGProxyHarness runs the app with PostgreSQL behind a trusted proxy at 127.0.0.1.
@@ -28,7 +28,7 @@ func newPGProxyHarness(t *testing.T) *harness {
 	bao, vault := secretstest.New(t)
 	st := store.New()
 	fake := testSPA(t, st)
-	a := app.New(app.Options{Version: "test", TrustedProxies: app.ParseTrustedProxies("127.0.0.1"), SPAKey: fake.ConnectionKey()},
+	a := app.New(app.Options{Version: "test", TrustedProxies: app.ParseTrustedProxies("127.0.0.1"), KeystoneKey: fake.ConnectionKey()},
 		app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions(), Backend: backend})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -49,7 +49,7 @@ func newPGProxyHarness(t *testing.T) *harness {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
+	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, keystone: fake}
 }
 
 func TestIngestNetworksBehindProxy(t *testing.T) {

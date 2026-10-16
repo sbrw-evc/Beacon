@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Microsoft Teams and Zoom Team Chat take messages through incoming webhooks: the address is

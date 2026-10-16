@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify/notifytest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify/notifytest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // withWebhooks turns Teams and Zoom on: the extra Teams channel answers 400, the team has its
@@ -88,7 +88,7 @@ func TestTeamsAndZoomBackupNotification(t *testing.T) {
 			ack = act["url"].(string)
 		}
 	}
-	if strings.Join(titles, ",") != "Подтвердить,Открыть в Umbrella,Grafana,Трафик" {
+	if strings.Join(titles, ",") != "Подтвердить,Открыть в Beacon,Grafana,Трафик" {
 		t.Fatalf("actions: %v", titles)
 	}
 	// The acknowledgement link names the channel, redacted.

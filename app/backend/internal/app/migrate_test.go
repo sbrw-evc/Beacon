@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func TestMigrate(t *testing.T) {

@@ -1,0 +1,47 @@
+# Beacon (formerly Umbrella Monitoring). The compose project and the service are "beacon"; the data volume keeps
+# its old name and the service keeps the host name "umbrella" in the shared network, so that an existing
+# installation finds its data and the other stacks of deploy/ (Zabbix, Grafana, ...) still reach it.
+# The UMBRELLA_* variables keep their names.
+name: beacon
+
+services:
+  beacon:
+    image: ${UMBRELLA_IMAGE:-beacon:latest}
+    pull_policy: build
+    build:
+      context: ../../app
+      args:
+        VERSION: ${UMBRELLA_VERSION:-dev}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+      UMBRELLA_SECURE_COOKIES: ${UMBRELLA_SECURE_COOKIES:-false}
+      UMBRELLA_STARTUP_WAIT: ${UMBRELLA_STARTUP_WAIT:-2m}
+      # People sign in at Keystone: the connection key Keystone shows for Beacon (spa1.…). It can also be
+      # entered in the setup wizard, which keeps it in OpenBao.
+      SPA_CONNECTION_KEY: ${SPA_CONNECTION_KEY:-}
+      SPA_PUBLIC_URL: ${SPA_PUBLIC_URL:-}
+    ports:
+      - "${UMBRELLA_PORT:-8080}:8080"
+    volumes:
+      - umbrella-data:/data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      umbrella:
+        aliases: [umbrella]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  umbrella:
+    # The shared network of the Umbrella family stacks in deploy/.
+    name: umbrella
+
+volumes:
+  umbrella-data:
+    # The name the volume got when the project was "umbrella" (<project>_<volume>): existing data is kept.
+    name: umbrella_umbrella-data

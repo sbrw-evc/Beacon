@@ -12,10 +12,10 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -33,7 +33,7 @@ func init() {
 	statuses = append(statuses, orgStatus{ErrProposalUnresolved, http.StatusConflict, "proposal_unresolved"})
 }
 
-// ProposalEndInput is one side of a proposed dependency as Umbrella Flow names it.
+// ProposalEndInput is one side of a proposed dependency as Current names it.
 type ProposalEndInput struct {
 	SourceRef string `json:"source_ref"`
 	Name      string `json:"name"`
@@ -91,7 +91,7 @@ type ProposalKey struct {
 	Key string `json:"key"`
 }
 
-// ProposalsService keeps the dependency proposals of Umbrella Flow: steady traffic between two
+// ProposalsService keeps the dependency proposals of Current: steady traffic between two
 // configuration items suggests that the business service of one depends on the service of the
 // other. People accept (the dependency is created) or reject them on the CMDB map.
 type ProposalsService struct {
@@ -113,7 +113,7 @@ func proposalText(v string) string {
 }
 
 // clean checks one proposal: a key, the depends_on type (or none), at least one name for each
-// end and sane evidence. A link to Flow that is not http(s) is dropped.
+// end and sane evidence. A link to Current that is not http(s) is dropped.
 func (in ProposalInput) clean() (ProposalInput, bool) {
 	in.Key = strings.TrimSpace(in.Key)
 	if in.Key == "" || len(in.Key) > maxProposalKey || strings.ContainsFunc(in.Key, unicode.IsControl) {
@@ -331,7 +331,7 @@ func (s *ProposalsService) decide(actor, key, status string) (ProposalView, erro
 }
 
 func (a *App) registerProposals(mux *http.ServeMux) {
-	// The contract lets Flow add fields, so unknown ones are allowed here, unlike other bodies.
+	// The contract lets Current add fields, so unknown ones are allowed here, unlike other bodies.
 	a.route(mux, "POST /api/cmdb/proposals", "cmdb:propose", func(w http.ResponseWriter, r *http.Request) {
 		var in ProposalBatch
 		if err := json.NewDecoder(io.LimitReader(r.Body, maxProposalBody)).Decode(&in); err != nil {

@@ -1,30 +1,30 @@
 {
   "id": "network-flow",
   "title": {
-    "en": "Umbrella Flow (NetFlow / IPFIX / sFlow)",
-    "ru": "Umbrella Flow (NetFlow / IPFIX / sFlow)"
+    "en": "Current (NetFlow / IPFIX / sFlow)",
+    "ru": "Current (NetFlow / IPFIX / sFlow)"
   },
   "description": {
-    "en": "Traffic events of Umbrella Flow: link utilization and commit (USE), DDoS, anomalies and drops (RED), silent exporters. One object or an array; the item comes from the Inventory DB source reference, the name or the IP; the link to the traffic is kept in the incident.",
-    "ru": "События трафика Umbrella Flow: загрузка и коммит каналов (USE), DDoS, аномалии и провалы трафика (RED), молчащие экспортёры. Один объект или массив; КЕ — по ссылке Inventory DB (source_ref), имени или IP; ссылка на трафик сохраняется в инциденте."
+    "en": "Traffic events of Current: link utilization and commit (USE), DDoS, anomalies and drops (RED), silent exporters. One object or an array; the item comes from the Ledger source reference, the name or the IP; the link to the traffic is kept in the incident.",
+    "ru": "События трафика Current: загрузка и коммит каналов (USE), DDoS, аномалии и провалы трафика (RED), молчащие экспортёры. Один объект или массив; КЕ — по ссылке Ledger (source_ref), имени или IP; ссылка на трафик сохраняется в инциденте."
   },
   "quick": {
     "order": 5,
     "name": {
-      "en": "Umbrella Flow",
-      "ru": "Umbrella Flow"
+      "en": "Current",
+      "ru": "Current"
     },
     "steps": 2,
     "snippet": {
       "kind": "text",
-      "template": "Umbrella ingest URL: {{.URL}}\nUmbrella token: {{.Token}}\n"
+      "template": "Beacon ingest URL: {{.URL}}\nBeacon token: {{.Token}}\n"
     },
     "test_body": "{\"ci\":{{json .CI}},\"id\":\"umbrella-test-{{.Nonce}}\",\"method\":\"USE\",\"severity\":\"warning\",\"signal\":\"umbrella_test\",\"status\":\"firing\",\"title\":{{json .Title}}}"
   },
   "document": {
     "format": "umbrella.connector",
     "format_version": 1,
-    "name": "Umbrella Flow",
+    "name": "Current",
     "tags": [
       "flow",
       "network"
@@ -136,7 +136,7 @@
             "value": "${value}",
             "fields": [
               {
-                "name": "Трафик в Umbrella Flow",
+                "name": "Трафик в Current",
                 "value": "${links.flow}"
               },
               {
@@ -152,7 +152,7 @@
                 "value": "${ip}"
               },
               {
-                "name": "Inventory DB",
+                "name": "Ledger",
                 "value": "${source_ref}"
               },
               {
@@ -185,7 +185,7 @@
             "value": "${value}",
             "fields": [
               {
-                "name": "Трафик в Umbrella Flow",
+                "name": "Трафик в Current",
                 "value": "${links.flow}"
               },
               {
@@ -201,7 +201,7 @@
                 "value": "${ip}"
               },
               {
-                "name": "Inventory DB",
+                "name": "Ledger",
                 "value": "${source_ref}"
               },
               {
@@ -234,7 +234,7 @@
             "value": "${value}",
             "fields": [
               {
-                "name": "Трафик в Umbrella Flow",
+                "name": "Трафик в Current",
                 "value": "${links.flow}"
               },
               {
@@ -250,7 +250,7 @@
                 "value": "${ip}"
               },
               {
-                "name": "Inventory DB",
+                "name": "Ledger",
                 "value": "${source_ref}"
               },
               {

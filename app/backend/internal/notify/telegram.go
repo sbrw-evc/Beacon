@@ -4,13 +4,13 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/telegram"
+	"github.com/sbrw-evc/beacon/app/backend/internal/telegram"
 )
 
 // ValidChat checks a Telegram chat address: a numeric chat ID or the @name of a channel.
 func ValidChat(v string) bool { return telegram.ValidChat(v) }
 
-// Callback data of the buttons under incident messages; the bot built into Umbrella answers
+// Callback data of the buttons under incident messages; the bot built into Beacon answers
 // them (tgbot).
 const (
 	CallbackAck     = "ack:"

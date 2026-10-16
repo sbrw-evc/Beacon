@@ -35,9 +35,9 @@ export type User = ProfileFields & {
   has_avatar?: boolean
   avatar_version?: string
   avatar_source?: 'upload' | 'ldap'
-  /** The person's account page in SPA: password, second factor, sessions. */
+  /** The person's account page in Keystone: password, second factor, sessions. */
   account_url?: string
-  /** Groups of the person in SPA. */
+  /** Groups of the person in Keystone. */
   groups?: string[]
 }
 

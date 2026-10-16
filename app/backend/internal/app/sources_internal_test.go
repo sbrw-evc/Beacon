@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/presets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/presets"
 )
 
 // The quick connect templates render exactly what the Go code before them did (testdata/quick

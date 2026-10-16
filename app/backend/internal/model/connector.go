@@ -74,7 +74,7 @@ type EditLock struct {
 	Until    time.Time
 }
 
-// Credential is how Umbrella checks or presents a secret. Secret values live only in OpenBao;
+// Credential is how Beacon checks or presents a secret. Secret values live only in OpenBao;
 // Secrets maps a field to its openbao:// reference.
 type Credential struct {
 	ID          string

@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 type RoleRef struct {

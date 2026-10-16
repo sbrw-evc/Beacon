@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // QueuesView is the queues of PagerDuty (its services) as last read.
@@ -66,8 +66,8 @@ type QueueLinks struct {
 	Failed map[string]string `json:"failed,omitempty"`
 }
 
-// LinkQueues links the queues of PagerDuty to the teams of Umbrella: a queue no route sends to
-// yet, owned by exactly one PagerDuty team whose name is the name of a team of Umbrella, gets a
+// LinkQueues links the queues of PagerDuty to the teams of Beacon: a queue no route sends to
+// yet, owned by exactly one PagerDuty team whose name is the name of a team of Beacon, gets a
 // route of that team (its Events API v2 key is read or the integration created). The PagerDuty
 // names of linked queues are kept current. Routes are never removed here: one whose queue is
 // gone from PagerDuty is shown as such (QueuesView.Gone) for a person to decide.
@@ -166,7 +166,7 @@ func (a *App) pdQueues(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, a.pagerduty.Queues())
 }
 
-// pdLinkQueues reads the queues now and links them to the teams of Umbrella.
+// pdLinkQueues reads the queues now and links them to the teams of Beacon.
 func (a *App) pdLinkQueues(w http.ResponseWriter, r *http.Request) {
 	if err := a.pdGateway.RefreshQueues(r.Context()); err != nil {
 		httpx.Error(w, http.StatusBadGateway, "pagerduty_failed", err)

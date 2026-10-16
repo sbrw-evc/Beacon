@@ -1,4 +1,4 @@
-/* Umbrella TV wallboard. One "rem" is one unit of a 16:9 screen: 1% of the height, or of the
+/* Beacon TV wallboard. One "rem" is one unit of a 16:9 screen: 1% of the height, or of the
    width * 9/16 on screens narrower than 16:9. Everything is sized in rem so the page scales
    from 1366x768 to 3840x2160 without reflow. */
 

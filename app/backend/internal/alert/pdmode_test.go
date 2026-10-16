@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func pdMode(st *store.Store, mode string, modes map[string]string) {
@@ -18,7 +18,7 @@ func pdMode(st *store.Store, mode string, modes map[string]string) {
 	})
 }
 
-// In backup mode the channels of Umbrella go first: the incident waits in standby and goes to
+// In backup mode the channels of Beacon go first: the incident waits in standby and goes to
 // PagerDuty only when nobody has taken it within the backup delay.
 func TestPagerDutyBackupMode(t *testing.T) {
 	ctx := context.Background()
@@ -68,7 +68,7 @@ func TestPagerDutyBackupMode(t *testing.T) {
 	}
 }
 
-// An incident taken in Umbrella while PagerDuty waits never goes there, and nothing is
+// An incident taken in Beacon while PagerDuty waits never goes there, and nothing is
 // acknowledged or resolved in PagerDuty for it.
 func TestPagerDutyBackupTakenInTime(t *testing.T) {
 	ctx := context.Background()

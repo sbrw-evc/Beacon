@@ -12,10 +12,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/response"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/response"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // fakeTTS plays Piper (POST JSON) and rhvoice-rest (GET /say): WAV of 22050 Hz, or OGG for

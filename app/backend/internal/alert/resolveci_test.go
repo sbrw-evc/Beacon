@@ -3,12 +3,12 @@ package alert
 import (
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// An event names its item by the Inventory DB source reference first, then by its ci, and
-// falls back to the ip label when the name matches no item: what Umbrella Flow sends.
+// An event names its item by the Ledger source reference first, then by its ci, and
+// falls back to the ip label when the name matches no item: what Current sends.
 func TestResolveCISourceRefAndIP(t *testing.T) {
 	st := store.New()
 	st.Write(func(d *store.Data) {

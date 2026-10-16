@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func TestTemplateOverrides(t *testing.T) {
@@ -107,7 +107,7 @@ func TestPreviewTemplates(t *testing.T) {
 		t.Fatalf("names: %v", names)
 	}
 	if out[1].Subject != "Done: INC-1042 being handled" || out[2].Subject != "Done: INC-1042 resolved" ||
-		!strings.Contains(out[0].Text, "Payments SRE") || !strings.Contains(out[0].HTML, "<b>") || out[3].Subject != "Umbrella backup notification test" {
+		!strings.Contains(out[0].Text, "Payments SRE") || !strings.Contains(out[0].HTML, "<b>") || out[3].Subject != "Beacon backup notification test" {
 		t.Fatalf("preview: %+v", out)
 	}
 	if ru, _ := PreviewTemplates("", nil); !strings.Contains(ru[0].Text, "Важность") {

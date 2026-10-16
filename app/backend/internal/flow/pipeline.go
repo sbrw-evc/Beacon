@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/textx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/textx"
 )
 
 type Lineage struct {

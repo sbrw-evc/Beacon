@@ -1,9 +1,11 @@
-// Package spa is the client of SPA, the Single Point of Authorization of the
-// Umbrella family (https://github.com/sbrw-evc/SPA-Single-point-of-authorization-,
-// docs/protocol.md): the connection key, sign-in through SPA (OpenID Connect,
+// Package keystone is the client of Keystone, sign-in and access for the Umbrella family
+// (formerly SPA; https://github.com/sbrw-evc/keystone, docs/protocol.md): the connection key,
+// sign-in through Keystone (OpenID Connect,
 // authorization code flow with PKCE S256 and a nonce) and the federation API
-// (configuration, users, the role catalogue).
-package spa
+// (configuration, users, the role catalogue). The wire identifiers of the Keystone protocol
+// keep their historical "spa" spelling: the key prefix spa1., SPA_CONNECTION_KEY,
+// SPA_PUBLIC_URL, /api/spa/v1 and /api/auth/spa/*.
+package keystone
 
 import (
 	"bytes"
@@ -19,13 +21,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/oidcx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/oidcx"
 )
 
 const (
 	// KeyPrefix starts a connection key.
 	KeyPrefix = "spa1."
-	// CallbackPath is where SPA sends the browser back (<address>/api/auth/spa/callback).
+	// CallbackPath is where Keystone sends the browser back (<address>/api/auth/spa/callback).
 	CallbackPath = "/api/auth/spa/callback"
 	// StartPath starts a sign-in.
 	StartPath = "/api/auth/spa/start"
@@ -44,7 +46,7 @@ const (
 // Scopes asked at sign-in.
 var Scopes = []string{"openid", "profile", "email", "groups", "roles"}
 
-// Key is the connection key SPA shows when an application is connected.
+// Key is the connection key Keystone shows when an application is connected.
 type Key struct {
 	Issuer       string `json:"issuer"`
 	ClientID     string `json:"client_id"`
@@ -53,7 +55,7 @@ type Key struct {
 }
 
 // ErrKey: the text is not a connection key.
-var ErrKey = errors.New("this is not an SPA connection key (spa1.…): copy it again from SPA → Applications")
+var ErrKey = errors.New("this is not a Keystone connection key (spa1.…): copy it again from Keystone → Applications")
 
 // ParseKey reads a connection key.
 func ParseKey(s string) (Key, error) {
@@ -83,7 +85,7 @@ func (k Key) String() string {
 	return KeyPrefix + base64.RawURLEncoding.EncodeToString(b)
 }
 
-// Timeout bounds every call to SPA.
+// Timeout bounds every call to Keystone.
 var Timeout = 20 * time.Second
 
 func client() *http.Client { return &http.Client{Timeout: Timeout} }
@@ -98,7 +100,7 @@ type Role struct {
 // RoleIDRe is the form of a role ID.
 var RoleIDRe = regexp.MustCompile(`^[a-z0-9_.:-]{1,64}$`)
 
-// Method is a sign-in method SPA offers.
+// Method is a sign-in method Keystone offers.
 type Method struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
@@ -130,7 +132,7 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// HTTPError is an answer of SPA that is not 200 / 304.
+// HTTPError is an answer of Keystone that is not 200 / 304.
 type HTTPError struct {
 	Status int
 	Body   string
@@ -139,11 +141,11 @@ type HTTPError struct {
 func (e *HTTPError) Error() string {
 	switch e.Status {
 	case http.StatusUnauthorized:
-		return "SPA refused the federation token: the key was replaced or the application removed; issue a new connection key in SPA"
+		return "Keystone refused the federation token: the key was replaced or the application removed; issue a new connection key in Keystone"
 	case http.StatusForbidden:
-		return "SPA refused access"
+		return "Keystone refused access"
 	}
-	return fmt.Sprintf("SPA answered HTTP %d %s", e.Status, e.Body)
+	return fmt.Sprintf("Keystone answered HTTP %d %s", e.Status, e.Body)
 }
 
 func (k Key) do(ctx context.Context, method, path, etag string, body, out any) (string, bool, error) {
@@ -182,7 +184,7 @@ func (k Key) do(ctx context.Context, method, path, etag string, body, out any) (
 	}
 	if out != nil && res.StatusCode == http.StatusOK {
 		if err := json.NewDecoder(io.LimitReader(res.Body, 64<<20)).Decode(out); err != nil {
-			return "", false, fmt.Errorf("SPA answer: %w", err)
+			return "", false, fmt.Errorf("Keystone answer: %w", err)
 		}
 	}
 	return res.Header.Get("ETag"), false, nil
@@ -209,7 +211,7 @@ type Catalogue struct {
 	Default string `json:"default,omitempty"`
 }
 
-// PublishRoles replaces the role catalogue of the application in SPA.
+// PublishRoles replaces the role catalogue of the application in Keystone.
 func (k Key) PublishRoles(ctx context.Context, c Catalogue) error {
 	_, _, err := k.do(ctx, http.MethodPut, "/api/spa/v1/roles", "", c, nil)
 	return err
@@ -224,10 +226,10 @@ func (k Key) client(redirect string) oidcx.Client {
 type AuthOptions struct {
 	LoginHint string // login_hint
 	IDPHint   string // idp_hint: password, passkey, ldap, entra, google, apple, oidc
-	Prompt    string // prompt=login asks again even with an SPA session
+	Prompt    string // prompt=login asks again even with a Keystone session
 }
 
-// AuthURL is SPA's sign-in page for the request.
+// AuthURL is Keystone's sign-in page for the request.
 func (k Key) AuthURL(ctx context.Context, redirect string, o AuthOptions, r oidcx.Request) (string, error) {
 	m, err := oidcx.Discover(ctx, k.Issuer)
 	if err != nil {
@@ -246,7 +248,7 @@ func (k Key) AuthURL(ctx context.Context, redirect string, o AuthOptions, r oidc
 	return oidcx.AuthURL(c, m, r), nil
 }
 
-// Identity is the person SPA signed in.
+// Identity is the person Keystone signed in.
 type Identity struct {
 	Subject  string
 	Username string
@@ -287,7 +289,7 @@ func (k Key) Finish(ctx context.Context, redirect, code string, r oidcx.Request)
 	return id, nil
 }
 
-// Check tells whether SPA accepts the key: the discovery, the federation
+// Check tells whether Keystone accepts the key: the discovery, the federation
 // token (configuration) and the client secret (a token request with a
 // made-up code is refused as invalid_grant for a known client and as
 // invalid_client otherwise).
@@ -303,16 +305,16 @@ func (k Key) Check(ctx context.Context, redirect string) (Config, error) {
 	_, err = oidcx.Exchange(ctx, k.client(redirect), m, "check-"+oidcx.Random(), oidcx.NewRequest())
 	switch {
 	case err == nil:
-		return cfg, errors.New("SPA accepted a made-up code")
+		return cfg, errors.New("Keystone accepted a made-up code")
 	case strings.Contains(err.Error(), "invalid_client"):
-		return cfg, errors.New("SPA refused the client secret: issue a new connection key in SPA")
+		return cfg, errors.New("Keystone refused the client secret: issue a new connection key in Keystone")
 	case strings.Contains(err.Error(), "invalid_grant"):
 		return cfg, nil
 	}
 	return cfg, err
 }
 
-// SignOutURL is SPA's sign-out address that returns to back.
+// SignOutURL is Keystone's sign-out address that returns to back.
 func SignOutURL(signOut, clientID, back string) string {
 	if signOut == "" {
 		return ""

@@ -7,22 +7,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/rules"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring"
+	"github.com/sbrw-evc/beacon/app/backend/internal/rules"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // The Machine tab opens on the metric the alert fired on:
-//   - an alert of a RED or USE rule of Umbrella: the query of the rule on its source, with its
+//   - an alert of a RED or USE rule of Beacon: the query of the rule on its source, with its
 //     threshold;
 //   - an alert of a Prometheus-compatible system: the expression of its alerting rule of the
 //     same name (the signal), read from the rules API of the system;
 //   - a Zabbix alert: the item whose key is the signal.
 // The standard graph of the same kind (CPU for a CPU alert) comes next.
 
-// ruleMetric is the RED or USE rule of Umbrella an incident came from.
+// ruleMetric is the RED or USE rule of Beacon an incident came from.
 type ruleMetric struct {
 	rule model.Rule
 	src  model.MetricSource

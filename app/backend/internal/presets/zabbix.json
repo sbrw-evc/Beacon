@@ -10,8 +10,8 @@
     "name": {"en": "Zabbix", "ru": "Zabbix"},
     "monitoring_kinds": ["zabbix"],
     "steps": 3,
-    "attachment": {"kind": "yaml", "name": "umbrella-mediatype.yaml", "template_file": "zabbix-mediatype.yaml.tmpl"},
-    "test_body": "{\"event_id\":\"umbrella-test-{{.Nonce}}\",\"host\":{{json .CI}},\"host_group\":\"Umbrella\",\"item_key\":\"umbrella.test\",\"severity\":\"2\",\"status\":\"1\",\"trigger\":{{json .Title}},\"value\":\"\"}"
+    "attachment": {"kind": "yaml", "name": "beacon-mediatype.yaml", "template_file": "zabbix-mediatype.yaml.tmpl"},
+    "test_body": "{\"event_id\":\"umbrella-test-{{.Nonce}}\",\"host\":{{json .CI}},\"host_group\":\"Beacon\",\"item_key\":\"umbrella.test\",\"severity\":\"2\",\"status\":\"1\",\"trigger\":{{json .Title}},\"value\":\"\"}"
   },
   "document": {
     "format": "umbrella.connector",

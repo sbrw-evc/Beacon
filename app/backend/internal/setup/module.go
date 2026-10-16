@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -160,7 +160,7 @@ func (m *Module) complete(w http.ResponseWriter, r *http.Request) {
 	}
 	m.finished = true
 	_ = os.Remove(filepath.Join(m.opt.DataDir, config.SetupTokenFile))
-	slog.Info("setup completed", "storage", res.Backend.Where(), "spa", strings.TrimSpace(in.SPAKey) != "")
+	slog.Info("setup completed", "storage", res.Backend.Where(), "spa", strings.TrimSpace(in.KeystoneKey) != "")
 	if m.done != nil {
 		m.done(res)
 	}

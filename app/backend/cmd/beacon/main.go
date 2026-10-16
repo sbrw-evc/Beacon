@@ -19,16 +19,16 @@ import (
 	"time"
 	_ "time/tzdata"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/logbuf"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/setup"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/logbuf"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/setup"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // Set at build time with -ldflags "-X main.version=... -X main.commit=... -X main.builtAt=...".
@@ -179,7 +179,7 @@ func (rt *runtime) Switch(ctx context.Context, transfer func(ctx context.Context
 	}
 	oldCfg, oldVault, oldBackend, oldSt, ok := rt.halt()
 	if !ok {
-		return errors.New("umbrella is not running")
+		return errors.New("beacon is not running")
 	}
 	restore := func(err error) error {
 		rt.launch(oldCfg, oldVault, oldBackend, oldSt)
@@ -199,7 +199,7 @@ func (rt *runtime) Switch(ctx context.Context, transfer func(ctx context.Context
 	}
 	oldBackend.Close()
 	rt.launch(cfg, vault, backend, st)
-	slog.Info("umbrella reconfigured", "openbao", cfg.OpenBao.Addr, "storage", backend.Where())
+	slog.Info("beacon reconfigured", "openbao", cfg.OpenBao.Addr, "storage", backend.Where())
 	return nil
 }
 
@@ -207,7 +207,7 @@ type maintenance struct{}
 
 func (maintenance) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Retry-After", "2")
-	httpx.Error(w, http.StatusServiceUnavailable, "switching", errors.New("Umbrella is switching its connections, try again in a moment"))
+	httpx.Error(w, http.StatusServiceUnavailable, "switching", errors.New("Beacon is switching its connections, try again in a moment"))
 }
 
 func main() {
@@ -242,7 +242,7 @@ func main() {
 	}
 	webHandler := httpx.Web(webDir)
 	opts := app.Options{Version: version, Commit: commit, BuiltAt: builtAt, SecureCookies: env("UMBRELLA_SECURE_COOKIES", "false") == "true", Web: webHandler,
-		Ingest: ingestConfig(), SPAKey: os.Getenv(spa.Env), SPAKeyFile: os.Getenv(spa.EnvFile), SPAPublicURL: os.Getenv(spa.EnvPublicURL)}
+		Ingest: ingestConfig(), KeystoneKey: os.Getenv(keystone.Env), KeystoneKeyFile: os.Getenv(keystone.EnvFile), KeystonePublicURL: os.Getenv(keystone.EnvPublicURL)}
 	sessions := auth.NewSessions()
 	if err := sessions.Load(*dataDir); err != nil {
 		slog.Warn("sessions not restored", "err", err)
@@ -291,7 +291,7 @@ func main() {
 			fail("startup", err)
 		}
 		start(cfg, vault, backend, st)
-		slog.Info("umbrella ready", "openbao", cfg.OpenBao.Addr, "storage", backend.Where())
+		slog.Info("beacon ready", "openbao", cfg.OpenBao.Addr, "storage", backend.Where())
 	} else {
 		token, err := setupToken(*dataDir)
 		if err != nil {
@@ -311,7 +311,7 @@ func main() {
 		defer cancel()
 		_ = srv.Shutdown(sctx)
 	}()
-	slog.Info("umbrella started", "version", version, "addr", *addr, "data_dir", *dataDir)
+	slog.Info("beacon started", "version", version, "addr", *addr, "data_dir", *dataDir)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		rt.stop()
 		fail("server failed", err)
@@ -320,7 +320,7 @@ func main() {
 	if err := sessions.Save(*dataDir); err != nil {
 		slog.Warn("sessions not saved", "err", err)
 	}
-	slog.Info("umbrella stopped")
+	slog.Info("beacon stopped")
 }
 
 func open(ctx context.Context, cfg config.File, wait time.Duration) (*secrets.Client, *store.PGBackend, *store.Store, error) {
@@ -362,7 +362,7 @@ func open(ctx context.Context, cfg config.File, wait time.Duration) (*secrets.Cl
 	}
 	if !restored {
 		backend.Close()
-		return nil, nil, nil, errors.New("the database has no Umbrella state: restore it or remove umbrella.json to run the setup wizard again")
+		return nil, nil, nil, errors.New("the database has no Beacon state: restore it or remove umbrella.json to run the setup wizard again")
 	}
 	if err := app.Migrate(ctx, st, vault); err != nil {
 		backend.Close()

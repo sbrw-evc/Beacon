@@ -292,7 +292,7 @@ function Main({ d, onOpen }: { d: Detail; onOpen: (id: string) => void }) {
           <>
             {' · '}
             <a href={ci.inventory_url} target="_blank" rel="noopener noreferrer">
-              Inventory DB
+              Ledger
               <ExternalLink size={13} aria-hidden />
             </a>
           </>

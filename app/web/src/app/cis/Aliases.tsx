@@ -9,7 +9,7 @@ import { strings } from './strings'
 import type { CI } from './types'
 
 // Aliases are the other names events call an item by; editable for imported items too, since
-// they are kept in Umbrella.
+// they are kept in Beacon.
 export function Aliases({ ci, editable, onChanged }: { ci: CI; editable: boolean; onChanged: (ci: CI) => void }) {
   const t = useT(strings)
   const list = ci.aliases ?? []

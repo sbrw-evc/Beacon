@@ -17,9 +17,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -49,7 +49,7 @@ func init() {
 }
 
 // tokenKey keeps the HMAC key API tokens are hashed with. The key lives in OpenBao like every
-// Umbrella secret; the snapshot keeps only its reference. It is made when the first token is
+// Beacon secret; the snapshot keeps only its reference. It is made when the first token is
 // issued.
 type tokenKey struct {
 	mu  sync.Mutex
@@ -154,7 +154,7 @@ type ServiceAccountView struct {
 	model.ServiceAccount
 	RoleName string           `json:"role_name"`
 	Tokens   []model.APIToken `json:"tokens"`
-	// OwnerName names the owner; OwnerDisabled: SPA disabled the owner, the tokens do not work.
+	// OwnerName names the owner; OwnerDisabled: Keystone disabled the owner, the tokens do not work.
 	OwnerName     string `json:"owner_name,omitempty"`
 	OwnerDisabled bool   `json:"owner_disabled,omitempty"`
 }
@@ -261,7 +261,7 @@ func (in ServiceAccountInput) normalize(d *store.Data, actor model.User, self st
 }
 
 // tokenOwnerActive: the account has no owner (made before owners existed) or its owner is
-// enabled in SPA.
+// enabled in Keystone.
 func tokenOwnerActive(d *store.Data, a *model.ServiceAccount) bool {
 	if a.OwnerID == "" {
 		return true

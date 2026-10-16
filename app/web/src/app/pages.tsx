@@ -39,8 +39,15 @@ export type PageDef = {
 export const HOME_PATH = '/'
 export const PROFILE_PATH = '/profile'
 export const SETTINGS_PATH = '/settings'
-// Old addresses of pages that moved, so bookmarks keep working.
-const MOVED: Record<string, string> = { '/status': '/settings/status', '/settings/identity': '/settings/spa', '/settings/password-policy': '/settings/spa' }
+// Old addresses of pages that moved, so bookmarks keep working (/settings/spa and /inventory-db are the pages
+// of Keystone and Ledger from before the products were renamed).
+const MOVED: Record<string, string> = {
+  '/status': '/settings/status',
+  '/settings/identity': '/settings/keystone',
+  '/settings/password-policy': '/settings/keystone',
+  '/settings/spa': '/settings/keystone',
+  '/inventory-db': '/ledger',
+}
 
 export const PAGES: PageDef[] = [
   { id: 'incidents', path: '/incidents', icon: BellRing, Component: IncidentsPage, subtitle: 'page.incidents.subtitle' },
@@ -53,7 +60,7 @@ export const PAGES: PageDef[] = [
   { id: 'response', path: '/response', icon: Megaphone, Component: ResponsePage, subtitle: 'page.response.subtitle' },
   { id: 'rules', path: '/rules', icon: Gauge, Component: RulesPage, subtitle: 'page.rules.subtitle' },
   { id: 'netbox', path: '/netbox', icon: Server, Component: NetBoxPage, subtitle: 'page.netbox.subtitle' },
-  { id: 'inventorydb', path: '/inventory-db', icon: Warehouse, Component: InventoryDBPage, subtitle: 'page.inventorydb.subtitle' },
+  { id: 'inventorydb', path: '/ledger', icon: Warehouse, Component: InventoryDBPage, subtitle: 'page.inventorydb.subtitle' },
   { id: 'monitoring', path: '/monitoring', icon: Radar, Component: MonitoringPage, subtitle: 'page.monitoring.subtitle' },
   { id: 'credentials', path: '/credentials', icon: LockKeyhole, Component: CredentialsPage, subtitle: 'page.credentials.subtitle' },
   { id: 'users', path: '/users', icon: Users, Component: UsersPage, subtitle: 'page.users.subtitle' },
@@ -64,7 +71,7 @@ export const PAGES: PageDef[] = [
   { id: 'settings.ldap', path: '/settings/ldap', icon: Network, Component: DirectorySettings, subtitle: 'page.settings.subtitle' },
   { id: 'settings.postgres', path: '/settings/postgresql', icon: Database, Component: PostgresSettings, subtitle: 'page.settings.subtitle' },
   { id: 'settings.openbao', path: '/settings/openbao', icon: KeyRound, Component: OpenBaoSettings, subtitle: 'page.settings.subtitle' },
-  { id: 'settings.spa', path: '/settings/spa', icon: Fingerprint, Component: SpaSettings, subtitle: 'page.settings.spa.subtitle' },
+  { id: 'settings.spa', path: '/settings/keystone', icon: Fingerprint, Component: SpaSettings, subtitle: 'page.settings.spa.subtitle' },
   { id: 'serviceaccounts', path: '/settings/service-accounts', icon: Bot, Component: ServiceAccountsPage, subtitle: 'page.serviceaccounts.subtitle' },
 ]
 

@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/logbuf"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/logbuf"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // startedAt is when the process started; the setup wizard and later reconfigurations keep it.
@@ -29,7 +29,7 @@ type StatusService struct {
 	secrets Secrets
 	db      Database
 	dir     Directory
-	// spa tells the SPA connection (set by New: it needs the connection key).
+	// spa tells the Keystone connection (set by New: it needs the connection key).
 	spa      func(model.SPAState) SPAStatus
 	sessions SessionCounter
 	queue    *ingest.Queue
@@ -125,7 +125,7 @@ type LDAPStatus struct {
 	Error      string `json:"error,omitempty"`
 }
 
-// SPAStatus is the connection to SPA, where people sign in.
+// SPAStatus is the connection to Keystone, where people sign in.
 type SPAStatus struct {
 	Connected   bool       `json:"connected"`
 	Issuer      string     `json:"issuer,omitempty"`

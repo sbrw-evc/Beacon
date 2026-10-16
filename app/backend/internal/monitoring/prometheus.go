@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/rules"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/rules"
 )
 
 // fetchPrometheus runs the query (up by default) and makes a host of every value of the host

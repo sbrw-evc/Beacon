@@ -4,14 +4,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/avatar"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/avatar"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// UserService is what a person changes on their own account in Umbrella: avatar, time zone,
-// language and the Telegram chat. Name, e-mail, password and passkeys are managed in SPA.
+// UserService is what a person changes on their own account in Beacon: avatar, time zone,
+// language and the Telegram chat. Name, e-mail, password and passkeys are managed in Keystone.
 type UserService struct {
 	st  *store.Store
 	now func() time.Time

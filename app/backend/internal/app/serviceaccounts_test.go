@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // bearer calls the API with an API token instead of a session, without a CSRF header.
@@ -46,7 +46,7 @@ type issued struct {
 	Secret string         `json:"secret"`
 }
 
-// flowAccount makes a role (by default the one Umbrella Flow needs), a service account with it
+// flowAccount makes a role (by default the one Current needs), a service account with it
 // and a token; it returns the admin client, the account ID and the token.
 func flowAccount(t *testing.T, h *harness, perms ...string) (*client, string, string) {
 	t.Helper()
@@ -55,12 +55,12 @@ func flowAccount(t *testing.T, h *harness, perms ...string) (*client, string, st
 	}
 	h.addLocal("root", "Adm1nPassw0rd!", model.RoleAdmin, time.Now())
 	h.st.Write(func(d *store.Data) {
-		d.Roles["flow"] = &model.Role{ID: "flow", Name: "Umbrella Flow", Permissions: perms}
+		d.Roles["flow"] = &model.Role{ID: "flow", Name: "Current", Permissions: perms}
 	})
 	admin := h.client()
 	admin.login("root", "Adm1nPassw0rd!")
 	var sa saView
-	if code := admin.call(http.MethodPost, "/api/service-accounts", map[string]any{"name": "umbrella-flow", "role_id": "flow", "description": "Flow"}, &sa); code != http.StatusCreated {
+	if code := admin.call(http.MethodPost, "/api/service-accounts", map[string]any{"name": "umbrella-flow", "role_id": "flow", "description": "Current"}, &sa); code != http.StatusCreated {
 		t.Fatalf("create = %d", code)
 	}
 	var tok issued
@@ -123,7 +123,7 @@ func TestServiceAccountTokens(t *testing.T) {
 	var list []saView
 	admin.call(http.MethodGet, "/api/service-accounts", nil, &list)
 	if len(list) != 2 || len(list[0].Tokens) != 1 || list[0].Tokens[0].LastUsedAt == nil || list[0].Tokens[0].LastUsedIP != "127.0.0.1" ||
-		list[0].RoleName != "Umbrella Flow" || !strings.HasPrefix(list[0].Tokens[0].Hint, "umb_") {
+		list[0].RoleName != "Current" || !strings.HasPrefix(list[0].Tokens[0].Hint, "umb_") {
 		t.Fatalf("list = %+v", list)
 	}
 	raw := rawGet(t, admin, "/api/service-accounts")

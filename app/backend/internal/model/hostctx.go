@@ -4,7 +4,7 @@ import "time"
 
 // The incident card shows the machine of the incident around the time it happened: graphs from
 // the monitoring systems that know the machine, log lines from log sources and the events of
-// Umbrella itself.
+// Beacon itself.
 
 // Kinds of log sources.
 const (

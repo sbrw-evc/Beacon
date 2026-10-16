@@ -119,7 +119,7 @@ export type Detail = {
   alert: Incident
   timeline: Entry[]
   grafana_url?: string
-  // The traffic of the incident in Umbrella Flow through Umbrella (/go/incidents/{id}/flow).
+  // The traffic of the incident in Current through Beacon (/go/incidents/{id}/flow).
   flow_url?: string
   connectors: Record<string, string>
   // What the catalog has on the item, the services and the maintenance window of the incident.

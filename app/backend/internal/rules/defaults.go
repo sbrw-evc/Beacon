@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Defaults are what Normalize fills the empty fields of a rule with, and what the form of a new

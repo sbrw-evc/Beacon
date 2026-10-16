@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 	maxPages              = 20
 )
 
-// WebhookEvents are the incident events Umbrella subscribes to.
+// WebhookEvents are the incident events Beacon subscribes to.
 var WebhookEvents = []string{
 	"incident.triggered", "incident.acknowledged", "incident.unacknowledged", "incident.resolved",
 	"incident.reopened", "incident.reassigned", "incident.escalated", "incident.annotated", "incident.priority_updated",
@@ -223,7 +223,7 @@ func (g *Gateway) ServiceKey(ctx context.Context, set model.PagerDuty, token, se
 	var created struct {
 		Integration integrationRef `json:"integration"`
 	}
-	body := map[string]any{"integration": map[string]string{"type": eventsIntegrationType, "name": "Umbrella"}}
+	body := map[string]any{"integration": map[string]string{"type": eventsIntegrationType, "name": "Beacon"}}
 	if err := g.restWith(ctx, set, token, http.MethodPost, "/services/"+url.PathEscape(serviceID)+"/integrations", nil, body, &created); err != nil {
 		return "", name, fmt.Errorf("create an Events API v2 integration in %s: %w", name, err)
 	}
@@ -257,7 +257,7 @@ func (g *Gateway) IncidentAlertKeys(ctx context.Context, incidentID string) ([]s
 func (g *Gateway) CreateWebhookSubscription(ctx context.Context, target string) (string, string, error) {
 	body := map[string]any{"webhook_subscription": map[string]any{
 		"type":            "webhook_subscription",
-		"description":     "Umbrella: incident status",
+		"description":     "Beacon: incident status",
 		"events":          WebhookEvents,
 		"filter":          map[string]string{"type": "account_reference"},
 		"delivery_method": map[string]any{"type": "http_delivery_method", "url": target},

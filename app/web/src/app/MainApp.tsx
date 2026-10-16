@@ -63,7 +63,7 @@ function Shell({ meta }: { meta: Meta }) {
     }
   }, [expire])
 
-  // Signing out ends the Umbrella session and then the SPA one: SPA comes back to the sign-in page.
+  // Signing out ends the Beacon session and then the Keystone one: Keystone comes back to the sign-in page.
   const signOut = useCallback(async () => {
     let next = ''
     try {

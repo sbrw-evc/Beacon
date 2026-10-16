@@ -21,7 +21,7 @@ for ou in ("OU=Umbrella", "OU=Users,OU=Umbrella", "OU=Groups,OU=Umbrella", "OU=S
     db.create_ou(dn(ou))
 
 db.newuser("svc-umbrella", os.environ["SERVICE_PASSWORD"], userou="OU=Service,OU=Umbrella",
-           description="Umbrella Monitoring directory service account")
+           description="Beacon directory service account")
 
 people = [
     dict(username="ivanov", surname="Иванов", givenname="Пётр", middle="Сергеевич", jobtitle="Руководитель мониторинга",
@@ -54,9 +54,9 @@ for p in people:
         m["thumbnailPhoto"] = ldb.MessageElement(f.read(), ldb.FLAG_MOD_REPLACE, "thumbnailPhoto")
     db.modify(m)
 
-db.newgroup("Umbrella Admins", groupou="OU=Groups,OU=Umbrella", description="Umbrella Monitoring administrators")
+db.newgroup("Umbrella Admins", groupou="OU=Groups,OU=Umbrella", description="Beacon administrators")
 db.newgroup("Monitoring Team", groupou="OU=Groups,OU=Umbrella", description="Monitoring engineers")
-db.newgroup("Umbrella Users", groupou="OU=Groups,OU=Umbrella", description="Umbrella Monitoring users")
+db.newgroup("Umbrella Users", groupou="OU=Groups,OU=Umbrella", description="Beacon users")
 db.add_remove_group_members("Monitoring Team", ["smirnova"], add_members_operation=True)
 db.add_remove_group_members("Umbrella Admins", ["ivanov", "Monitoring Team"], add_members_operation=True)
 db.add_remove_group_members("Umbrella Users", ["ivanov", "smirnova", "petrov"], add_members_operation=True)

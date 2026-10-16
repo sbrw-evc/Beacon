@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
 )
 
 func TestPutResolveDelete(t *testing.T) {

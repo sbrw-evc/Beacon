@@ -14,10 +14,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/presets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/presets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -886,7 +886,7 @@ type CaptureInput struct {
 }
 
 // Arm makes the next requests to the address become samples. It works for unpublished
-// connectors too, so the source can be pointed at Umbrella before the mapping exists.
+// connectors too, so the source can be pointed at Beacon before the mapping exists.
 func (s *ConnectorsService) Arm(user model.User, id string, in CaptureInput) (*CaptureView, error) {
 	if in.Count == 0 {
 		in.Count = 1

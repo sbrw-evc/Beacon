@@ -1,4 +1,4 @@
-/* Umbrella TV wallboard: polls /api/public/tv/<slug> and renders the incidents.
+/* Beacon TV wallboard: polls /api/public/tv/<slug> and renders the incidents.
    Plain ES2017 for old smart-TV and kiosk browsers: no modules, no optional chaining, no "??". */
 (function () {
   'use strict';
@@ -80,12 +80,12 @@
   var DENIED = {
     ru: {
       title: 'Эта панель недоступна с этого адреса',
-      text: 'Попросите администратора Umbrella добавить этот адрес в разрешённые сети ТВ-панели. Страница откроется сама, как только доступ появится.',
+      text: 'Попросите администратора Beacon добавить этот адрес в разрешённые сети ТВ-панели. Страница откроется сама, как только доступ появится.',
       unknown: 'адрес неизвестен'
     },
     en: {
       title: 'This wallboard is not available from this address',
-      text: 'Ask your Umbrella administrator to add this address to the wallboard’s allowed networks. The page will open by itself once access is granted.',
+      text: 'Ask your Beacon administrator to add this address to the wallboard’s allowed networks. The page will open by itself once access is granted.',
       unknown: 'unknown address'
     }
   };

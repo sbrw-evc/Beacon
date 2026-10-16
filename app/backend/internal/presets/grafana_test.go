@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
 )
 
 // A Grafana alert whose description is a stack trace of a hundred lines written with \n as

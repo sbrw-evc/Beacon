@@ -1,5 +1,5 @@
 === ru/fallback/full subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === ru/fallback/full text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -14,7 +14,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 PagerDuty: ошибка доставки: не задан ключ интеграции
 
 Подтвердить: https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 
 -- 
@@ -31,9 +31,9 @@ Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки: не задан ключ интеграции
 
-<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
+<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
 === ru/fallback/failed_error subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === ru/fallback/failed_error text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -48,7 +48,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 PagerDuty: ошибка доставки: breaker <open>
 
 Подтвердить: https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
@@ -64,9 +64,9 @@ PagerDuty: ошибка доставки: breaker <open>
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки: breaker &lt;open&gt;
 
-<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === ru/fallback/failed_bare subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === ru/fallback/failed_bare text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -80,7 +80,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
@@ -96,9 +96,9 @@ PagerDuty: ошибка доставки
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === ru/fallback/pending subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === ru/fallback/pending text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -112,7 +112,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: не ответил
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 
 -- 
@@ -129,11 +129,11 @@ Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: не ответил
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
 === ru/fallback/off subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P5 · информационный)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P5 · информационный)
 === ru/fallback/off text
-Новый инцидент — оповещение Umbrella
+Новый инцидент — оповещение Beacon
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 
@@ -144,7 +144,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
 === ru/fallback/off html
-🚨 <b>Новый инцидент — оповещение Umbrella</b>
+🚨 <b>Новый инцидент — оповещение Beacon</b>
 
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Важность: P5 · информационный
@@ -152,9 +152,9 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Открыт: 05.10.2026 16:00 +07
 
 === ru/fallback/skipped subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P3 · средний)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P3 · средний)
 === ru/fallback/skipped text
-Новый инцидент — оповещение Umbrella
+Новый инцидент — оповещение Beacon
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 
@@ -167,12 +167,12 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 PagerDuty: не отправлялся (ниже порога важности)
 
 Подтвердить: https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Открыть в Umbrella: https://u.example/incidents?id=INC-7
+Открыть в Beacon: https://u.example/incidents?id=INC-7
 
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
 === ru/fallback/skipped html
-🚨 <b>Новый инцидент — оповещение Umbrella</b>
+🚨 <b>Новый инцидент — оповещение Beacon</b>
 
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Важность: P3 · средний
@@ -183,16 +183,16 @@ PagerDuty: не отправлялся (ниже порога важности)
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: не отправлялся (ниже порога важности)
 
-<a href="https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://u.example/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://u.example/incidents?id=INC-7">Открыть в Beacon</a>
 === ru/followup/acknowledged subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — взят в работу
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — взят в работу
 === ru/followup/acknowledged text
 Инцидент взят в работу
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 Взял(а): petrov <p>, 05.10.2026 16:05 +07
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили резервное оповещение об этом инциденте; ничего делать не нужно.
@@ -202,9 +202,9 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Взял(а): petrov &lt;p&gt;, 05.10.2026 16:05 +07
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === ru/followup/resolved_by subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — решён
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — решён
 === ru/followup/resolved_by text
 Инцидент решён
 
@@ -220,14 +220,14 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Решил(а): ivanov, 05.10.2026 16:05 +07
 
 === ru/followup/resolved_auto subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — решён
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — решён
 === ru/followup/resolved_auto text
 Инцидент решён
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 Решён 05.10.2026 16:05 +07: источники вернулись в норму
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили резервное оповещение об этом инциденте; ничего делать не нужно.
@@ -237,16 +237,16 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Решён 05.10.2026 16:05 +07: источники вернулись в норму
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === ru/test subject
-Проверка резервного оповещения Umbrella
+Проверка резервного оповещения Beacon
 === ru/test text
 Это проверочное сообщение. Если вы его видите, канал настроен.
 === ru/test html
-✅ <b>Проверка резервного оповещения Umbrella</b>
+✅ <b>Проверка резервного оповещения Beacon</b>
 Это проверочное сообщение. Если вы его видите, канал настроен.
 === en/fallback/full subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
 === en/fallback/full text
 PagerDuty did not take the incident — backup notification
 
@@ -261,7 +261,7 @@ Opened: 05.10.2026 16:00 +07
 PagerDuty: delivery failed: no integration key is set
 
 Acknowledge: https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Open in Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Open in Beacon: https://umbrella.example.com/incidents?id=INC-7
 Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 
 -- 
@@ -278,9 +278,9 @@ Team: Payments &amp; SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: delivery failed: no integration key is set
 
-<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Acknowledge</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Open in Umbrella</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
+<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Acknowledge</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Open in Beacon</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
 === en/fallback/failed_error subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
 === en/fallback/failed_error text
 PagerDuty did not take the incident — backup notification
 
@@ -295,7 +295,7 @@ Opened: 05.10.2026 16:00 +07
 PagerDuty: delivery failed: breaker <open>
 
 Acknowledge: https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Open in Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Open in Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 You get this because you are in the team that owns the service or you are responsible for the CI.
@@ -311,9 +311,9 @@ Team: Payments &amp; SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: delivery failed: breaker &lt;open&gt;
 
-<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Acknowledge</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Open in Umbrella</a>
+<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Acknowledge</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Open in Beacon</a>
 === en/fallback/failed_bare subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
 === en/fallback/failed_bare text
 PagerDuty did not take the incident — backup notification
 
@@ -327,7 +327,7 @@ Team: Payments & SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: delivery failed
 
-Open in Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Open in Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 You get this because you are in the team that owns the service or you are responsible for the CI.
@@ -343,9 +343,9 @@ Team: Payments &amp; SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: delivery failed
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Beacon</a>
 === en/fallback/pending subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · critical)
 === en/fallback/pending text
 PagerDuty did not take the incident — backup notification
 
@@ -359,7 +359,7 @@ Team: Payments & SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: no answer
 
-Open in Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Open in Beacon: https://umbrella.example.com/incidents?id=INC-7
 Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 
 -- 
@@ -376,11 +376,11 @@ Team: Payments &amp; SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: no answer
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Umbrella</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Beacon</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
 === en/fallback/off subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P5 · informational)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P5 · informational)
 === en/fallback/off text
-New incident — Umbrella notification
+New incident — Beacon notification
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 
@@ -391,7 +391,7 @@ Opened: 05.10.2026 16:00 +07
 -- 
 You get this because you are in the team that owns the service or you are responsible for the CI.
 === en/fallback/off html
-🚨 <b>New incident — Umbrella notification</b>
+🚨 <b>New incident — Beacon notification</b>
 
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Severity: P5 · informational
@@ -399,9 +399,9 @@ CI: app-01 &amp; co
 Opened: 05.10.2026 16:00 +07
 
 === en/fallback/skipped subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P3 · medium)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P3 · medium)
 === en/fallback/skipped text
-New incident — Umbrella notification
+New incident — Beacon notification
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 
@@ -414,12 +414,12 @@ Opened: 05.10.2026 16:00 +07
 PagerDuty: not sent (below the severity threshold)
 
 Acknowledge: https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Open in Umbrella: https://u.example/incidents?id=INC-7
+Open in Beacon: https://u.example/incidents?id=INC-7
 
 -- 
 You get this because you are in the team that owns the service or you are responsible for the CI.
 === en/fallback/skipped html
-🚨 <b>New incident — Umbrella notification</b>
+🚨 <b>New incident — Beacon notification</b>
 
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Severity: P3 · medium
@@ -430,16 +430,16 @@ Team: Payments &amp; SRE
 Opened: 05.10.2026 16:00 +07
 PagerDuty: not sent (below the severity threshold)
 
-<a href="https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Acknowledge</a> · <a href="https://u.example/incidents?id=INC-7">Open in Umbrella</a>
+<a href="https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Acknowledge</a> · <a href="https://u.example/incidents?id=INC-7">Open in Beacon</a>
 === en/followup/acknowledged subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — being handled
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — being handled
 === en/followup/acknowledged text
 The incident is being handled
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 Taken by petrov <p>, 05.10.2026 16:05 +07
 
-Open in Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Open in Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 You got backup notification about this incident; nothing more is needed from you.
@@ -449,9 +449,9 @@ You got backup notification about this incident; nothing more is needed from you
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Taken by petrov &lt;p&gt;, 05.10.2026 16:05 +07
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Beacon</a>
 === en/followup/resolved_by subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — resolved
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — resolved
 === en/followup/resolved_by text
 The incident is resolved
 
@@ -467,14 +467,14 @@ You got backup notification about this incident; nothing more is needed from you
 Resolved by ivanov, 05.10.2026 16:05 +07
 
 === en/followup/resolved_auto subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — resolved
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — resolved
 === en/followup/resolved_auto text
 The incident is resolved
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 Resolved 05.10.2026 16:05 +07: the sources are back to normal
 
-Open in Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Open in Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 You got backup notification about this incident; nothing more is needed from you.
@@ -484,16 +484,16 @@ You got backup notification about this incident; nothing more is needed from you
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Resolved 05.10.2026 16:05 +07: the sources are back to normal
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Open in Beacon</a>
 === en/test subject
-Umbrella backup notification test
+Beacon backup notification test
 === en/test text
 This is a test message. If you see it, the channel is set up.
 === en/test html
-✅ <b>Umbrella backup notification test</b>
+✅ <b>Beacon backup notification test</b>
 This is a test message. If you see it, the channel is set up.
 === /fallback/full subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === /fallback/full text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -508,7 +508,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 PagerDuty: ошибка доставки: не задан ключ интеграции
 
 Подтвердить: https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 
 -- 
@@ -525,9 +525,9 @@ Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки: не задан ключ интеграции
 
-<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
+<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
 === /fallback/failed_error subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === /fallback/failed_error text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -542,7 +542,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 PagerDuty: ошибка доставки: breaker <open>
 
 Подтвердить: https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
@@ -558,9 +558,9 @@ PagerDuty: ошибка доставки: breaker <open>
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки: breaker &lt;open&gt;
 
-<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === /fallback/failed_bare subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === /fallback/failed_bare text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -574,7 +574,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
@@ -590,9 +590,9 @@ PagerDuty: ошибка доставки
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: ошибка доставки
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === /fallback/pending subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P1 · критический)
 === /fallback/pending text
 PagerDuty не принял инцидент — резервное оповещение
 
@@ -606,7 +606,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: не ответил
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 
 -- 
@@ -623,11 +623,11 @@ Grafana: https://umbrella.example.com/go/incidents/INC-7/grafana
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: не ответил
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a> · <a href="https://umbrella.example.com/go/incidents/INC-7/grafana">Grafana</a>
 === /fallback/off subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P5 · информационный)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P5 · информационный)
 === /fallback/off text
-Новый инцидент — оповещение Umbrella
+Новый инцидент — оповещение Beacon
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 
@@ -638,7 +638,7 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
 === /fallback/off html
-🚨 <b>Новый инцидент — оповещение Umbrella</b>
+🚨 <b>Новый инцидент — оповещение Beacon</b>
 
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Важность: P5 · информационный
@@ -646,9 +646,9 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Открыт: 05.10.2026 16:00 +07
 
 === /fallback/skipped subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> (P3 · средний)
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> (P3 · средний)
 === /fallback/skipped text
-Новый инцидент — оповещение Umbrella
+Новый инцидент — оповещение Beacon
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 
@@ -661,12 +661,12 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 PagerDuty: не отправлялся (ниже порога важности)
 
 Подтвердить: https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL
-Открыть в Umbrella: https://u.example/incidents?id=INC-7
+Открыть в Beacon: https://u.example/incidents?id=INC-7
 
 -- 
 Вы получили это письмо, потому что входите в команду, отвечающую за сервис, или отвечаете за КЕ.
 === /fallback/skipped html
-🚨 <b>Новый инцидент — оповещение Umbrella</b>
+🚨 <b>Новый инцидент — оповещение Beacon</b>
 
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Важность: P3 · средний
@@ -677,16 +677,16 @@ PagerDuty: не отправлялся (ниже порога важности)
 Открыт: 05.10.2026 16:00 +07
 PagerDuty: не отправлялся (ниже порога важности)
 
-<a href="https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://u.example/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://u.example/ack/SU5DLTcKdTp1MQoxNzkxMjc3NTAw.4G0lXB0m9BszyuV_z2pv9TOL">Подтвердить</a> · <a href="https://u.example/incidents?id=INC-7">Открыть в Beacon</a>
 === /followup/acknowledged subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — взят в работу
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — взят в работу
 === /followup/acknowledged text
 Инцидент взят в работу
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 Взял(а): petrov <p>, 05.10.2026 16:05 +07
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили резервное оповещение об этом инциденте; ничего делать не нужно.
@@ -696,9 +696,9 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Взял(а): petrov &lt;p&gt;, 05.10.2026 16:05 +07
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === /followup/resolved_by subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — решён
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — решён
 === /followup/resolved_by text
 Инцидент решён
 
@@ -714,14 +714,14 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 Решил(а): ivanov, 05.10.2026 16:05 +07
 
 === /followup/resolved_auto subject
-[Umbrella] INC-7 · HTTP 5xx <b>&"app"</b> — решён
+[Beacon] INC-7 · HTTP 5xx <b>&"app"</b> — решён
 === /followup/resolved_auto text
 Инцидент решён
 
 INC-7 · HTTP 5xx <b>&"app"</b>
 Решён 05.10.2026 16:05 +07: источники вернулись в норму
 
-Открыть в Umbrella: https://umbrella.example.com/incidents?id=INC-7
+Открыть в Beacon: https://umbrella.example.com/incidents?id=INC-7
 
 -- 
 Вы получили резервное оповещение об этом инциденте; ничего делать не нужно.
@@ -731,11 +731,11 @@ INC-7 · HTTP 5xx <b>&"app"</b>
 <b>INC-7 · HTTP 5xx &lt;b&gt;&amp;&#34;app&#34;&lt;/b&gt;</b>
 Решён 05.10.2026 16:05 +07: источники вернулись в норму
 
-<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Umbrella</a>
+<a href="https://umbrella.example.com/incidents?id=INC-7">Открыть в Beacon</a>
 === /test subject
-Проверка резервного оповещения Umbrella
+Проверка резервного оповещения Beacon
 === /test text
 Это проверочное сообщение. Если вы его видите, канал настроен.
 === /test html
-✅ <b>Проверка резервного оповещения Umbrella</b>
+✅ <b>Проверка резервного оповещения Beacon</b>
 Это проверочное сообщение. Если вы его видите, канал настроен.

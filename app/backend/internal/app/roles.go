@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 var (
 	ErrRoleNameTaken = errors.New("a role with this name already exists")
 	ErrRoleSystem    = errors.New("system roles cannot be changed this way")
-	ErrRoleInUse     = errors.New("the role is still given to people in SPA")
+	ErrRoleInUse     = errors.New("the role is still given to people in Keystone")
 	ErrOwnAdmin      = errors.New("you cannot remove your own administrator role")
 )
 
@@ -159,7 +159,7 @@ func (s *RolesService) Delete(actor model.User, id string) error {
 			err = ErrRoleSystem
 			return
 		}
-		// People get their role in SPA: a role still given there is taken away in SPA first, or
+		// People get their role in Keystone: a role still given there is taken away in Keystone first, or
 		// they would lose their access at the next synchronization.
 		if len(roleUsers(d, id)) > 0 {
 			err = ErrRoleInUse

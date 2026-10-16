@@ -7,13 +7,13 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store/storetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store/storetest"
 )
 
 func incoming(key, signal string) alert.Incoming {
@@ -78,7 +78,7 @@ func TestPostgresMigrationCopiesAlertsAndQueue(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A database Umbrella ran on before, without a snapshot: its alerts are Umbrella data too.
+	// A database Beacon ran on before, without a snapshot: its alerts are Beacon data too.
 	up := pool(t, used)
 	if err := alert.New(up, store.New()).Ingest(ctx, []alert.Incoming{incoming("stale", "stale")}); err != nil {
 		t.Fatal(err)

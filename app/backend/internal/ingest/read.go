@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
 )
 
 const requestColumns = `id, received_at, connector_id, version, status, attempts, remote_ip, method, headers, query,

@@ -16,11 +16,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/telegram"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/telegram"
 )
 
 // Voice: the incident spoken to people in the language of their interface. Microsoft Teams
@@ -340,7 +340,7 @@ func (s *Service) ttsClient(set model.TTSSettings) (*TTS, error) {
 }
 
 // telegramClient is the Telegram bot of backup notification; bot tells whether the bot built into
-// Umbrella answers buttons.
+// Beacon answers buttons.
 func (s *Service) telegramClient() (*telegram.Client, bool, error) {
 	var tg model.TelegramChannel
 	s.st.Read(func(d *store.Data) { tg = d.Settings.Alerting.Notify.Telegram })
@@ -515,7 +515,7 @@ func liveSet(set model.Response) model.Response {
 // ringTeams places a Teams call; the rest happens as Microsoft reports the call (TeamsEvent).
 func (s *Service) ringTeams(ctx context.Context, j voiceJob, c *VoiceCall, v view, sp *speaker) ([]byte, []byte, error) {
 	if !strings.HasPrefix(j.sn.public, "https://") {
-		return nil, nil, errors.New("Teams calls need the public https address of Umbrella (alerting settings)")
+		return nil, nil, errors.New("Teams calls need the public https address of Beacon (alerting settings)")
 	}
 	g, _, err := s.graphClient(liveSet(j.sn.set))
 	if err != nil {

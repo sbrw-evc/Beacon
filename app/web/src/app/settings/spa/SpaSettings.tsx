@@ -43,7 +43,7 @@ export function SpaSettings() {
     <>
       <SummaryCard
         title={t('spa.connection')}
-        badge={pill(v.connected, v.connected ? 'SPA' : t('spa.notConnected'))}
+        badge={pill(v.connected, v.connected ? 'Keystone' : t('spa.notConnected'))}
         text={t('spa.connection.text')}
         rows={[
           [t('spa.issuer'), v.issuer],
@@ -58,7 +58,7 @@ export function SpaSettings() {
           v.account_url && (
             <a className="btn" href={v.issuer} target="_blank" rel="noreferrer">
               <ExternalLink size={16} aria-hidden />
-              SPA
+              Keystone
             </a>
           )
         }

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
 )
 
 // view is what the messages of an incident show: its words and links in the default language.
@@ -70,7 +70,7 @@ func (v view) facts() [][2]string {
 	return rows
 }
 
-// links of the incident: the chat, the call, the Jira task, Umbrella and Grafana.
+// links of the incident: the chat, the call, the Jira task, Beacon and Grafana.
 func (v view) links() []notify.DirectLink {
 	var out []notify.DirectLink
 	if r := v.st.Room; r != nil && r.URL != "" {

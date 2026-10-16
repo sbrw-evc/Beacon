@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 const MaxAudit = 5000
@@ -31,15 +31,15 @@ type Data struct {
 	// NetBoxContacts maps NetBox contact IDs to the user accounts made or found for them.
 	NetBoxContacts map[int]string
 	NetBoxSync     model.SyncState
-	// InventoryDBSync is the last read of devices from Inventory DB.
+	// InventoryDBSync is the last read of devices from Ledger.
 	InventoryDBSync model.SyncState
-	// InventoryDBPushed is the last alert state sent to Inventory DB, by alert ID.
+	// InventoryDBPushed is the last alert state sent to Ledger, by alert ID.
 	InventoryDBPushed map[string]model.PushedAlert
 	// ServiceAccounts are the machine identities that call the API with API tokens.
 	ServiceAccounts map[string]*model.ServiceAccount
 	// APITokens are the tokens of service accounts, by token ID (only keyed hashes are kept).
 	APITokens map[string]*model.APIToken
-	// Proposals are the dependency proposals of Umbrella Flow, by proposal key.
+	// Proposals are the dependency proposals of Current, by proposal key.
 	Proposals map[string]*model.DependencyProposal
 	Settings  model.Settings
 	Audit     []AuditEntry

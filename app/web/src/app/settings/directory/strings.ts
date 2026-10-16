@@ -4,7 +4,7 @@ import { ldapStrings } from '../../../connections/ldapStrings'
 const page: Dict = {
   en: {
     'dir.title': 'LDAP / Active Directory',
-    'dir.text': 'Umbrella reads computers and people from Active Directory or LDAP into the CMDB. Sign-in is not here: people sign in at SPA.',
+    'dir.text': 'Beacon reads computers and people from Active Directory or LDAP into the CMDB. Sign-in is not here: people sign in at Keystone.',
     'dir.state': 'Reading the directory',
     'dir.state.on': 'On',
     'dir.state.off': 'Off',
@@ -24,12 +24,12 @@ const page: Dict = {
     'dir.checking': 'Checking…',
     'dir.save': 'Save',
     'dir.saved': 'Directory settings saved.',
-    'dir.save.hint': 'Umbrella checks the connection before saving.',
+    'dir.save.hint': 'Beacon checks the connection before saving.',
     'err.ldap_bind_password_required': 'Enter the service account password.',
   },
   ru: {
     'dir.title': 'LDAP / Active Directory',
-    'dir.text': 'Umbrella читает компьютеры и людей из Active Directory или LDAP в CMDB. Вход здесь не настраивается: люди входят через SPA.',
+    'dir.text': 'Beacon читает компьютеры и людей из Active Directory или LDAP в CMDB. Вход здесь не настраивается: люди входят через Keystone.',
     'dir.state': 'Чтение каталога',
     'dir.state.on': 'Включён',
     'dir.state.off': 'Выключен',
@@ -49,7 +49,7 @@ const page: Dict = {
     'dir.checking': 'Проверяем…',
     'dir.save': 'Сохранить',
     'dir.saved': 'Настройки каталога сохранены.',
-    'dir.save.hint': 'Перед сохранением Umbrella проверяет подключение.',
+    'dir.save.hint': 'Перед сохранением Beacon проверяет подключение.',
     'err.ldap_bind_password_required': 'Введите пароль служебной учётной записи.',
   },
 }

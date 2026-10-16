@@ -1,9 +1,9 @@
-// Package tgbot is the Telegram bot built into Umbrella. It reads updates by long polling, so
+// Package tgbot is the Telegram bot built into Beacon. It reads updates by long polling, so
 // it needs no public address, no webhook and no deployment of its own: it runs inside the
-// Umbrella process with the token of the notification channel. People link their Telegram
+// Beacon process with the token of the notification channel. People link their Telegram
 // account from their profile and then acknowledge, resolve and comment on incidents with the
 // buttons under notifications or with commands; replies to a notification become comments.
-// With several Umbrella instances one of them polls (Telegram allows one reader per bot).
+// With several Beacon instances one of them polls (Telegram allows one reader per bot).
 package tgbot
 
 import (
@@ -18,9 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/telegram"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/telegram"
 )
 
 const (
@@ -38,7 +38,7 @@ type Config struct {
 	Locale string
 }
 
-// Person is the Umbrella user linked to a Telegram account.
+// Person is the Beacon user linked to a Telegram account.
 type Person struct {
 	ID, Username, Name string
 	// CanAck: the user may acknowledge and resolve incidents; Scope limits which (nil: all).
@@ -48,7 +48,7 @@ type Person struct {
 	Scope   []string
 }
 
-// Backend is what the bot needs of Umbrella.
+// Backend is what the bot needs of Beacon.
 type Backend interface {
 	// Config reads the settings and resolves the token; an error when it cannot.
 	Config() (Config, error)

@@ -2,13 +2,13 @@ import type { Dict } from '../i18n'
 
 export const strings: Dict = {
   en: {
-    'prefs.public': 'Umbrella address',
+    'prefs.public': 'Beacon address',
     'prefs.public.hint':
-      'The address people and PagerDuty reach Umbrella at: links in e-mail, Telegram and PagerDuty lead here. Filled with the address this wizard is open at; change it if users open Umbrella by another name.',
-    'prefs.public.bad': 'An http or https address without a query is needed, for example https://umbrella.example.com.',
-    'rv.public': 'Umbrella address',
+      'The address people and PagerDuty reach Beacon at: links in e-mail, Telegram and PagerDuty lead here. Filled with the address this wizard is open at; change it if users open Beacon by another name.',
+    'prefs.public.bad': 'An http or https address without a query is needed, for example https://beacon.example.com.',
+    'rv.public': 'Beacon address',
     'rv.public.none': 'Not set',
-    'err.public_url_invalid': 'The Umbrella address must be an http or https URL without a query.',
+    'err.public_url_invalid': 'The Beacon address must be an http or https URL without a query.',
     title: 'Initial setup',
     'step.code': 'Setup code',
     'step.code.sub': 'Confirm access',
@@ -18,19 +18,19 @@ export const strings: Dict = {
     'step.openbao.sub': 'Secret storage',
     'step.postgres': 'PostgreSQL',
     'step.postgres.sub': 'Database',
-    'step.spa': 'SPA',
+    'step.spa': 'Keystone',
     'step.spa.sub': 'Sign-in of people',
-    'spa.title': 'Connect to SPA',
-    'spa.text': 'People sign in to Umbrella at SPA, the single point of authorization: Umbrella keeps no passwords. In SPA, open Applications → Connect, choose Umbrella Monitoring, give it the redirect address below and paste the connection key it shows here.',
+    'spa.title': 'Connect to Keystone',
+    'spa.text': 'People sign in to Beacon at Keystone: Beacon keeps no passwords. In Keystone, open Applications → Connect, choose Beacon, give it the redirect address below and paste the connection key it shows here.',
     'spa.key': 'Connection key',
     'spa.key.hint': 'Starts with spa1. Saved in OpenBao. Leave empty if it comes from SPA_CONNECTION_KEY.',
     'spa.key.set': 'Saved in OpenBao',
     'spa.key.env': 'From SPA_CONNECTION_KEY',
     'spa.redirect': 'Redirect address',
-    'spa.admin': 'The first administrator is whoever SPA gives the role «Administrator» for Umbrella. Give it to yourself in SPA before you sign in.',
-    'spa.ok': 'SPA accepts the key of {app}',
-    'spa.fail': 'SPA does not accept this key',
-    'done.text.nokey': 'Setup is complete and the wizard is turned off. Set SPA_CONNECTION_KEY and restart Umbrella, then sign in through SPA.',
+    'spa.admin': 'The first administrator is whoever Keystone gives the role «Administrator» for Beacon. Give it to yourself in Keystone before you sign in.',
+    'spa.ok': 'Keystone accepts the key of {app}',
+    'spa.fail': 'Keystone does not accept this key',
+    'done.text.nokey': 'Setup is complete and the wizard is turned off. Set SPA_CONNECTION_KEY and restart Beacon, then sign in through Keystone.',
     'step.review': 'Review',
     'step.review.sub': 'Finish setup',
     back: 'Back',
@@ -41,7 +41,7 @@ export const strings: Dict = {
 
     'code.title': 'Enter the setup code',
     'code.text':
-      'The setup code protects this wizard until the first administrator is created. Umbrella prints it to its log at startup and stores it in the data directory.',
+      'The setup code protects this wizard until the first administrator is created. Beacon prints it to its log at startup and stores it in the data directory.',
     'code.where': 'Where to find it',
     'code.logs': 'Container log:',
     'code.file': 'File in the data volume:',
@@ -59,18 +59,18 @@ export const strings: Dict = {
 
     'ob.title': 'Connect OpenBao',
     'ob.text':
-      'Umbrella keeps every password and key in OpenBao (KV v2). The database password and the directory service account password set in the next steps are saved there, not on disk.',
+      'Beacon keeps every password and key in OpenBao (KV v2). The database password and the directory service account password set in the next steps are saved there, not on disk.',
 
     'pg.title': 'Connect PostgreSQL',
-    'pg.text': 'Umbrella stores users and settings in PostgreSQL. The password goes to OpenBao.',
+    'pg.text': 'Beacon stores users and settings in PostgreSQL. The password goes to OpenBao.',
     'pg.state.text': 'It may be a previous installation. Users and settings stay; the wizard updates the defaults and the administrator.',
-    'pg.reuse': 'Use the existing Umbrella data',
+    'pg.reuse': 'Use the existing Beacon data',
 
 
 
     'rv.title': 'Review and finish',
     'rv.text':
-      'Umbrella saves the passwords to OpenBao, creates its table in PostgreSQL, creates the administrator and switches to normal operation. The wizard then turns off.',
+      'Beacon saves the passwords to OpenBao, creates its table in PostgreSQL, creates the administrator and switches to normal operation. The wizard then turns off.',
     'rv.edit': 'Change',
     'rv.finish': 'Finish setup',
     'rv.finishing': 'Setting up…',
@@ -84,18 +84,18 @@ export const strings: Dict = {
     'rv.failed': 'Setup was not completed',
     'rv.goto': 'Open the step',
 
-    'done.title': 'Umbrella is ready',
-    'done.text': 'Setup is complete and the wizard is turned off. Sign in through SPA.',
+    'done.title': 'Beacon is ready',
+    'done.text': 'Setup is complete and the wizard is turned off. Sign in through Keystone.',
     'done.signin': 'Go to sign in',
   },
   ru: {
-    'prefs.public': 'Адрес Umbrella',
+    'prefs.public': 'Адрес Beacon',
     'prefs.public.hint':
-      'Адрес, по которому Umbrella открывают люди и PagerDuty: на него ведут ссылки из писем, Telegram и PagerDuty. Заполнен адресом, по которому открыт мастер; измените, если пользователи открывают Umbrella по другому имени.',
-    'prefs.public.bad': 'Нужен адрес http или https без параметров, например https://umbrella.example.com.',
-    'rv.public': 'Адрес Umbrella',
+      'Адрес, по которому Beacon открывают люди и PagerDuty: на него ведут ссылки из писем, Telegram и PagerDuty. Заполнен адресом, по которому открыт мастер; измените, если пользователи открывают Beacon по другому имени.',
+    'prefs.public.bad': 'Нужен адрес http или https без параметров, например https://beacon.example.com.',
+    'rv.public': 'Адрес Beacon',
     'rv.public.none': 'Не задан',
-    'err.public_url_invalid': 'Адрес Umbrella должен быть URL http или https без параметров.',
+    'err.public_url_invalid': 'Адрес Beacon должен быть URL http или https без параметров.',
     title: 'Первичная настройка',
     'step.code': 'Код установки',
     'step.code.sub': 'Подтверждение доступа',
@@ -105,19 +105,19 @@ export const strings: Dict = {
     'step.openbao.sub': 'Хранилище секретов',
     'step.postgres': 'PostgreSQL',
     'step.postgres.sub': 'База данных',
-    'step.spa': 'SPA',
+    'step.spa': 'Keystone',
     'step.spa.sub': 'Вход людей',
-    'spa.title': 'Подключение к SPA',
-    'spa.text': 'Люди входят в Umbrella через SPA — единую точку авторизации: Umbrella не хранит паролей. В SPA откройте «Приложения → Подключить», выберите Umbrella Monitoring, укажите адрес возврата ниже и вставьте сюда ключ подключения, который покажет SPA.',
+    'spa.title': 'Подключение к Keystone',
+    'spa.text': 'Люди входят в Beacon через Keystone: Beacon не хранит паролей. В Keystone откройте «Приложения → Подключить», выберите Beacon, укажите адрес возврата ниже и вставьте сюда ключ подключения, который покажет Keystone.',
     'spa.key': 'Ключ подключения',
     'spa.key.hint': 'Начинается с spa1. Сохраняется в OpenBao. Оставьте пустым, если ключ задан в SPA_CONNECTION_KEY.',
     'spa.key.set': 'Сохранён в OpenBao',
     'spa.key.env': 'Из SPA_CONNECTION_KEY',
     'spa.redirect': 'Адрес возврата',
-    'spa.admin': 'Первый администратор — тот, кому SPA выдаст роль «Администратор» для Umbrella. Выдайте её себе в SPA до входа.',
-    'spa.ok': 'SPA принимает ключ приложения {app}',
-    'spa.fail': 'SPA не принимает этот ключ',
-    'done.text.nokey': 'Настройка завершена, мастер выключен. Укажите SPA_CONNECTION_KEY, перезапустите Umbrella и войдите через SPA.',
+    'spa.admin': 'Первый администратор — тот, кому Keystone выдаст роль «Администратор» для Beacon. Выдайте её себе в Keystone до входа.',
+    'spa.ok': 'Keystone принимает ключ приложения {app}',
+    'spa.fail': 'Keystone не принимает этот ключ',
+    'done.text.nokey': 'Настройка завершена, мастер выключен. Укажите SPA_CONNECTION_KEY, перезапустите Beacon и войдите через Keystone.',
     'step.review': 'Проверка',
     'step.review.sub': 'Завершение настройки',
     back: 'Назад',
@@ -127,7 +127,7 @@ export const strings: Dict = {
     optional: 'необязательно',
 
     'code.title': 'Введите код установки',
-    'code.text': 'Код установки защищает мастер, пока не создан первый администратор. Umbrella выводит его в журнал при запуске и сохраняет в каталоге данных.',
+    'code.text': 'Код установки защищает мастер, пока не создан первый администратор. Beacon выводит его в журнал при запуске и сохраняет в каталоге данных.',
     'code.where': 'Где взять код',
     'code.logs': 'Журнал контейнера:',
     'code.file': 'Файл в томе данных:',
@@ -145,18 +145,18 @@ export const strings: Dict = {
 
     'ob.title': 'Подключение к OpenBao',
     'ob.text':
-      'Umbrella хранит все пароли и ключи в OpenBao (KV v2). Пароль базы данных и пароль служебной учётной записи каталога из следующих шагов сохраняются туда, а не на диск.',
+      'Beacon хранит все пароли и ключи в OpenBao (KV v2). Пароль базы данных и пароль служебной учётной записи каталога из следующих шагов сохраняются туда, а не на диск.',
 
     'pg.title': 'Подключение к PostgreSQL',
-    'pg.text': 'Umbrella хранит пользователей и настройки в PostgreSQL. Пароль сохраняется в OpenBao.',
+    'pg.text': 'Beacon хранит пользователей и настройки в PostgreSQL. Пароль сохраняется в OpenBao.',
     'pg.state.text': 'Возможно, это предыдущая установка. Пользователи и настройки сохранятся; мастер обновит настройки по умолчанию и администратора.',
-    'pg.reuse': 'Использовать существующие данные Umbrella',
+    'pg.reuse': 'Использовать существующие данные Beacon',
 
 
 
     'rv.title': 'Проверка и завершение',
     'rv.text':
-      'Umbrella сохранит пароли в OpenBao, создаст свою таблицу в PostgreSQL, создаст администратора и перейдёт в рабочий режим. После этого мастер отключится.',
+      'Beacon сохранит пароли в OpenBao, создаст свою таблицу в PostgreSQL, создаст администратора и перейдёт в рабочий режим. После этого мастер отключится.',
     'rv.edit': 'Изменить',
     'rv.finish': 'Завершить настройку',
     'rv.finishing': 'Настраиваем…',
@@ -170,8 +170,8 @@ export const strings: Dict = {
     'rv.failed': 'Настройка не завершена',
     'rv.goto': 'Открыть шаг',
 
-    'done.title': 'Umbrella готова к работе',
-    'done.text': 'Настройка завершена, мастер отключён. Войдите через SPA.',
+    'done.title': 'Beacon готов к работе',
+    'done.text': 'Настройка завершена, мастер отключён. Войдите через Keystone.',
     'done.signin': 'Перейти ко входу',
   },
 }

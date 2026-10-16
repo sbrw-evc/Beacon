@@ -9,7 +9,7 @@ import { strings } from './strings'
 
 type Flow = { url: string }
 
-// FlowCard is the address of Umbrella Flow: with it the incident and CI cards link to the
+// FlowCard is the address of Current: with it the incident and CI cards link to the
 // traffic around the incident (/go/incidents/{id}/flow, /go/cis/{id}/flow).
 export function FlowCard() {
   const t = useT(strings)

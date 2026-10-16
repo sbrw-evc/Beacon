@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/textx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/textx"
 )
 
 // The severities and methods of an event are those of the model; the names stay here so the

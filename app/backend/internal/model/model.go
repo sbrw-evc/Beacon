@@ -8,15 +8,15 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/directory"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/inventorydb"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/netbox"
+	"github.com/sbrw-evc/beacon/app/backend/internal/directory"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ledger"
+	"github.com/sbrw-evc/beacon/app/backend/internal/netbox"
 )
 
 const (
-	// SourceSPA marks the people synchronized from SPA, the Single Point of Authorization: the
+	// SourceSPA marks the people synchronized from Keystone: the
 	// only accounts that sign in. SourceLocal, SourceLDAP and SourceEntra are the accounts of
-	// versions before SPA; they cannot sign in and are bound to SPA once (app/spa.go).
+	// versions before Keystone; they cannot sign in and are bound to Keystone once (app/keystone.go).
 	SourceSPA   = "spa"
 	SourceLocal = "local"
 	SourceLDAP  = "ldap"
@@ -123,9 +123,9 @@ type User struct {
 	// Locale is the interface language the user chose (en, ru); empty is the default of the
 	// installation. Voice calls speak it.
 	Locale string `json:"locale,omitempty"`
-	// ExternalID is the SPA user ID of an SPA account (the only key it is bound by).
+	// ExternalID is the Keystone user ID of a Keystone account (the only key it is bound by).
 	ExternalID string `json:"-"`
-	// Groups are the SPA groups of the person (names), as SPA last gave them.
+	// Groups are the Keystone groups of the person (names), as Keystone last gave them.
 	Groups      []string   `json:"groups,omitempty"`
 	Disabled    bool       `json:"disabled"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -137,18 +137,18 @@ type Settings struct {
 	DefaultLocale string `json:"default_locale"`
 	DefaultTZ     string `json:"default_timezone"`
 	// LDAP is the Active Directory the NetBox synchronization reads computer objects from (it
-	// is not used for sign-in: people sign in through SPA).
+	// is not used for sign-in: people sign in through Keystone).
 	LDAP   directory.Config `json:"ldap"`
 	NetBox netbox.Config    `json:"netbox"`
-	// InventoryDB is the optional Inventory DB connection: devices in, alert states out.
-	InventoryDB inventorydb.Config `json:"inventory_db"`
-	Alerting    Alerting           `json:"alerting"`
+	// InventoryDB is the optional Ledger connection: devices in, alert states out.
+	InventoryDB ledger.Config `json:"inventory_db"`
+	Alerting    Alerting      `json:"alerting"`
 	// Response is incident response: impact, priority policies, escalation, war rooms, Jira.
 	Response Response `json:"response"`
 	// HostContext is how the incident card shows the machine of the incident.
 	HostContext HostContext `json:"host_context"`
 	// NewUserRole is the role of the accounts NetBox creates for its contacts. Empty or unknown:
-	// the system role "user". People synchronized from SPA get the role SPA gives them.
+	// the system role "user". People synchronized from Keystone get the role Keystone gives them.
 	NewUserRole string `json:"new_user_role"`
 	// TrustedProxies are reverse proxies set in the interface, in addition to
 	// UMBRELLA_TRUSTED_PROXIES: their X-Forwarded-For is believed for the client address.
@@ -160,9 +160,9 @@ type Settings struct {
 	// NetBoxUsersDecided: NetBox settings saved before «create accounts for contacts» existed were
 	// given it on (their behaviour), later ones choose it.
 	NetBoxUsersDecided bool `json:"-"`
-	// SPA is the connection to SPA as it was last seen (app/spa.go).
+	// Keystone is the connection to Keystone as it was last seen (app/keystone.go).
 	SPA SPAState `json:"-"`
-	// IdentityCleaned: the secrets of the sign-in before SPA (password hashes, the LDAP
+	// IdentityCleaned: the secrets of the sign-in before Keystone (password hashes, the LDAP
 	// sign-in, Entra ID, providers, Umbrella Identity) were deleted from OpenBao.
 	IdentityCleaned bool      `json:"-"`
 	SetupAt         time.Time `json:"setup_at"`
@@ -202,7 +202,7 @@ func (u *User) MigrateScope() bool {
 	return true
 }
 
-// SPAState is what SPA said last and how the last synchronization went.
+// SPAState is what Keystone said last and how the last synchronization went.
 type SPAState struct {
 	Issuer      string      `json:"issuer"`
 	ClientID    string      `json:"client_id"`
@@ -230,7 +230,7 @@ type SPAState struct {
 	CatalogErr  string      `json:"catalog_error,omitempty"`
 }
 
-// SPAMethod is a sign-in method SPA offers.
+// SPAMethod is a sign-in method Keystone offers.
 type SPAMethod struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`

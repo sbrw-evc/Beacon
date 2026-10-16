@@ -15,7 +15,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
 )
 
 // The messages are text/template files: <message>.<part>.tmpl, where the part is the e-mail
@@ -168,7 +168,7 @@ type Message struct {
 	PDMode string
 	// Links (empty when the public address is not set, Ack also when links are off).
 	Ack, Open, Grafana string
-	// Flow is the traffic of the incident in Umbrella Flow (empty while its address is not set).
+	// Flow is the traffic of the incident in Current (empty while its address is not set).
 	Flow string
 	// Follow-up: Event is acknowledged or resolved.
 	Event                  string

@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/config"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/config"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 var errSwitchUnavailable = invalid("switch_unavailable", nil)
@@ -98,7 +98,7 @@ func (s *PostgresService) Probe(ctx context.Context, target config.PostgresTarge
 }
 
 // probeTarget is store.ProbePostgres where alerts or received requests left without a snapshot
-// (a database Umbrella ran on before) also count as Umbrella data that a switch must not merge into.
+// (a database Beacon ran on before) also count as Beacon data that a switch must not merge into.
 func probeTarget(ctx context.Context, cfg store.PGConfig) (store.PGProbe, error) {
 	probe, err := store.ProbePostgres(ctx, cfg)
 	if err != nil || probe.HasState {

@@ -8,7 +8,7 @@ export type Meta = {
   default_locale: Locale
   default_timezone: string
   container?: boolean
-  // spa: whether Umbrella is connected to SPA, where everyone signs in.
+  // spa: whether Beacon is connected to Keystone, where everyone signs in.
   spa?: SpaInfo
 }
 

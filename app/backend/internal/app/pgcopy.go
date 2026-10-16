@@ -10,11 +10,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
 )
 
-// umbrellaTables are the tables Umbrella keeps next to its snapshot (alert/db.go,
+// umbrellaTables are the tables Beacon keeps next to its snapshot (alert/db.go,
 // ingest/schema.go), parents before the tables referencing them. A database switch copies them
 // all; TestUmbrellaTablesCoverSchema fails when a new table is not listed here.
 var umbrellaTables = []string{
@@ -32,7 +32,7 @@ type pgQuerier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-// umbrellaData reports whether any of the Umbrella tables exists and holds rows.
+// umbrellaData reports whether any of the Beacon tables exists and holds rows.
 func umbrellaData(ctx context.Context, q pgQuerier) (bool, error) {
 	for _, t := range umbrellaTables {
 		var exists bool
@@ -53,11 +53,11 @@ func umbrellaData(ctx context.Context, q pgQuerier) (bool, error) {
 	return false, nil
 }
 
-var errTargetHasData = errors.New("the target database already holds Umbrella data")
+var errTargetHasData = errors.New("the target database already holds Beacon data")
 
 // copyUmbrella copies the alert and ingest tables from src to dst and writes the snapshot with
 // save, all in one transaction of dst. The source is read from one snapshot, after the writers
-// still holding its tables have finished. With overwrite the Umbrella tables of dst are emptied
+// still holding its tables have finished. With overwrite the Beacon tables of dst are emptied
 // first; without it dst must hold none of their rows. Sequences of dst end at least where those of
 // src are, so incident numbers (and PagerDuty dedup keys) continue instead of starting over.
 func copyUmbrella(ctx context.Context, src, dst *pgxpool.Pool, overwrite bool, save func(pgx.Tx) error) error {

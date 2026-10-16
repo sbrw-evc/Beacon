@@ -9,7 +9,7 @@ import { strings } from './strings'
 
 type PublicURL = { public_url: string }
 
-// PublicURLCard is the address people and PagerDuty reach Umbrella at. Links in e-mail, Telegram
+// PublicURLCard is the address people and PagerDuty reach Beacon at. Links in e-mail, Telegram
 // and PagerDuty (acknowledge, open the incident, Grafana) and the PagerDuty webhook use it.
 export function PublicURLCard({ onSaved }: { onSaved?: () => void }) {
   const t = useT(strings)

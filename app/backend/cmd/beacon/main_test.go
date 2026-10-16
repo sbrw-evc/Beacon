@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/ingest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ingest"
 )
 
 // The intake settings default to the built-in values, and a bad value keeps its default.

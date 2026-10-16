@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func TestFlowLink(t *testing.T) {
@@ -20,7 +20,7 @@ func TestFlowLink(t *testing.T) {
 	al := alert.Alert{ID: "INC-3", CIName: "edge-01", OpenedAt: opened,
 		Labels: map[string]string{"ip": "10.0.0.9", "source_ref": "inventory-db:dcim.device:7"}}
 	if app.FlowLink("", al, nil, now) != "" {
-		t.Fatal("a link without the Flow address")
+		t.Fatal("a link without the Current address")
 	}
 	// Without an item: the name, ip and source_ref of the events; active: until now.
 	u, _ := url.Parse(app.FlowLink("https://flow.example/", al, nil, now))
@@ -73,7 +73,7 @@ func TestFlowRedirect(t *testing.T) {
 	f.admin.call(http.MethodGet, "/api/incidents/"+id, nil, &detail)
 	f.admin.call(http.MethodGet, "/api/cis/CI-1", nil, &ci)
 	if detail.Flow != "" || ci.Flow != "" {
-		t.Fatalf("links before the Flow address is set: %q %q", detail.Flow, ci.Flow)
+		t.Fatalf("links before the Current address is set: %q %q", detail.Flow, ci.Flow)
 	}
 	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	signedIn := func(path string) *http.Response {

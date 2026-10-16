@@ -9,17 +9,17 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 var (
 	ErrUsernameTaken = errors.New("the username is already taken")
 	ErrSelfAction    = errors.New("the action is not allowed on your own account")
 	ErrAdminOnly     = errors.New("only administrators can manage administrators")
-	// ErrStillInSPA: the person still has a role in Umbrella in SPA; the next synchronization
-	// would create the account again. Take the role away in SPA first.
-	ErrStillInSPA = errors.New("the person still has access in SPA")
+	// ErrStillInSPA: the person still has a role in Beacon in Keystone; the next synchronization
+	// would create the account again. Take the role away in Keystone first.
+	ErrStillInSPA = errors.New("the person still has access in Keystone")
 )
 
 func init() {
@@ -51,8 +51,8 @@ type UserFilter struct {
 	Status string
 }
 
-// UserChanges is what Umbrella itself decides about a person: teams and the incident scope.
-// Name, e-mail and role come from SPA.
+// UserChanges is what Beacon itself decides about a person: teams and the incident scope.
+// Name, e-mail and role come from Keystone.
 type UserChanges struct {
 	// TeamIDs replaces the teams of the user.
 	TeamIDs *[]string `json:"team_ids"`
@@ -216,9 +216,9 @@ func userServiceScope(d *store.Data, ids []string) ([]string, error) {
 	return out, nil
 }
 
-// Delete removes the record of a person who no longer has access in SPA (disabled), an account
-// of the versions before SPA that was never bound to SPA, or a NetBox contact. People who still
-// have a role in Umbrella in SPA are removed in SPA.
+// Delete removes the record of a person who no longer has access in Keystone (disabled), an account
+// of the versions before Keystone that was never bound to Keystone, or a NetBox contact. People who still
+// have a role in Beacon in Keystone are removed in Keystone.
 func (s *UsersService) Delete(actor Actor, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

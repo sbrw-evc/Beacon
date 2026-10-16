@@ -1,5 +1,5 @@
-// SpaView is GET /api/settings/spa: the connection to SPA, the last synchronization of people and
-// the role catalogue Umbrella publishes there.
+// SpaView is GET /api/settings/spa: the connection to Keystone, the last synchronization of people and
+// the role catalogue Beacon publishes there.
 export type SpaView = {
   connected: boolean
   key_source?: 'env' | 'file' | 'openbao' | string

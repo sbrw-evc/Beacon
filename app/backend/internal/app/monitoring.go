@@ -15,10 +15,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -104,7 +104,7 @@ type MonitoringSourceView struct {
 	// query a Prometheus system.
 	Connector *SystemConnector `json:"connector,omitempty"`
 	Rules     int              `json:"rules"`
-	// Poll is the last poll of the alerts of a Grafana or Graylog system since Umbrella started.
+	// Poll is the last poll of the alerts of a Grafana or Graylog system since Beacon started.
 	Poll *model.MonitoringPoll `json:"poll,omitempty"`
 }
 
@@ -1005,9 +1005,9 @@ func presence(d *store.Data, ci *model.ConfigItem, mons []CIMonitor, sources []*
 		out = append(out, CIPresence{Kind: PresenceNetBox, Name: "NetBox", State: Missing})
 	}
 	if ref := ci.InventoryDB; ref != nil {
-		out = append(out, CIPresence{Kind: PresenceInventory, Name: "Inventory DB", State: Present, Detail: "device #" + strconv.Itoa(ref.ID), URL: ref.URL})
+		out = append(out, CIPresence{Kind: PresenceInventory, Name: "Ledger", State: Present, Detail: "device #" + strconv.Itoa(ref.ID), URL: ref.URL})
 	} else if d.Settings.InventoryDB.Enabled && d.Settings.InventoryDB.ImportDevices && (ci.Kind == model.CIKindDevice) {
-		out = append(out, CIPresence{Kind: PresenceInventory, Name: "Inventory DB", State: Missing})
+		out = append(out, CIPresence{Kind: PresenceInventory, Name: "Ledger", State: Missing})
 	}
 	if dir := ci.Directory; dir != nil {
 		p := CIPresence{Kind: PresenceDirectory, Name: "Active Directory", State: Missing}

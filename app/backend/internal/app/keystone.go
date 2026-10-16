@@ -21,23 +21,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/oidcx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/oidcx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// SPA, the Single Point of Authorization (SPA's docs/protocol.md): people sign in there (OpenID
-// Connect with PKCE), Umbrella reads the people who may use it and their roles every five
+// Keystone (formerly SPA; its docs/protocol.md): people sign in there (OpenID
+// Connect with PKCE), Beacon reads the people who may use it and their roles every five
 // minutes and publishes its roles (the system roles admin and user and the custom roles) as the
-// catalogue SPA administrators assign.
+// catalogue Keystone administrators assign.
 //
 // The connection key comes from SPA_CONNECTION_KEY, the file named by SPA_CONNECTION_KEY_FILE
-// or OpenBao (spa#connection_key, written by the setup wizard). What SPA said last and how the
-// last synchronization went is Settings.SPA.
+// or OpenBao (spa#connection_key, written by the setup wizard). What Keystone said last and how the
+// last synchronization went is Settings.Keystone.
 
 const (
 	// spaCookie keeps the PKCE verifier and the nonce of a sign-in, bound to the signed state.
@@ -46,14 +46,14 @@ const (
 	spaFlowTTL    = 10 * time.Minute
 	// spaActor is the actor of the synchronization in the audit log.
 	spaActor = "spa"
-	// MethodSPA is the sign-in method of sessions started through SPA.
+	// MethodSPA is the sign-in method of sessions started through Keystone.
 	MethodSPA = "spa"
 )
 
-var errSPANotConnected = errors.New("Umbrella is not connected to SPA: set " + spa.Env + " (or " + spa.EnvFile +
-	") to the connection key SPA shows in Applications → Connect an application")
+var errSPANotConnected = errors.New("Beacon is not connected to Keystone: set " + keystone.Env + " (or " + keystone.EnvFile +
+	") to the connection key Keystone shows in Applications → Connect an application")
 
-var errSyncRunning = errors.New("a synchronization with SPA is running")
+var errSyncRunning = errors.New("a synchronization with Keystone is running")
 
 func init() {
 	statuses = append(statuses,
@@ -65,7 +65,7 @@ func init() {
 // spaState is the in-process part: one synchronization at a time, the key states are signed
 // with and the states already used.
 type spaState struct {
-	mu      sync.Mutex // Settings.SPA read-modify-write, synchronization, publishing
+	mu      sync.Mutex // Settings.Keystone read-modify-write, synchronization, publishing
 	running sync.Mutex // held by a synchronization
 	keyOnce sync.Once
 	key     []byte
@@ -73,7 +73,7 @@ type spaState struct {
 }
 
 // stateKey signs the states of sign-ins. It lives in memory: a restart only ends the sign-ins
-// that were on their way through SPA at that moment.
+// that were on their way through Keystone at that moment.
 func (s *spaState) stateKey() []byte {
 	s.keyOnce.Do(func() {
 		s.key = make([]byte, 32)
@@ -86,33 +86,33 @@ func (s *spaState) stateKey() []byte {
 
 // spaKey returns the connection key and where it came from (env, file, openbao);
 // errSPANotConnected when there is none.
-func (a *App) spaKey() (spa.Key, string, error) {
-	parse := func(raw, source string) (spa.Key, string, error) {
-		k, err := spa.ParseKey(raw)
+func (a *App) spaKey() (keystone.Key, string, error) {
+	parse := func(raw, source string) (keystone.Key, string, error) {
+		k, err := keystone.ParseKey(raw)
 		if err != nil {
-			return spa.Key{}, source, fmt.Errorf("%s: %w", source, err)
+			return keystone.Key{}, source, fmt.Errorf("%s: %w", source, err)
 		}
 		return k, source, nil
 	}
-	if strings.TrimSpace(a.opt.SPAKey) != "" {
-		return parse(a.opt.SPAKey, "env")
+	if strings.TrimSpace(a.opt.KeystoneKey) != "" {
+		return parse(a.opt.KeystoneKey, "env")
 	}
-	if a.opt.SPAKeyFile != "" {
-		b, err := os.ReadFile(a.opt.SPAKeyFile)
+	if a.opt.KeystoneKeyFile != "" {
+		b, err := os.ReadFile(a.opt.KeystoneKeyFile)
 		if err != nil {
-			return spa.Key{}, "file", fmt.Errorf("%s: %w", spa.EnvFile, err)
+			return keystone.Key{}, "file", fmt.Errorf("%s: %w", keystone.EnvFile, err)
 		}
 		return parse(string(b), "file")
 	}
 	if a.deps.Vault == nil || !a.deps.Vault.Enabled() {
-		return spa.Key{}, "", errSPANotConnected
+		return keystone.Key{}, "", errSPANotConnected
 	}
-	raw, err := a.deps.Vault.Resolve(a.deps.Vault.Ref(spa.SecretPath, spa.SecretKey))
+	raw, err := a.deps.Vault.Resolve(a.deps.Vault.Ref(keystone.SecretPath, keystone.SecretKey))
 	switch {
 	case errors.Is(err, secrets.ErrNotFound) || (err == nil && strings.TrimSpace(raw) == ""):
-		return spa.Key{}, "", errSPANotConnected
+		return keystone.Key{}, "", errSPANotConnected
 	case err != nil:
-		return spa.Key{}, "openbao", fmt.Errorf("the connection key in OpenBao: %w", err)
+		return keystone.Key{}, "openbao", fmt.Errorf("the connection key in OpenBao: %w", err)
 	}
 	return parse(raw, "openbao")
 }
@@ -123,11 +123,11 @@ func (a *App) spaStored() model.SPAState {
 	return out
 }
 
-// spaBaseURL is the address of Umbrella for the redirect addresses: SPA_PUBLIC_URL, else the
+// spaBaseURL is the address of Beacon for the redirect addresses: SPA_PUBLIC_URL, else the
 // public address of the alerting settings, else the address of the request (X-Forwarded-Proto
 // and -Host from a trusted proxy).
 func (a *App) spaBaseURL(r *http.Request) string {
-	if u := strings.TrimRight(strings.TrimSpace(a.opt.SPAPublicURL), "/"); u != "" {
+	if u := strings.TrimRight(strings.TrimSpace(a.opt.KeystonePublicURL), "/"); u != "" {
 		return u
 	}
 	var public string
@@ -156,8 +156,8 @@ func (a *App) registerSPA(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/auth/spa", func(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusOK, a.spaInfoOf(a.spaStored()))
 	})
-	mux.HandleFunc("GET "+spa.StartPath, a.spaStart)
-	mux.HandleFunc("GET "+spa.CallbackPath, a.spaCallback)
+	mux.HandleFunc("GET "+keystone.StartPath, a.spaStart)
+	mux.HandleFunc("GET "+keystone.CallbackPath, a.spaCallback)
 	a.route(mux, "GET /api/settings/spa", "settings.spa:view", func(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusOK, a.spaView(r))
 	})
@@ -173,7 +173,7 @@ func (a *App) registerSPA(mux *http.ServeMux) {
 	})
 }
 
-// spaInfo tells the sign-in page whether Umbrella is connected to SPA.
+// spaInfo tells the sign-in page whether Beacon is connected to Keystone.
 type spaInfo struct {
 	Connected   bool              `json:"connected"`
 	Error       string            `json:"error,omitempty"`
@@ -201,7 +201,7 @@ func (a *App) spaInfoOf(st model.SPAState) spaInfo {
 	return out
 }
 
-// spaSystemStatus is the SPA connection on the system status page.
+// spaSystemStatus is the Keystone connection on the system status page.
 func (a *App) spaSystemStatus(st model.SPAState) SPAStatus {
 	k, _, err := a.spaKey()
 	if err != nil {
@@ -273,7 +273,7 @@ func (a *App) openState(state string, now time.Time) (statePayload, bool) {
 	return p, true
 }
 
-// safeReturn keeps a return path inside Umbrella.
+// safeReturn keeps a return path inside Beacon.
 func safeReturn(p string) string {
 	if p == "" || !strings.HasPrefix(p, "/") || strings.HasPrefix(p, "//") || strings.HasPrefix(p, "/\\") || strings.HasPrefix(p, "/api/") {
 		return "/"
@@ -312,7 +312,7 @@ func (a *App) spaStart(w http.ResponseWriter, r *http.Request) {
 	k, _, err := a.spaKey()
 	if err != nil {
 		if !errors.Is(err, errSPANotConnected) {
-			slog.Error("spa: connection key", "err", err)
+			slog.Error("keystone: connection key", "err", err)
 		}
 		a.spaFailed(w, r, "not_connected", "")
 		return
@@ -320,16 +320,16 @@ func (a *App) spaStart(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	req := oidcx.NewRequest()
 	req.State = a.signState(statePayload{ID: oidcx.Random(), Return: safeReturn(q.Get("return")), Exp: time.Now().Add(spaFlowTTL).Unix()})
-	o := spa.AuthOptions{LoginHint: strings.TrimSpace(q.Get("login_hint"))}
+	o := keystone.AuthOptions{LoginHint: strings.TrimSpace(q.Get("login_hint"))}
 	if h := q.Get("idp_hint"); idpHints[h] {
 		o.IDPHint = h
 	}
 	if q.Get("prompt") == "login" {
 		o.Prompt = "login"
 	}
-	target, err := k.AuthURL(ctx, a.spaBaseURL(r)+spa.CallbackPath, o, req)
+	target, err := k.AuthURL(ctx, a.spaBaseURL(r)+keystone.CallbackPath, o, req)
 	if err != nil {
-		slog.Error("spa: sign-in cannot start", "err", err)
+		slog.Error("keystone: sign-in cannot start", "err", err)
 		a.spaFailed(w, r, "spa_unavailable", "")
 		return
 	}
@@ -387,24 +387,24 @@ func (a *App) spaCallback(w http.ResponseWriter, r *http.Request) {
 		a.spaFailed(w, r, "not_connected", "")
 		return
 	}
-	id, err := k.Finish(ctx, a.spaBaseURL(r)+spa.CallbackPath, q.Get("code"), oidcx.Request{State: state, Nonce: flow.Nonce, Verifier: flow.Verifier})
+	id, err := k.Finish(ctx, a.spaBaseURL(r)+keystone.CallbackPath, q.Get("code"), oidcx.Request{State: state, Nonce: flow.Nonce, Verifier: flow.Verifier})
 	if err != nil {
 		code := "spa_unavailable"
 		if errors.Is(err, oidcx.ErrInvalidToken) {
 			code = "invalid_token"
 		}
-		slog.Warn("spa: sign-in failed", "err", err)
+		slog.Warn("keystone: sign-in failed", "err", err)
 		a.spaAudit("", "auth.login_failed", "spa "+code+" "+ip)
 		a.spaFailed(w, r, code, "")
 		return
 	}
-	u, _, err := a.applySPAUser(spa.User{ID: id.Subject, Username: id.Username, Name: id.Name, Email: id.Email, Roles: id.Roles, Groups: id.Groups}, time.Now().UTC())
+	u, _, err := a.applySPAUser(keystone.User{ID: id.Subject, Username: id.Username, Name: id.Name, Email: id.Email, Roles: id.Roles, Groups: id.Groups}, time.Now().UTC())
 	if err != nil {
 		code := "account_conflict"
 		if errors.Is(err, errNoRole) {
 			code = "no_role"
 		}
-		slog.Warn("spa: account refused", "user", id.Username, "err", err)
+		slog.Warn("keystone: account refused", "user", id.Username, "err", err)
 		a.spaAudit(id.Username, "auth.login_failed", "spa "+code+" "+ip)
 		a.spaFailed(w, r, code, "")
 		return
@@ -423,16 +423,16 @@ func (a *App) spaCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, payload.Return, http.StatusSeeOther)
 }
 
-// refreshSPAConfig reads SPA's configuration (account and sign-out addresses) when it was never
+// refreshSPAConfig reads Keystone's configuration (account and sign-out addresses) when it was never
 // read for this key, so the first person signed in before any synchronization gets "Account
 // and security".
-func (a *App) refreshSPAConfig(ctx context.Context, k spa.Key) {
+func (a *App) refreshSPAConfig(ctx context.Context, k keystone.Key) {
 	if st := a.spaStored(); st.Issuer == k.Issuer && st.ClientID == k.ClientID && st.AccountURL != "" {
 		return
 	}
 	cfg, _, _, err := k.Config(ctx, "")
 	if err != nil {
-		slog.Warn("spa: configuration not read", "err", err)
+		slog.Warn("keystone: configuration not read", "err", err)
 		return
 	}
 	a.spa.mu.Lock()
@@ -446,7 +446,7 @@ func (a *App) refreshSPAConfig(ctx context.Context, k spa.Key) {
 	})
 }
 
-func applyConfig(st *model.SPAState, cfg spa.Config) {
+func applyConfig(st *model.SPAState, cfg keystone.Config) {
 	st.AppID, st.AppName, st.AppType = cfg.Application.ID, cfg.Application.Name, cfg.Application.Type
 	st.AccountURL, st.SignOutURL = cfg.AccountURL, cfg.SignOutURL
 	st.Methods = make([]model.SPAMethod, 0, len(cfg.Methods))
@@ -455,7 +455,7 @@ func applyConfig(st *model.SPAState, cfg spa.Config) {
 	}
 }
 
-// spaSignOut is SPA's sign-out address (back to Umbrella's address), "" when not connected.
+// spaSignOut is Keystone's sign-out address (back to Beacon's address), "" when not connected.
 func (a *App) spaSignOut(r *http.Request) string {
 	k, _, err := a.spaKey()
 	if err != nil {
@@ -466,18 +466,18 @@ func (a *App) spaSignOut(r *http.Request) string {
 	if out == "" || st.Issuer != k.Issuer {
 		out = k.Issuer + "/oauth2/logout"
 	}
-	return spa.SignOutURL(out, k.ClientID, a.spaBaseURL(r)+"/")
+	return keystone.SignOutURL(out, k.ClientID, a.spaBaseURL(r)+"/")
 }
 
 // ---- people
 
-var errNoRole = errors.New("the person has no role of Umbrella in SPA")
+var errNoRole = errors.New("the person has no role of Beacon in Keystone")
 
-// spaRoleID is the ID of a role in the catalogue: SPA role IDs are lower case.
+// spaRoleID is the ID of a role in the catalogue: Keystone role IDs are lower case.
 func spaRoleID(id string) string { return strings.ToLower(id) }
 
-// pickRole maps SPA role IDs to the Umbrella role: administrators first, then of the roles
-// named the one with the most permissions (Umbrella gives one role per person); "" = none known.
+// pickRole maps Keystone role IDs to the Beacon role: administrators first, then of the roles
+// named the one with the most permissions (Beacon gives one role per person); "" = none known.
 func pickRole(d *store.Data, ids []string) string {
 	var best *model.Role
 	for _, r := range d.Roles {
@@ -497,7 +497,7 @@ func pickRole(d *store.Data, ids []string) string {
 	return best.ID
 }
 
-// legacySource: an account of the versions before SPA, bound to an SPA person with the same
+// legacySource: an account of the versions before Keystone, bound to a Keystone person with the same
 // username once.
 func legacySource(source string) bool {
 	return source == model.SourceLocal || source == model.SourceLDAP || source == model.SourceEntra || source == model.SourceNetBox
@@ -509,10 +509,10 @@ const (
 	spaUpdated = "updated"
 )
 
-// upsertSPA creates or updates the record of an SPA person (bound to su.ID), or binds an
+// upsertSPA creates or updates the record of a Keystone person (bound to su.ID), or binds an
 // account of an earlier version with the same username. ErrUsernameTaken: the username belongs
-// to another SPA person or a service.
-func upsertSPA(d *store.Data, su spa.User, role string, now time.Time) (*model.User, string, error) {
+// to another Keystone person or a service.
+func upsertSPA(d *store.Data, su keystone.User, role string, now time.Time) (*model.User, string, error) {
 	username := strings.TrimSpace(su.Username)
 	var u *model.User
 	for _, x := range d.Users {
@@ -528,7 +528,7 @@ func upsertSPA(d *store.Data, su spa.User, role string, now time.Time) (*model.U
 				return nil, "", ErrUsernameTaken
 			}
 			u, how = x, spaBound
-			d.AddAudit(store.AuditEntry{At: now, Actor: spaActor, Action: "user.bound", Object: x.ID, Detail: x.Username + " (" + x.Source + ") → SPA " + su.ID})
+			d.AddAudit(store.AuditEntry{At: now, Actor: spaActor, Action: "user.bound", Object: x.ID, Detail: x.Username + " (" + x.Source + ") → Keystone " + su.ID})
 			u.Source, u.ExternalID = model.SourceSPA, su.ID
 		}
 	} else if x := d.UserByName(username); x != nil && x != u {
@@ -567,7 +567,7 @@ func upsertSPA(d *store.Data, su spa.User, role string, now time.Time) (*model.U
 
 // applySPAUser applies one person (a sign-in or a synchronization): no known role, or disabled,
 // is errNoRole (the account is not created or changed).
-func (a *App) applySPAUser(su spa.User, now time.Time) (model.User, string, error) {
+func (a *App) applySPAUser(su keystone.User, now time.Time) (model.User, string, error) {
 	if su.ID == "" || su.Username == "" || su.Disabled {
 		return model.User{}, "", errNoRole
 	}
@@ -597,20 +597,20 @@ type spaView struct {
 	RedirectURI string `json:"redirect_uri"`
 	SignOutURI  string `json:"post_logout_redirect_uri"`
 	model.SPAState
-	Counts   spaCounts  `json:"counts"`
-	Roles    []spa.Role `json:"roles"`
-	Interval string     `json:"interval"`
+	Counts   spaCounts       `json:"counts"`
+	Roles    []keystone.Role `json:"roles"`
+	Interval string          `json:"interval"`
 }
 
 type spaCounts struct {
 	SPA      int `json:"spa"`
 	Disabled int `json:"disabled"`
-	// Legacy are the accounts of versions before SPA not bound to an SPA person yet.
+	// Legacy are the accounts of versions before Keystone not bound to a Keystone person yet.
 	Legacy int `json:"legacy"`
 }
 
 func (a *App) spaView(r *http.Request) spaView {
-	v := spaView{SPAState: a.spaStored(), RedirectURI: a.spaBaseURL(r) + spa.CallbackPath, SignOutURI: a.spaBaseURL(r) + "/", Interval: spa.SyncEvery.String()}
+	v := spaView{SPAState: a.spaStored(), RedirectURI: a.spaBaseURL(r) + keystone.CallbackPath, SignOutURI: a.spaBaseURL(r) + "/", Interval: keystone.SyncEvery.String()}
 	k, source, err := a.spaKey()
 	v.KeySource = source
 	switch {
@@ -650,9 +650,9 @@ func (a *App) spaView(r *http.Request) spaView {
 
 // ---- role catalogue
 
-// catalogueOf is Umbrella's roles as SPA gets them: the system roles first, then the others by
+// catalogueOf is Beacon's roles as Keystone gets them: the system roles first, then the others by
 // name.
-func catalogueOf(d *store.Data) spa.Catalogue {
+func catalogueOf(d *store.Data) keystone.Catalogue {
 	roles := make([]*model.Role, 0, len(d.Roles))
 	for _, r := range d.Roles {
 		roles = append(roles, r)
@@ -669,17 +669,17 @@ func catalogueOf(d *store.Data) spa.Catalogue {
 		}
 		return byName(x.Name, y.Name)
 	})
-	c := spa.Catalogue{Roles: make([]spa.Role, 0, len(roles)), Default: model.RoleUser}
+	c := keystone.Catalogue{Roles: make([]keystone.Role, 0, len(roles)), Default: model.RoleUser}
 	for _, r := range roles {
 		id := spaRoleID(r.ID)
-		if !spa.RoleIDRe.MatchString(id) {
+		if !keystone.RoleIDRe.MatchString(id) {
 			continue
 		}
 		desc := r.Description
 		if r.ID == model.RoleAdmin && desc == "" {
 			desc = "Everything, including users, roles and settings"
 		}
-		c.Roles = append(c.Roles, spa.Role{ID: id, Name: r.Name, Description: desc})
+		c.Roles = append(c.Roles, keystone.Role{ID: id, Name: r.Name, Description: desc})
 	}
 	if d.Roles[d.NewUserRole()] != nil {
 		c.Default = spaRoleID(d.NewUserRole())
@@ -687,14 +687,14 @@ func catalogueOf(d *store.Data) spa.Catalogue {
 	return c
 }
 
-// publishCatalogue sends the role catalogue to SPA when it changed since the last successful
+// publishCatalogue sends the role catalogue to Keystone when it changed since the last successful
 // publication. It is called with a.spa.mu held; the result goes into st.
-func (a *App) publishCatalogue(ctx context.Context, k spa.Key, st *model.SPAState) {
-	var c spa.Catalogue
+func (a *App) publishCatalogue(ctx context.Context, k keystone.Key, st *model.SPAState) {
+	var c keystone.Catalogue
 	a.deps.Store.Read(func(d *store.Data) { c = catalogueOf(d) })
 	b, _ := json.Marshal(struct {
 		Issuer, Client string
-		C              spa.Catalogue
+		C              keystone.Catalogue
 	}{k.Issuer, k.ClientID, c})
 	sum := sha256.Sum256(b)
 	hash := hex.EncodeToString(sum[:])
@@ -703,7 +703,7 @@ func (a *App) publishCatalogue(ctx context.Context, k spa.Key, st *model.SPAStat
 	}
 	if err := k.PublishRoles(ctx, c); err != nil {
 		st.CatalogErr = err.Error()
-		slog.Warn("spa: role catalogue not published", "err", err)
+		slog.Warn("keystone: role catalogue not published", "err", err)
 		return
 	}
 	now := time.Now().UTC()
@@ -733,7 +733,7 @@ func (a *App) rolesChanged() {
 
 // ---- synchronization
 
-// syncSPA reads the configuration and the people of SPA and applies them (protocol §4).
+// syncSPA reads the configuration and the people of Keystone and applies them (protocol §4).
 // schedule tells a run of the schedule, which skips quietly while another one runs.
 func (a *App) syncSPA(ctx context.Context, actor string, schedule bool) error {
 	k, _, err := a.spaKey()
@@ -751,7 +751,7 @@ func (a *App) syncSPA(ctx context.Context, actor string, schedule bool) error {
 	defer a.spa.mu.Unlock()
 	st := a.spaStored()
 	if st.Issuer != k.Issuer || st.ClientID != k.ClientID {
-		// Another SPA or a new key: read everything again.
+		// Another Keystone or a new key: read everything again.
 		st = model.SPAState{Issuer: k.Issuer, ClientID: k.ClientID}
 	}
 	revoke, err := a.applySPA(ctx, k, &st)
@@ -759,7 +759,7 @@ func (a *App) syncSPA(ctx context.Context, actor string, schedule bool) error {
 	st.LastSync, st.OK, st.Error = &now, err == nil, ""
 	if err != nil {
 		st.Error = err.Error()
-		slog.Warn("spa: synchronization failed", "err", err)
+		slog.Warn("keystone: synchronization failed", "err", err)
 	}
 	a.deps.Store.Write(func(d *store.Data) {
 		d.Settings.SPA = st
@@ -780,8 +780,8 @@ func (a *App) syncSPA(ctx context.Context, actor string, schedule bool) error {
 	return err
 }
 
-// applySPA applies SPA's configuration and people; it returns the users whose sessions end.
-func (a *App) applySPA(ctx context.Context, k spa.Key, st *model.SPAState) ([]string, error) {
+// applySPA applies Keystone's configuration and people; it returns the users whose sessions end.
+func (a *App) applySPA(ctx context.Context, k keystone.Key, st *model.SPAState) ([]string, error) {
 	cfg, tag, same, err := k.Config(ctx, st.ConfigETag)
 	if err != nil {
 		return nil, err
@@ -831,8 +831,8 @@ func (a *App) applySPA(ctx context.Context, k spa.Key, st *model.SPAState) ([]st
 				st.Updated++
 			}
 		}
-		// Everyone else who could sign in before is disabled: SPA people without access any
-		// more, and the accounts of earlier versions SPA does not know (NetBox contacts never
+		// Everyone else who could sign in before is disabled: Keystone people without access any
+		// more, and the accounts of earlier versions Keystone does not know (NetBox contacts never
 		// signed in and stay).
 		for id, u := range d.Users {
 			if keep[id] || u.Disabled || u.Source == model.SourceNetBox || (u.Source != model.SourceSPA && !legacySource(u.Source)) {
@@ -841,23 +841,23 @@ func (a *App) applySPA(ctx context.Context, k spa.Key, st *model.SPAState) ([]st
 			u.Disabled = true
 			revoke = append(revoke, id)
 			st.Disabled++
-			d.AddAudit(store.AuditEntry{At: now, Actor: spaActor, Action: "user.lock", Object: id, Detail: u.Username + " (" + u.Source + "): no access in SPA"})
+			d.AddAudit(store.AuditEntry{At: now, Actor: spaActor, Action: "user.lock", Object: id, Detail: u.Username + " (" + u.Source + "): no access in Keystone"})
 		}
 	})
 	st.UsersETag = tag
 	return revoke, nil
 }
 
-// runSPASchedule removes the secrets of the sign-in before SPA once, then publishes the
+// runSPASchedule removes the secrets of the sign-in before Keystone once, then publishes the
 // catalogue and synchronizes at start and every five minutes.
 func (a *App) runSPASchedule(ctx context.Context) {
 	a.removeIdentitySecrets(ctx)
-	t := time.NewTicker(spa.SyncEvery)
+	t := time.NewTicker(keystone.SyncEvery)
 	defer t.Stop()
 	for {
 		sctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 		if err := a.syncSPA(sctx, "schedule", true); err != nil && !errors.Is(err, errSPANotConnected) && ctx.Err() == nil {
-			slog.Warn("spa: scheduled synchronization failed", "err", err)
+			slog.Warn("keystone: scheduled synchronization failed", "err", err)
 		}
 		cancel()
 		select {
@@ -868,7 +868,7 @@ func (a *App) runSPASchedule(ctx context.Context) {
 	}
 }
 
-// removeIdentitySecrets deletes, once, the secrets of the sign-in Umbrella had before SPA:
+// removeIdentitySecrets deletes, once, the secrets of the sign-in Beacon had before Keystone:
 // password hashes and their history, the Entra ID, provider and Umbrella Identity secrets. The
 // LDAP service account stays: the NetBox synchronization reads computers with it.
 func (a *App) removeIdentitySecrets(ctx context.Context) {
@@ -899,6 +899,6 @@ func (a *App) removeIdentitySecrets(ctx context.Context) {
 	}
 	a.deps.Store.Write(func(d *store.Data) {
 		d.Settings.IdentityCleaned = true
-		d.AddAudit(store.AuditEntry{Actor: "system", Action: "settings.identity", Detail: "secrets of the sign-in before SPA deleted from OpenBao"})
+		d.AddAudit(store.AuditEntry{Actor: "system", Action: "settings.identity", Detail: "secrets of the sign-in before Keystone deleted from OpenBao"})
 	})
 }

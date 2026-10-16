@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify/notifytest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify/notifytest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func TestBackupNotificationRoundTrip(t *testing.T) {
@@ -37,7 +37,7 @@ func TestBackupNotificationRoundTrip(t *testing.T) {
 
 	var v app.NotifyView
 	settings := map[string]any{
-		"email":        map[string]any{"enabled": true, "host": smtp.Host(), "port": smtp.Port(), "security": "none", "username": "relay", "password": "smtp-pw", "from": "Umbrella <umbrella@example.com>"},
+		"email":        map[string]any{"enabled": true, "host": smtp.Host(), "port": smtp.Port(), "security": "none", "username": "relay", "password": "smtp-pw", "from": "Beacon <umbrella@example.com>"},
 		"telegram":     map[string]any{"enabled": true, "token": tg.Token, "api_url": tg.URL()},
 		"extra_emails": []string{"duty@example.com", ""}, "extra_telegram": []string{},
 	}

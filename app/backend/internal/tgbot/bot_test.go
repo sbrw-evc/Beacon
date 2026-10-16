@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify/notifytest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/telegram"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/tgbot"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify/notifytest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/telegram"
+	"github.com/sbrw-evc/beacon/app/backend/internal/tgbot"
 )
 
 type action struct{ user, id, action, text string }
 
-// backend is a fake Umbrella: Telegram user 501 is linked to «eng», 502 is not linked.
+// backend is a fake Beacon: Telegram user 501 is linked to «eng», 502 is not linked.
 type backend struct {
 	api, token string
 	mu         sync.Mutex

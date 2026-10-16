@@ -7,9 +7,9 @@ import (
 )
 
 // Queues of PagerDuty. An incident in PagerDuty always sits in a service: the service is the
-// queue, its escalation policy says who works the queue and its teams own it. Umbrella reads
-// the queues (status, policy, teams, open incidents), shows which route of Umbrella sends to
-// each, links queues to the teams of Umbrella (see Gateway.SetQueueHook) and follows an
+// queue, its escalation policy says who works the queue and its teams own it. Beacon reads
+// the queues (status, policy, teams, open incidents), shows which route of Beacon sends to
+// each, links queues to the teams of Beacon (see Gateway.SetQueueHook) and follows an
 // incident moved to another queue in PagerDuty (PD.Queue of the alert).
 
 // Queue is a PagerDuty service seen as a queue of incidents.
@@ -27,7 +27,7 @@ type Queue struct {
 	// Triggered and Acknowledged count the open incidents of the queue.
 	Triggered    int `json:"triggered"`
 	Acknowledged int `json:"acknowledged"`
-	// Routes are the Umbrella routes that send to the queue (DefaultRoute: the default
+	// Routes are the Beacon routes that send to the queue (DefaultRoute: the default
 	// integration), as the settings are now.
 	Routes []string `json:"routes"`
 }

@@ -19,7 +19,7 @@ export type PDStatus = {
   queues_error?: string
 }
 
-// The role of PagerDuty next to the notification channels of Umbrella; '' is primary.
+// The role of PagerDuty next to the notification channels of Beacon; '' is primary.
 export const PD_MODES = ['primary', 'backup', 'parallel', 'off'] as const
 export type PDMode = (typeof PD_MODES)[number]
 
@@ -36,7 +36,7 @@ export type PDQueue = {
   events_key: boolean
   triggered: number
   acknowledged: number
-  // Umbrella routes sending to it ('default': the default integration).
+  // Beacon routes sending to it ('default': the default integration).
   routes: string[]
 }
 

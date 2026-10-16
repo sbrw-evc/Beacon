@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
 )
 
 func (a *App) updateSettings(w http.ResponseWriter, r *http.Request) {

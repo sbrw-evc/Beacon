@@ -11,14 +11,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/credentials"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/inventorydb"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/credentials"
+	"github.com/sbrw-evc/beacon/app/backend/internal/ledger"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// Inventory DB is an optional source of devices next to NetBox: Umbrella reads its devices as
+// Ledger is an optional source of devices next to NetBox: Beacon reads its devices as
 // configuration items and sends it the state of the alerts on them, so the device card there
 // shows what is on fire. It is off until someone connects it.
 
@@ -29,9 +29,9 @@ const (
 )
 
 var (
-	ErrInventoryOff     = errors.New("Inventory DB is not connected")
-	ErrInventoryRunning = errors.New("an Inventory DB synchronization is already running")
-	errInventoryMoved   = errors.New("the Inventory DB address or integration changed: enter the API token and signing secret again")
+	ErrInventoryOff     = errors.New("Ledger is not connected")
+	ErrInventoryRunning = errors.New("a Ledger synchronization is already running")
+	errInventoryMoved   = errors.New("the Ledger address or integration changed: enter the API token and signing secret again")
 )
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 	}))
 }
 
-// inventoryFailure is an error Inventory DB (or the way to it) returned.
+// inventoryFailure is an error Ledger (or the way to it) returned.
 type inventoryFailure struct{ err error }
 
 func (e inventoryFailure) Error() string { return e.err.Error() }
@@ -58,42 +58,42 @@ type InventoryDBService struct {
 	running atomic.Bool
 	pushing atomic.Bool
 	// newClient is replaced in tests.
-	newClient func(cfg inventorydb.Config, token, secret string) (*inventorydb.Client, error)
+	newClient func(cfg ledger.Config, token, secret string) (*ledger.Client, error)
 }
 
 func NewInventoryDBService(st *store.Store, secrets Secrets, active activeSource) *InventoryDBService {
-	return &InventoryDBService{st: st, secrets: secrets, active: active, now: func() time.Time { return time.Now().UTC() }, newClient: inventorydb.New}
+	return &InventoryDBService{st: st, secrets: secrets, active: active, now: func() time.Time { return time.Now().UTC() }, newClient: ledger.New}
 }
 
 type InventoryDBView struct {
-	Config    inventorydb.Config `json:"config"`
-	TokenSet  bool               `json:"token_set"`
-	SecretSet bool               `json:"secret_set"`
-	Sync      model.SyncState    `json:"sync"`
-	Running   bool               `json:"running"`
-	// Items: configuration items linked to Inventory DB devices; Pushed: alerts whose state
-	// Inventory DB has.
+	Config    ledger.Config   `json:"config"`
+	TokenSet  bool            `json:"token_set"`
+	SecretSet bool            `json:"secret_set"`
+	Sync      model.SyncState `json:"sync"`
+	Running   bool            `json:"running"`
+	// Items: configuration items linked to Ledger devices; Pushed: alerts whose state
+	// Ledger has.
 	Items      int        `json:"items"`
 	Pushed     int        `json:"pushed"`
 	NextSyncAt *time.Time `json:"next_sync_at,omitempty"`
-	// PublicURLSet: the public address of Umbrella is set, so alert states carry links back.
+	// PublicURLSet: the public address of Beacon is set, so alert states carry links back.
 	PublicURLSet bool `json:"public_url_set"`
 }
 
 type InventoryDBRequest struct {
-	Config inventorydb.Config `json:"config"`
-	Token  string             `json:"token"`
-	Secret string             `json:"secret"`
+	Config ledger.Config `json:"config"`
+	Token  string        `json:"token"`
+	Secret string        `json:"secret"`
 }
 
 type InventoryDBTestReport struct {
-	OK    bool              `json:"ok"`
-	Probe inventorydb.Probe `json:"probe"`
-	Error string            `json:"error,omitempty"`
+	OK    bool         `json:"ok"`
+	Probe ledger.Probe `json:"probe"`
+	Error string       `json:"error,omitempty"`
 }
 
-func (s *InventoryDBService) stored() inventorydb.Config {
-	var out inventorydb.Config
+func (s *InventoryDBService) stored() ledger.Config {
+	var out ledger.Config
 	s.st.Read(func(d *store.Data) { out = d.Settings.InventoryDB })
 	return out
 }
@@ -104,7 +104,7 @@ func (s *InventoryDBService) View() InventoryDBView {
 		cfg := d.Settings.InventoryDB
 		out.TokenSet, out.SecretSet = cfg.TokenRef != "", cfg.SecretRef != ""
 		if cfg.URL == "" {
-			cfg = inventorydb.Defaults()
+			cfg = ledger.Defaults()
 		}
 		out.Config, out.Sync, out.Pushed = cfg, d.InventoryDBSync, len(d.InventoryDBPushed)
 		out.PublicURLSet = d.Settings.Alerting.PublicURL != ""
@@ -125,13 +125,13 @@ func (s *InventoryDBService) View() InventoryDBView {
 	return out
 }
 
-func sameInventory(a, b inventorydb.Config) bool {
+func sameInventory(a, b ledger.Config) bool {
 	return strings.EqualFold(a.URL, b.URL) && a.IntegrationID == b.IntegrationID
 }
 
-// secret returns the value given with the request or, for the same Inventory DB address and
+// secret returns the value given with the request or, for the same Ledger address and
 // integration, the stored one. Stored secrets are never sent to another address.
-func (s *InventoryDBService) secret(cfg inventorydb.Config, given, ref, code string) (string, error) {
+func (s *InventoryDBService) secret(cfg ledger.Config, given, ref, code string) (string, error) {
 	if given = strings.TrimSpace(given); given != "" {
 		return given, nil
 	}
@@ -214,17 +214,17 @@ func (s *InventoryDBService) Save(ctx context.Context, actor string, in Inventor
 		if s.secrets == nil {
 			return credentials.ErrUnavailable
 		}
-		r, err := s.secrets.PutRef(ctx, inventorydb.SecretPath, key, value)
+		r, err := s.secrets.PutRef(ctx, ledger.SecretPath, key, value)
 		if err != nil {
 			return fmt.Errorf("%w: %v", credentials.ErrUnavailable, err)
 		}
 		*ref = r
 		return nil
 	}
-	if err := put(inventorydb.TokenKey, in.Token, &cfg.TokenRef); err != nil {
+	if err := put(ledger.TokenKey, in.Token, &cfg.TokenRef); err != nil {
 		return InventoryDBView{}, err
 	}
-	if err := put(inventorydb.SignatureKey, in.Secret, &cfg.SecretRef); err != nil {
+	if err := put(ledger.SignatureKey, in.Secret, &cfg.SecretRef); err != nil {
 		return InventoryDBView{}, err
 	}
 	s.st.Write(func(d *store.Data) {
@@ -246,7 +246,7 @@ func (s *InventoryDBService) Save(ctx context.Context, actor string, in Inventor
 }
 
 // client connects with the stored settings; withSecret also resolves the signing secret.
-func (s *InventoryDBService) client(withSecret bool) (*inventorydb.Client, inventorydb.Config, error) {
+func (s *InventoryDBService) client(withSecret bool) (*ledger.Client, ledger.Config, error) {
 	cfg := s.stored()
 	if !cfg.Enabled || cfg.TokenRef == "" || (withSecret && cfg.SecretRef == "") {
 		return nil, cfg, ErrInventoryOff
@@ -282,25 +282,25 @@ func (s *InventoryDBService) Run(ctx context.Context) {
 		case <-tk.C:
 			if s.due() {
 				if _, err := s.Sync(ctx, inventoryActor); err != nil && !errors.Is(err, ErrInventoryRunning) {
-					slog.Error("inventory-db: synchronization failed", "err", err)
+					slog.Error("ledger: synchronization failed", "err", err)
 				}
 			}
 			if _, err := s.Push(ctx); err != nil && !errors.Is(err, ErrInventoryOff) && !errors.Is(err, errEventsNotReady) {
-				slog.Warn("inventory-db: alert states not sent, retrying", "err", err)
+				slog.Warn("ledger: alert states not sent, retrying", "err", err)
 			}
 		}
 	}
 }
 
 func (s *InventoryDBService) due() bool {
-	var cfg inventorydb.Config
+	var cfg ledger.Config
 	var last time.Time
 	s.st.Read(func(d *store.Data) { cfg, last = d.Settings.InventoryDB, d.InventoryDBSync.StartedAt })
 	return cfg.Enabled && cfg.ImportDevices && cfg.SyncMinutes > 0 && !s.now().Before(last.Add(time.Duration(cfg.SyncMinutes)*time.Minute))
 }
 
-// Sync reads devices from Inventory DB and updates configuration items. A failure to reach
-// Inventory DB is recorded in the returned state.
+// Sync reads devices from Ledger and updates configuration items. A failure to reach
+// Ledger is recorded in the returned state.
 func (s *InventoryDBService) Sync(ctx context.Context, actor string) (model.SyncState, error) {
 	return s.sync(ctx, actor, false)
 }
@@ -325,14 +325,14 @@ func (s *InventoryDBService) sync(ctx context.Context, actor string, confirmed b
 	if err == nil && !cfg.ImportDevices {
 		err = errors.New("reading devices is turned off")
 	}
-	var feed []inventorydb.CI
+	var feed []ledger.CI
 	if err == nil {
 		feed, err = c.Feed(ctx)
 	}
 	if err == nil {
 		s.st.Write(func(d *store.Data) { state.Stats = applyInventoryDB(d, feed, s.now(), confirmed) })
 		if st := state.Stats; st.Held > 0 {
-			slog.Warn("inventory-db: items missing from the answer are kept, the answer looks incomplete",
+			slog.Warn("ledger: items missing from the answer are kept, the answer looks incomplete",
 				"objects", st.Objects, "missing", st.Held, "reason", st.HeldReason)
 		}
 		state.OK = true
@@ -373,12 +373,12 @@ func inventoryStatus(v string) string {
 	return model.CIStatusActive
 }
 
-// applyInventoryDB brings the items read from Inventory DB in line with its devices. A device
-// whose name an item not yet linked to Inventory DB already has (made by hand, read from NetBox)
+// applyInventoryDB brings the items read from Ledger in line with its devices. A device
+// whose name an item not yet linked to Ledger already has (made by hand, read from NetBox)
 // is attached to that item instead of creating a second one; such items keep their own data.
 // Unless confirmed, items missing from a suspicious answer are kept (see holdMissing).
-func applyInventoryDB(d *store.Data, feed []inventorydb.CI, now time.Time, confirmed bool) model.SyncStats {
-	var devices []inventorydb.CI
+func applyInventoryDB(d *store.Data, feed []ledger.CI, now time.Time, confirmed bool) model.SyncStats {
+	var devices []ledger.CI
 	for _, c := range feed {
 		if c.Type == "device" && c.ID() > 0 && strings.TrimSpace(c.Name) != "" {
 			devices = append(devices, c)
@@ -457,7 +457,7 @@ func applyInventoryDB(d *store.Data, feed []inventorydb.CI, now time.Time, confi
 	return stats
 }
 
-// inventorySeverity: Inventory DB knows the four PagerDuty levels; low (P4) is shown there as info.
+// inventorySeverity: Ledger knows the four PagerDuty levels; low (P4) is shown there as info.
 func inventorySeverity(v string) string {
 	if v == model.SeverityLow {
 		return model.SeverityInfo
@@ -471,7 +471,7 @@ type PushReport struct {
 	Resolved int `json:"resolved"`
 }
 
-// Push sends Inventory DB the alerts on its devices whose state changed since the last sending,
+// Push sends Ledger the alerts on its devices whose state changed since the last sending,
 // and reports alerts that are no longer active as resolved.
 func (s *InventoryDBService) Push(ctx context.Context) (PushReport, error) {
 	var out PushReport
@@ -488,7 +488,7 @@ func (s *InventoryDBService) Push(ctx context.Context) (PushReport, error) {
 		return out, err
 	}
 	now := s.now()
-	var events []inventorydb.AlertEvent
+	var events []ledger.AlertEvent
 	next := map[string]*model.PushedAlert{}
 	s.st.Read(func(d *store.Data) {
 		base := strings.TrimRight(d.Settings.Alerting.PublicURL, "/")
@@ -505,8 +505,8 @@ func (s *InventoryDBService) Push(ctx context.Context) (PushReport, error) {
 			if p, ok := d.InventoryDBPushed[a.ID]; ok && p.Key == key {
 				continue
 			}
-			ev := inventorydb.AlertEvent{AlertID: a.ID, Status: a.Status, Severity: sev, Title: a.Title, Signal: a.Signal,
-				CI: inventorydb.AlertCI{SourceRefs: []string{ci.InventoryDB.Ref}, Name: ci.Name}, UpdatedAt: now}
+			ev := ledger.AlertEvent{AlertID: a.ID, Status: a.Status, Severity: sev, Title: a.Title, Signal: a.Signal,
+				CI: ledger.AlertCI{SourceRefs: []string{ci.InventoryDB.Ref}, Name: ci.Name}, UpdatedAt: now}
 			if base != "" {
 				ev.Links.Incident = model.IncidentURL(base, a.ID)
 				if grafana {
@@ -520,8 +520,8 @@ func (s *InventoryDBService) Push(ctx context.Context) (PushReport, error) {
 			if current[id] {
 				continue
 			}
-			events = append(events, inventorydb.AlertEvent{AlertID: id, Status: alert.StatusResolved, Severity: p.Sev, Title: p.Title,
-				CI: inventorydb.AlertCI{SourceRefs: []string{p.Ref}}, UpdatedAt: now})
+			events = append(events, ledger.AlertEvent{AlertID: id, Status: alert.StatusResolved, Severity: p.Sev, Title: p.Title,
+				CI: ledger.AlertCI{SourceRefs: []string{p.Ref}}, UpdatedAt: now})
 			next[id] = nil
 			out.Resolved++
 		}

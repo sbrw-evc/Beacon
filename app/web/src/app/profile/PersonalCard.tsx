@@ -9,7 +9,7 @@ import { ProfileCard } from './ProfileCard'
 import { ProfileFieldsGrid } from './ProfileFieldsGrid'
 import { useAction } from './useAction'
 
-// PersonalCard shows the data SPA gives (name, e-mail); the photo is Umbrella's own.
+// PersonalCard shows the data Keystone gives (name, e-mail); the photo is Beacon's own.
 export function PersonalCard() {
   const t = useT(strings)
   const { user } = useSession()

@@ -45,7 +45,7 @@ func (c PGConfig) Normalize() (PGConfig, error) {
 func (c PGConfig) DSN() string {
 	u := url.URL{Scheme: "postgres", Host: c.Host + ":" + strconv.Itoa(c.Port), Path: "/" + c.Database,
 		User: url.UserPassword(c.User, c.Password)}
-	q := url.Values{"sslmode": {c.SSLMode}, "application_name": {"umbrella"}, "connect_timeout": {"10"}}
+	q := url.Values{"sslmode": {c.SSLMode}, "application_name": {"beacon"}, "connect_timeout": {"10"}}
 	u.RawQuery = q.Encode()
 	return u.String()
 }

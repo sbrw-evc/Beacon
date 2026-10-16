@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty/pdtest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty/pdtest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func (f connFixture) webhookConnector() map[string]string {
@@ -156,9 +156,9 @@ func TestPagerDutyRoute(t *testing.T) {
 	}
 }
 
-// The queues of PagerDuty are linked to the teams of Umbrella by the name of their PagerDuty
+// The queues of PagerDuty are linked to the teams of Beacon by the name of their PagerDuty
 // team: a queue no route sends to gets a route of that team, once; a disabled queue, one of a
-// team Umbrella does not have, and one already linked are left alone.
+// team Beacon does not have, and one already linked are left alone.
 func TestPagerDutyQueues(t *testing.T) {
 	f := newConnFixture(t, false)
 	pd := pdtest.New(t)

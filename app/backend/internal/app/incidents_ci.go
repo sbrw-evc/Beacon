@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // The incident card leads on to the catalog: the item and services of the incident with their
@@ -23,7 +23,7 @@ type incidentCI struct {
 	Kind      string `json:"kind"`
 	Imported  bool   `json:"imported"`
 	NetBoxURL string `json:"netbox_url,omitempty"`
-	// InventoryURL is the device card in Inventory DB.
+	// InventoryURL is the device card in Ledger.
 	InventoryURL string   `json:"inventory_url,omitempty"`
 	Aliases      []string `json:"aliases"`
 }

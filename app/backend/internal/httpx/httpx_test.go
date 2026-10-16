@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
 )
 
 func TestWebCaching(t *testing.T) {

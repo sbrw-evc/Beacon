@@ -11,7 +11,7 @@ export const contextStrings: Dict = {
     loading: 'Loading…',
     'mon.tab.context': 'Graphs and logs',
     'ctx.explain':
-      'The Machine tab of an incident shows its machine around the start: these graphs from the monitoring systems that know the machine, lines from the log sources below and the events Umbrella received about it.',
+      'The Machine tab of an incident shows its machine around the start: these graphs from the monitoring systems that know the machine, lines from the log sources below and the events Beacon received about it.',
     'ctx.settings': 'Incident card',
     'ctx.window': 'Default window',
     'ctx.window.hint': 'Time before and after the start of an incident; anyone can choose another one on the card.',
@@ -105,7 +105,7 @@ export const contextStrings: Dict = {
     loading: 'Загрузка…',
     'mon.tab.context': 'Графики и логи',
     'ctx.explain':
-      'Вкладка «Машина» в карточке инцидента показывает машину вокруг его начала: эти графики из систем мониторинга, которые знают машину, строки из источников логов ниже и события, которые Umbrella получала по ней.',
+      'Вкладка «Машина» в карточке инцидента показывает машину вокруг его начала: эти графики из систем мониторинга, которые знают машину, строки из источников логов ниже и события, которые Beacon получала по ней.',
     'ctx.settings': 'Карточка инцидента',
     'ctx.window': 'Окно по умолчанию',
     'ctx.window.hint': 'Время до и после начала инцидента; в карточке его можно поменять.',

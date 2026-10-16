@@ -45,7 +45,7 @@ var kinds = map[string]kindInfo{
 	KindService: {"ipam/services", "ipam/services", "ipam.service"},
 }
 
-// ValidKind reports whether kind names a NetBox object type Umbrella works with.
+// ValidKind reports whether kind names a NetBox object type Beacon works with.
 func ValidKind(kind string) bool { _, ok := kinds[kind]; return ok }
 
 // Config is the NetBox connection kept in the settings. The token itself is in OpenBao.
@@ -340,7 +340,7 @@ type object struct {
 	ParentObjectType string  `json:"parent_object_type"`
 }
 
-// Object is a NetBox device, virtual machine or service in the shape Umbrella keeps.
+// Object is a NetBox device, virtual machine or service in the shape Beacon keeps.
 type Object struct {
 	Kind        string   `json:"kind"`
 	ID          int      `json:"id"`
@@ -664,7 +664,7 @@ func firstSet(v ...string) string {
 	return ""
 }
 
-// Tag is a NetBox tag. Umbrella keeps one tag per business service.
+// Tag is a NetBox tag. Beacon keeps one tag per business service.
 type Tag struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`

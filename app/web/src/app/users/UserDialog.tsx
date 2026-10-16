@@ -96,8 +96,8 @@ function useRights(user: ManagedUser) {
   const { can, user: me } = useSession()
   const self = user.id === me.id
   const manageable = !adminOf(user) || adminOf(me)
-  // People with access in SPA are removed in SPA; Umbrella removes only the records of people
-  // SPA disabled and the accounts of earlier versions.
+  // People with access in Keystone are removed in Keystone; Beacon removes only the records of people
+  // Keystone disabled and the accounts of earlier versions.
   const removable = user.source !== 'spa' || user.disabled
   return {
     self,

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/monitoring"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/monitoring"
 )
 
 // TestZabbixLive reads hosts and a graph from a real Zabbix: UMBRELLA_ZABBIX_URL (web interface),

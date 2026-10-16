@@ -21,7 +21,7 @@ saving).
 ## Microsoft Teams
 
 The message is an Adaptive Card 1.4: the subject in bold, the message text line by line, and the
-"Acknowledge", "Open in Umbrella" and "Grafana" buttons (if the links exist: the Umbrella address and
+"Acknowledge", "Open in Beacon" and "Grafana" buttons (if the links exist: the Beacon address and
 a Grafana dashboard are set). The text and subject come from the same templates as the e-mail ("Subject" and "Text" in
 "Message templates"). Any 2xx response counts as successful delivery.
 
@@ -31,7 +31,7 @@ connectors):
 1. In Teams, open the team channel → "…" on the channel → **Workflows**.
 2. Choose the **"Post to a channel when a webhook request is received"** template (trigger
    "When a Teams webhook request is received").
-3. Name the flow (for example "Umbrella"), choose the team and channel, press **Add workflow**.
+3. Name the flow (for example "Beacon"), choose the team and channel, press **Add workflow**.
 4. Copy the URL shown (`https://….logic.azure.com/workflows/…/triggers/manual/paths/invoke?…&sig=…`
    or `https://….environment.api.powerplatform.com/…`) and paste it into the team field or
    into "Teams webhooks".

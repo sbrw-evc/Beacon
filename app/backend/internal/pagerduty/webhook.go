@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
 )
 
 var (
@@ -121,7 +121,7 @@ func (g *Gateway) HandleWebhook(ctx context.Context, body []byte, signature stri
 		return 0, nil
 	}
 	if ev.Event.EventType == "incident.annotated" && isOwnNote(ev.Event.Data.Content) {
-		// A note Umbrella wrote itself: the comment is already on the timeline.
+		// A note Beacon wrote itself: the comment is already on the timeline.
 		return 0, nil
 	}
 	incID, incURL := ev.incident()
@@ -153,7 +153,7 @@ func (g *Gateway) HandleWebhook(ctx context.Context, body []byte, signature stri
 	return applied, nil
 }
 
-// keysFor finds the alerts of an incident: by its incident_key (the dedup_key Umbrella sent),
+// keysFor finds the alerts of an incident: by its incident_key (the dedup_key Beacon sent),
 // by the incident ID seen before, or by asking PagerDuty which alerts the incident groups.
 func (g *Gateway) keysFor(ctx context.Context, incidentKey, incidentID string) ([]string, error) {
 	keys, err := g.results.PDKeys(ctx, incidentKey, incidentID)

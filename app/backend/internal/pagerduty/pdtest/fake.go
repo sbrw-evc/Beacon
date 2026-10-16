@@ -1,4 +1,4 @@
-// Package pdtest is a fake PagerDuty: the Events API v2 and the part of the REST API Umbrella
+// Package pdtest is a fake PagerDuty: the Events API v2 and the part of the REST API Beacon
 // uses.
 package pdtest
 
@@ -14,7 +14,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
 )
 
 const (

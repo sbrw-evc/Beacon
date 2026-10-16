@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/flow"
+	"github.com/sbrw-evc/beacon/app/backend/internal/flow"
 )
 
 // pipeline compiles a preset once a credential is chosen.
@@ -52,7 +52,7 @@ func TestOrder(t *testing.T) {
 	for _, p := range All() {
 		ids = append(ids, p.ID)
 	}
-	if strings.Join(ids, ",") != "grafana,graylog,alertmanager,network-flow,zabbix,webhook" {
+	if strings.Join(ids, ",") != "network-flow,grafana,graylog,alertmanager,zabbix,webhook" {
 		t.Errorf("catalog = %v", ids)
 	}
 	ids = nil
@@ -96,14 +96,14 @@ func TestStarterGraph(t *testing.T) {
 
 // The media type template filled in with its placeholders is the file in deploy/zabbix.
 func TestZabbixMediaTypeMatchesDeploy(t *testing.T) {
-	b, err := os.ReadFile("../../../../deploy/zabbix/umbrella-mediatype.yaml")
+	b, err := os.ReadFile("../../../../deploy/zabbix/beacon-mediatype.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
 	p, _ := Get("zabbix")
-	got, err := p.Quick.Attachment.Render(Vars{URL: "http://umbrella:8080/api/ingest/zabbix", Token: "<umbrella ingest token>"})
+	got, err := p.Quick.Attachment.Render(Vars{URL: "http://beacon:8080/api/ingest/zabbix", Token: "<beacon ingest token>"})
 	if err != nil || got != string(b) {
-		t.Errorf("presets/zabbix-mediatype.yaml.tmpl differs from deploy/zabbix/umbrella-mediatype.yaml: copy it again (%v)", err)
+		t.Errorf("presets/zabbix-mediatype.yaml.tmpl differs from deploy/zabbix/beacon-mediatype.yaml: copy it again (%v)", err)
 	}
 	got, _ = p.Quick.Attachment.Render(Vars{URL: "https://umb.example.com/api/ingest/zabbix-2", Token: "tok'en"})
 	if !strings.Contains(got, "value: 'https://umb.example.com/api/ingest/zabbix-2'") || !strings.Contains(got, "value: 'tok''en'") {

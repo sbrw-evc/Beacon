@@ -11,29 +11,29 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/spa/spatest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone"
+	"github.com/sbrw-evc/beacon/app/backend/internal/keystone/keystonetest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// harness serves the app connected to a fake SPA: people sign in there.
+// harness serves the app connected to a fake Keystone: people sign in there.
 type harness struct {
-	t     *testing.T
-	srv   *httptest.Server
-	st    *store.Store
-	bao   *secretstest.Fake
-	vault *secrets.Client
-	app   *app.App
-	spa   *spatest.SPA
+	t        *testing.T
+	srv      *httptest.Server
+	st       *store.Store
+	bao      *secretstest.Fake
+	vault    *secrets.Client
+	app      *app.App
+	keystone *keystonetest.Keystone
 }
 
 func newHarness(t *testing.T) *harness {
@@ -48,29 +48,29 @@ func newHarnessWith(t *testing.T, st *store.Store) *harness {
 func newHarnessOpts(t *testing.T, st *store.Store, opt app.Options) *harness {
 	bao, vault := secretstest.New(t)
 	fake := testSPA(t, st)
-	if opt.SPAKey == "" {
-		opt.SPAKey = fake.ConnectionKey()
+	if opt.KeystoneKey == "" {
+		opt.KeystoneKey = fake.ConnectionKey()
 	}
 	a := app.New(opt, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
+	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, keystone: fake}
 }
 
-// testSPA starts a fake SPA for the app over st, whose system roles it creates.
-func testSPA(t *testing.T, st *store.Store) *spatest.SPA {
+// testSPA starts a fake Keystone for the app over st, whose system roles it creates.
+func testSPA(t *testing.T, st *store.Store) *keystonetest.Keystone {
 	st.Write(func(d *store.Data) { d.EnsureSystemRoles(time.Now().UTC()) })
-	return spatest.New(t)
+	return keystonetest.New(t)
 }
 
-// spaID is the SPA user ID of a test person.
+// spaID is the Keystone user ID of a test person.
 func spaID(username string) string { return "usr_" + username }
 
-// addLocal adds a person with a role in Umbrella to the fake SPA and their synchronized record
-// to Umbrella; the password is not used: people sign in at SPA.
+// addLocal adds a person with a role in Beacon to the fake Keystone and their synchronized record
+// to Beacon; the password is not used: people sign in at Keystone.
 func (h *harness) addLocal(username, _ string, role string, changed time.Time) string {
 	h.t.Helper()
-	h.addSPA(spa.User{ID: spaID(username), Username: username, Name: username, Roles: []string{strings.ToLower(role)}})
+	h.addSPA(keystone.User{ID: spaID(username), Username: username, Name: username, Roles: []string{strings.ToLower(role)}})
 	var id string
 	h.st.Write(func(d *store.Data) {
 		id = d.NextID("USR")
@@ -80,15 +80,15 @@ func (h *harness) addLocal(username, _ string, role string, changed time.Time) s
 	return id
 }
 
-// addSPA adds (or replaces) a person in the fake SPA only.
-func (h *harness) addSPA(u spa.User) {
-	for i := range h.spa.Users {
-		if h.spa.Users[i].ID == u.ID {
-			h.spa.Users[i] = u
+// addSPA adds (or replaces) a person in the fake Keystone only.
+func (h *harness) addSPA(u keystone.User) {
+	for i := range h.keystone.Users {
+		if h.keystone.Users[i].ID == u.ID {
+			h.keystone.Users[i] = u
 			return
 		}
 	}
-	h.spa.Users = append(h.spa.Users, u)
+	h.keystone.Users = append(h.keystone.Users, u)
 }
 
 type client struct {
@@ -124,7 +124,7 @@ func (c *client) call(method, path string, body, out any) int {
 	return resp.StatusCode
 }
 
-// login signs the person in through the fake SPA: start, SPA's authorization, the callback.
+// login signs the person in through the fake Keystone: start, Keystone's authorization, the callback.
 func (c *client) login(username, _ string) map[string]any {
 	c.h.t.Helper()
 	if final := c.signIn(username); final != "/" {
@@ -138,14 +138,14 @@ func (c *client) login(username, _ string) map[string]any {
 	return out
 }
 
-// signIn runs the sign-in through SPA for the SPA person with this username and returns the
-// path and query Umbrella sent the browser to at the end.
+// signIn runs the sign-in through Keystone for the Keystone person with this username and returns the
+// path and query Beacon sent the browser to at the end.
 func (c *client) signIn(username string) string {
 	c.h.t.Helper()
-	c.h.spa.SignedIn = spaID(username)
-	for _, u := range c.h.spa.Users {
+	c.h.keystone.SignedIn = spaID(username)
+	for _, u := range c.h.keystone.Users {
 		if u.Username == username {
-			c.h.spa.SignedIn = u.ID
+			c.h.keystone.SignedIn = u.ID
 		}
 	}
 	var last *http.Request

@@ -12,20 +12,20 @@ const (
 	PDRegionEU = "eu"
 )
 
-// Alerting holds where alerts go: PagerDuty, backup notification, Grafana and Umbrella Flow.
+// Alerting holds where alerts go: PagerDuty, backup notification, Grafana and Current.
 type Alerting struct {
-	// PublicURL is the address people and PagerDuty reach Umbrella at, for links and webhooks.
+	// PublicURL is the address people and PagerDuty reach Beacon at, for links and webhooks.
 	PublicURL string    `json:"public_url"`
 	PagerDuty PagerDuty `json:"pagerduty"`
 	Notify    Notify    `json:"notify"`
 	Grafana   Grafana   `json:"grafana"`
-	// Flow is where the traffic of an incident or an item is shown (Umbrella Flow).
+	// Flow is where the traffic of an incident or an item is shown: the address of Current.
 	Flow NetworkFlow `json:"flow"`
 	// Policy tunes the lifecycle of alerts; nil keeps the defaults of the alert engine.
 	Policy *AlertPolicy `json:"policy,omitempty"`
 }
 
-// NormalizePublicURL checks the address Umbrella is reached at and drops trailing slashes. An
+// NormalizePublicURL checks the address Beacon is reached at and drops trailing slashes. An
 // empty address stays empty (not set).
 func NormalizePublicURL(v string) (string, error) {
 	v = strings.TrimRight(strings.TrimSpace(v), "/")
@@ -55,7 +55,7 @@ type PagerDuty struct {
 	WebhookSubscriptionID string    `json:"webhook_subscription_id,omitempty"`
 	MinSeverity           string    `json:"min_severity"`
 	Routes                []PDRoute `json:"routes"`
-	// Mode is the role of PagerDuty next to the notification channels of Umbrella (PDMode*);
+	// Mode is the role of PagerDuty next to the notification channels of Beacon (PDMode*);
 	// empty is primary. Modes replaces it for some severities.
 	Mode  string            `json:"mode,omitempty"`
 	Modes map[string]string `json:"modes,omitempty"`
@@ -68,15 +68,15 @@ type PagerDuty struct {
 	UpdatedBy string     `json:"updated_by,omitempty"`
 }
 
-// The role of PagerDuty next to the notification channels of Umbrella.
+// The role of PagerDuty next to the notification channels of Beacon.
 const (
-	// PDModePrimary: incidents go to PagerDuty at once; the channels of Umbrella are the backup
+	// PDModePrimary: incidents go to PagerDuty at once; the channels of Beacon are the backup
 	// when PagerDuty does not take an incident in time.
 	PDModePrimary = "primary"
-	// PDModeBackup: the channels of Umbrella go first; PagerDuty gets an incident only when
+	// PDModeBackup: the channels of Beacon go first; PagerDuty gets an incident only when
 	// nobody has taken it in time or the channels reached nobody.
 	PDModeBackup = "backup"
-	// PDModeParallel: PagerDuty and the channels of Umbrella get an incident at once.
+	// PDModeParallel: PagerDuty and the channels of Beacon get an incident at once.
 	PDModeParallel = "parallel"
 	// PDModeOff: incidents of the severity do not go to PagerDuty.
 	PDModeOff = "off"
@@ -112,19 +112,19 @@ func (s PagerDuty) BackupAfter() time.Duration {
 // PDSync is the synchronization with PagerDuty beyond the Events API and the webhooks.
 type PDSync struct {
 	// IntervalSeconds: how often incident states are read back (covers lost webhooks or
-	// an Umbrella PagerDuty cannot reach); 0 is the default, negative turns it off.
+	// a Beacon PagerDuty cannot reach); 0 is the default, negative turns it off.
 	IntervalSeconds int `json:"interval_seconds,omitempty"`
-	// FromEmail is the PagerDuty user Umbrella writes notes and priorities as (the From header
+	// FromEmail is the PagerDuty user Beacon writes notes and priorities as (the From header
 	// of the REST API); empty turns writing off.
 	FromEmail string `json:"from_email,omitempty"`
-	// Notes: comments made in Umbrella become notes of the PagerDuty incident.
+	// Notes: comments made in Beacon become notes of the PagerDuty incident.
 	Notes bool `json:"notes"`
 	// Priority: the response priority (P1–P5) is set on the PagerDuty incident.
 	Priority bool `json:"priority"`
-	// OnCall: who is on call in PagerDuty also gets the notifications of Umbrella.
+	// OnCall: who is on call in PagerDuty also gets the notifications of Beacon.
 	OnCall bool `json:"on_call"`
 	// Queues: a PagerDuty service (queue) owned by a PagerDuty team named like a team of
-	// Umbrella gets a route of that team as soon as it is read.
+	// Beacon gets a route of that team as soon as it is read.
 	Queues bool `json:"queues"`
 }
 
@@ -221,7 +221,7 @@ type EmailChannel struct {
 type TelegramChannel struct {
 	Enabled  bool   `json:"enabled"`
 	TokenRef string `json:"-"`
-	// Bot turns on the bot built into Umbrella: it reads updates by long polling (no webhook,
+	// Bot turns on the bot built into Beacon: it reads updates by long polling (no webhook,
 	// nothing to deploy), lets people acknowledge, resolve and comment from Telegram, link their
 	// account, and keeps the messages it sent in step with the incident.
 	Bot bool `json:"bot"`
@@ -255,10 +255,10 @@ type Grafana struct {
 	UpdatedBy    string     `json:"updated_by,omitempty"`
 }
 
-// NetworkFlow is Umbrella Flow, the NetFlow / IPFIX / sFlow console: the incident and item
-// cards link to its traffic around the incident through Umbrella (/go/incidents/{id}/flow).
+// NetworkFlow is Current, the NetFlow / IPFIX / sFlow console: the incident and item
+// cards link to its traffic around the incident through Beacon (/go/incidents/{id}/flow).
 type NetworkFlow struct {
-	// URL is the public address of Umbrella Flow, without a trailing slash; empty: no links.
+	// URL is the public address of Current, without a trailing slash; empty: no links.
 	URL       string     `json:"url"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	UpdatedBy string     `json:"updated_by,omitempty"`

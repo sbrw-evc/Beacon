@@ -6,7 +6,7 @@ The **Automation → Monitoring systems** page is one place for a single Zabbix 
 - **Hosts** — how many hosts were read and matched with CIs, and when, plus a link to the list of hosts of this system;
 - **RED/USE metrics** (Prometheus only) — the system itself serves as a metric source for RED/USE rules: it can be chosen as the source in a rule, and a separate "Metric source" with the same address and credentials is not needed.
 
-The address and credentials of a system are set once (the **Settings** button). The system's credentials are **outgoing**: Umbrella uses them to read hosts and metrics. The intake token is **incoming**: Zabbix or Alertmanager uses it to send alerts to Umbrella. These are two different secrets working in opposite directions.
+The address and credentials of a system are set once (the **Settings** button). The system's credentials are **outgoing**: Beacon uses them to read hosts and metrics. The intake token is **incoming**: Zabbix or Alertmanager uses it to send alerts to Beacon. These are two different secrets working in opposite directions.
 
 A system reads lists of hosts and matches them with CIs, including those loaded from NetBox. This shows which CIs are monitored and which monitoring hosts are not described in the CMDB.
 
@@ -70,7 +70,7 @@ A Prometheus system that RED/USE rules query cannot be deleted or turned into Za
 
 ## Metric sources
 
-Metric sources on the RED/USE rules page keep working. A source whose address matches a Prometheus system can be merged with **Merge into the system**: the rules move to the system together with their state, and the source is deleted. A source without such a system can be turned into one with **Make a monitoring system** — Umbrella creates a Prometheus system with its address and credentials (`POST /api/metric-sources/{id}/merge`, permissions `rules:edit` and `monitoring:edit`).
+Metric sources on the RED/USE rules page keep working. A source whose address matches a Prometheus system can be merged with **Merge into the system**: the rules move to the system together with their state, and the source is deleted. A source without such a system can be turned into one with **Make a monitoring system** — Beacon creates a Prometheus system with its address and credentials (`POST /api/metric-sources/{id}/merge`, permissions `rules:edit` and `monitoring:edit`).
 
 ## API
 

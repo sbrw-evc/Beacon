@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
 )
 
 // Handler templates: most endpoints decode a JSON body, call one service method and answer

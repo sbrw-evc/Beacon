@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/access"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/access"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // Guide actions: what a step without a path does on its own page. The web app maps each one to
@@ -193,7 +193,7 @@ var guides = map[string]func(f guideFacts) []guideStep{
 	},
 	"users": func(f guideFacts) []guideStep {
 		return []guideStep{
-			{id: "spa", done: f.spa, path: "/settings/spa", perms: []string{"settings.spa:sync"}},
+			{id: "spa", done: f.spa, path: "/settings/keystone", perms: []string{"settings.spa:sync"}},
 			{id: "user", done: f.users > 1, perms: []string{"users:view"}},
 			{id: "roles", done: f.customRoles, path: "/roles", perms: []string{"roles:edit"}},
 			{id: "teams", done: f.team, path: "/teams", perms: []string{"teams:edit"}},

@@ -8,7 +8,7 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
 )
 
 // Webhook is the compiled configuration of trigger.webhook, applied by the intake before a
@@ -71,8 +71,8 @@ func init() {
 		Type: "trigger.webhook", Version: 1, Category: CategoryTrigger, Singleton: true,
 		Title: Text{"Webhook", "Входящий webhook"},
 		Description: Text{
-			"The source sends events to the connector address. Umbrella answers 202 once the request is stored and processes it right after.",
-			"Источник отправляет события на адрес коннектора. Umbrella отвечает 202, как только запрос сохранён, и сразу обрабатывает его.",
+			"The source sends events to the connector address. Beacon answers 202 once the request is stored and processes it right after.",
+			"Источник отправляет события на адрес коннектора. Beacon отвечает 202, как только запрос сохранён, и сразу обрабатывает его.",
 		},
 		Outputs: []string{OutMain},
 		Params: []Param{
@@ -435,8 +435,8 @@ func init() {
 		Type: "map.event", Version: 1, Category: CategoryTransform, Inputs: 1, Outputs: []string{OutMain}, CanFail: true,
 		Title: Text{"Event mapping", "Сопоставление события"},
 		Description: Text{
-			"Builds the Umbrella event from the source fields: title, configuration item, signal, severity, status.",
-			"Строит событие Umbrella из полей источника: заголовок, КЕ, сигнал, severity, статус.",
+			"Builds the Beacon event from the source fields: title, configuration item, signal, severity, status.",
+			"Строит событие Beacon из полей источника: заголовок, КЕ, сигнал, severity, статус.",
 		},
 		Params: []Param{
 			{Key: "title", Kind: KindTemplate, Required: true, Placeholder: "${annotations.summary|$labels.alertname}", Title: Text{"Title", "Заголовок"}},
@@ -560,8 +560,8 @@ func init() {
 		Type: "out.event", Version: 1, Category: CategoryOutput, Inputs: 1, CanFail: true,
 		Title: Text{"Event", "Событие"},
 		Description: Text{
-			"Hands the normalized events over to Umbrella. In test runs nothing is written: the events are shown instead.",
-			"Передаёт нормализованные события в Umbrella. При тестовом прогоне ничего не записывается: события только показываются.",
+			"Hands the normalized events over to Beacon. In test runs nothing is written: the events are shown instead.",
+			"Передаёт нормализованные события в Beacon. При тестовом прогоне ничего не записывается: события только показываются.",
 		},
 		Params: []Param{},
 		compile: func(c *compiler, n Node) Step {

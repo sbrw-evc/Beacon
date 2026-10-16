@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
 )
 
 func TestParseTrustedProxies(t *testing.T) {

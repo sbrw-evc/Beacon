@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
     environment:
       ZBX_SERVER_HOST: zabbix-server
-      ZBX_SERVER_NAME: Umbrella Zabbix
+      ZBX_SERVER_NAME: Beacon Zabbix
       DB_SERVER_HOST: zabbix-db
       POSTGRES_DB: zabbix
       POSTGRES_USER: zabbix

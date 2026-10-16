@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/app"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/secrets/secretstest"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/app"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/secrets/secretstest"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 // newProxyHarness runs the app without PostgreSQL behind the given trusted proxies.
@@ -26,10 +26,10 @@ func newProxyHarness(t *testing.T, proxies string) *harness {
 	if tp == nil {
 		tp = app.TrustedProxies{}
 	}
-	a := app.New(app.Options{Version: "test", TrustedProxies: tp, SPAKey: fake.ConnectionKey()}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
+	a := app.New(app.Options{Version: "test", TrustedProxies: tp, KeystoneKey: fake.ConnectionKey()}, app.Deps{Vault: vault, Store: st, Sessions: auth.NewSessions()})
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, spa: fake}
+	return &harness{t: t, srv: srv, st: st, bao: bao, vault: vault, app: a, keystone: fake}
 }
 
 type fetched struct {

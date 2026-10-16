@@ -9,11 +9,11 @@ const (
 	// SourceService marks the user a service account acts as: it signs in only with API tokens.
 	SourceService = "service"
 
-	// TokenPrefix starts every Umbrella API token (umb_<random 32 bytes, base64url>).
+	// TokenPrefix starts every Beacon API token (umb_<random 32 bytes, base64url>).
 	TokenPrefix = "umb_"
 )
 
-// ServiceAccount is a machine identity (Umbrella Flow, scripts) that calls the API with API
+// ServiceAccount is a machine identity (Current, scripts) that calls the API with API
 // tokens instead of a session. It has a role, teams and a visibility scope like a user, and is
 // kept apart from users: it never signs in, gets no notifications and is never synchronized.
 type ServiceAccount struct {
@@ -27,8 +27,8 @@ type ServiceAccount struct {
 	ScopeMode  string   `json:"scope_mode"`
 	ServiceIDs []string `json:"service_ids"`
 	Disabled   bool     `json:"disabled"`
-	// OwnerID is the person (a user synchronized from SPA) the account belongs to: its tokens
-	// stop working while SPA disables that person. Accounts made before owners existed get the
+	// OwnerID is the person (a user synchronized from Keystone) the account belongs to: its tokens
+	// stop working while Keystone disables that person. Accounts made before owners existed get the
 	// person who created them; without one the tokens keep working until an owner is set.
 	OwnerID   string    `json:"owner_id,omitempty"`
 	CreatedAt time.Time `json:"created_at"`

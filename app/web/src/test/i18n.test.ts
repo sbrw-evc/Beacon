@@ -49,7 +49,7 @@ describe('translations', () => {
     expect(missing).toEqual([])
   })
 
-  it('nothing left of the sign-in Umbrella had before SPA', () => {
+  it('nothing left of the sign-in Beacon had before Keystone', () => {
     const words = /passkey|password_policy|\/api\/auth\/login|webauthn|entra_enabled/i
     const hits = Object.entries(sources)
       .filter(([, src]) => words.test(src))

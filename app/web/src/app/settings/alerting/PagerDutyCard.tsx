@@ -95,7 +95,7 @@ function bodyOf(d: Draft) {
   }
 }
 
-// reloadKey changes when the Umbrella address is saved in its own card: the webhook address is
+// reloadKey changes when the Beacon address is saved in its own card: the webhook address is
 // read again, the unsaved form stays.
 export function PagerDutyCard({ onSaved, reloadKey = 0 }: { onSaved?: () => void; reloadKey?: number }) {
   const t = useT(strings)

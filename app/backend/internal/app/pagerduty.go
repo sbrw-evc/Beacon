@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/alert"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/auth"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/httpx"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/model"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/notify"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/pagerduty"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/response"
-	"github.com/sbrw-evc/umbrella-monitoring/app/backend/internal/store"
+	"github.com/sbrw-evc/beacon/app/backend/internal/alert"
+	"github.com/sbrw-evc/beacon/app/backend/internal/auth"
+	"github.com/sbrw-evc/beacon/app/backend/internal/httpx"
+	"github.com/sbrw-evc/beacon/app/backend/internal/model"
+	"github.com/sbrw-evc/beacon/app/backend/internal/notify"
+	"github.com/sbrw-evc/beacon/app/backend/internal/pagerduty"
+	"github.com/sbrw-evc/beacon/app/backend/internal/response"
+	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
 const (
@@ -95,7 +95,7 @@ type PagerDutyInput struct {
 	Enabled     bool   `json:"enabled"`
 	Region      string `json:"region"`
 	MinSeverity string `json:"min_severity"`
-	// PublicURL is kept for older clients; nil keeps the address set in the «Umbrella address» card.
+	// PublicURL is kept for older clients; nil keeps the address set in the «Beacon address» card.
 	PublicURL *string `json:"public_url,omitempty"`
 	EventsURL string  `json:"events_url"`
 	APIURL    string  `json:"api_url"`
@@ -161,7 +161,7 @@ func applyModes(pd *model.PagerDuty, in PagerDutyInput) error {
 	return nil
 }
 
-// NormalizePublicURL checks the address Umbrella is reached at.
+// NormalizePublicURL checks the address Beacon is reached at.
 func NormalizePublicURL(v string) (string, error) { return model.NormalizePublicURL(v) }
 
 func optionalURL(v string) (string, error) {
@@ -515,7 +515,7 @@ func settingsRespond(w http.ResponseWriter, out any, err error) {
 	httpx.JSON(w, http.StatusOK, out)
 }
 
-// usersByEmail finds the active Umbrella user with an e-mail (a copy), for the people on call
+// usersByEmail finds the active Beacon user with an e-mail (a copy), for the people on call
 // in PagerDuty.
 func usersByEmail(st *store.Store) pagerduty.UserFinder {
 	return func(email string) *model.User {
