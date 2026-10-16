@@ -245,25 +245,31 @@ A theme change spreads as a circle from the click point (View Transitions API; i
 
 ## Screenshots
 
-Taken in one of the earlier versions of the interface: they show pages that no longer exist ("Heatmap", "Operations center", "Events", Teams and Zoom "Notifications", uploading custom themes and languages), and the other pages look different. All files are in [docs/screens](docs/screens). The example theme and language files in [docs/examples](docs/examples) belong to the same earlier version.
+Taken with the current interface on demo data (Beacon with a fake Keystone and a fake Ledger). All files are in
+[docs/screens](docs/screens).
 
 | Light theme, Russian | Dark theme, English |
 |---|---|
-| Incidents ![](docs/screens/incidents-light-ru.png) | Incidents ![](docs/screens/incidents-dark-en.png) |
-| Incident card ![](docs/screens/incident-drawer-light-ru.png) | Incident drawer ![](docs/screens/incident-drawer-dark-en.png) |
-| Operations center ![](docs/screens/ops-light-ru.png) | Operations center ![](docs/screens/ops-dark-en.png) |
-| CMDB map ![](docs/screens/cmdb-light-ru.png) | CMDB map ![](docs/screens/cmdb-dark-en.png) |
-| Connector builder ![](docs/screens/editor-light-ru.png) | Connector builder ![](docs/screens/editor-dark-en.png) |
-| Heatmap ![](docs/screens/heatmap-light-ru.png) | Heatmap: current state ![](docs/screens/heatmap-state-dark-en.png) |
-| Settings: themes ![](docs/screens/settings-light-ru.png) | Settings: languages ![](docs/screens/settings-lang-dark-en.png) |
-| Uploaded "Forest" theme ![](docs/screens/custom-theme-forest.png) | Uploaded Deutsch language (partial translation) ![](docs/screens/custom-locale-de.png) |
-
 | Sign-in ![](docs/screens/signin-light-ru.png) | Sign-in ![](docs/screens/signin-dark-en.png) |
+| Incidents ![](docs/screens/incidents-light-ru.png) | Incidents ![](docs/screens/incidents-dark-en.png) |
+| Incident card ![](docs/screens/incident-drawer-light-ru.png) | Incident card ![](docs/screens/incident-drawer-dark-en.png) |
+| CMDB map ![](docs/screens/cmdb-light-ru.png) | CMDB map ![](docs/screens/cmdb-dark-en.png) |
+| Users ![](docs/screens/users-light-ru.png) | Users ![](docs/screens/users-dark-en.png) |
 | Settings → Keystone ![](docs/screens/keystone-settings-light-ru.png) | Settings → Keystone ![](docs/screens/keystone-settings-dark-en.png) |
-| Users ![](docs/screens/users-light-ru.png) | A service owner sees only their own service ![](docs/screens/owner-incidents-dark-en.png) |
-| User: teams and visibility scope ![](docs/screens/user-edit.png) | Account menu ![](docs/screens/owner-account-en.png) |
-| Roles and permissions ![](docs/screens/roles-light-ru.png) | Role permissions ![](docs/screens/role-edit.png) |
-| Teams and Zoom notifications ![](docs/screens/notifications-light-ru.png) | Zoom channel ![](docs/screens/channel-edit-zoom.png) |
-| Delivery log ![](docs/screens/deliveries.png) | Theme change: circular reveal ![](docs/screens/theme-reveal-mid.png) |
+| Ledger ![](docs/screens/ledger-light-ru.png) | Ledger ![](docs/screens/ledger-dark-en.png) |
+| NetBox while Ledger is the inventory source ![](docs/screens/netbox-light-ru.png) | NetBox while Ledger is the inventory source ![](docs/screens/netbox-dark-en.png) |
+| Settings → Alerting: the Current address ![](docs/screens/current-light-ru.png) | Settings → Alerting: the Current address ![](docs/screens/current-dark-en.png) |
+| Settings → System status ![](docs/screens/status-light-ru.png) | Settings → System status ![](docs/screens/status-dark-en.png) |
+| Profile ![](docs/screens/profile-light-ru.png) | Profile ![](docs/screens/profile-dark-en.png) |
+| User: teams and visibility scope ![](docs/screens/user-edit.png) | A service owner sees only their own service ![](docs/screens/owner-incidents-dark-en.png) |
+| Roles and permissions ![](docs/screens/roles-light-ru.png) | |
 
-More: [animation settings](docs/screens/settings-motion.png), [connectors](docs/screens/connectors-light-ru.png), [events](docs/screens/events-light-ru.png), [maintenance windows](docs/screens/maintenance-light-ru.png).
+More: [connectors](docs/screens/connectors-light-ru.png), [maintenance windows](docs/screens/maintenance-light-ru.png).
+
+Older screenshots of an earlier version of the interface, under the former name Umbrella Monitoring (pages that no
+longer exist or look different): [operations center](docs/screens/ops-light-ru.png),
+[heatmap](docs/screens/heatmap-light-ru.png), [connector builder](docs/screens/editor-light-ru.png),
+[events](docs/screens/events-light-ru.png), [Teams and Zoom notifications](docs/screens/notifications-light-ru.png),
+[delivery log](docs/screens/deliveries.png), [role permissions](docs/screens/role-edit.png),
+[settings: themes](docs/screens/settings-light-ru.png). The example theme and language files in
+[docs/examples](docs/examples) belong to the same earlier version.

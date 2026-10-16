@@ -218,6 +218,9 @@ the CI; a service account with `integrations.flow:read` and `cmdb:propose` serve
 service (Current showed that user only the flows of that service's CI) and delivered a dependency proposal whose implied
 service dependency appears on the CMDB map.
 
+The two screenshots below were retaken after the rename on demo data (the same event and proposal formats, sent to
+Beacon with fakes of Keystone and Ledger):
+
 ![Incident with the Traffic link](screens/current-incident-traffic-e2e.png)
 
 ![Proposed dependencies on the CMDB map](screens/cmdb-proposals-e2e.png)
