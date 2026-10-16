@@ -13,6 +13,7 @@ import { strings } from './strings'
 import './netbox.css'
 import { Flash } from '../../notify'
 import { SetupGuide } from '../guide/SetupGuide'
+import { SourceBanner, type InventorySource } from '../inventorySource'
 
 type NetBoxConfig = {
   enabled: boolean
@@ -66,6 +67,7 @@ type NetBoxView = {
   directory_available: boolean
   items: number
   users: number
+  source: InventorySource
 }
 
 type Probe = { version: string; devices: number; vms: number; services: number; contacts: number }
@@ -144,6 +146,7 @@ export function NetBoxPage() {
   return (
     <>
       <SetupGuide page="netbox" />
+      <SourceBanner page="netbox" source={view.source} />
       <SyncCard view={view} onSynced={apply} />
       <ProfileCard
         title={t('nb.settings')}
@@ -165,7 +168,7 @@ export function NetBoxPage() {
           </div>
         }
       >
-        <fieldset className="plain-fieldset" disabled={!canEdit}>
+        <fieldset className="plain-fieldset" disabled={!canEdit || (view.source.source === 'ledger' && !draft.enabled)}>
           <Switch checked={draft.enabled} onChange={(v) => set({ enabled: v })} label={t('nb.enable')} hint={t('nb.enable.hint')} />
         </fieldset>
         <AnimatePresence initial={false} mode="wait">

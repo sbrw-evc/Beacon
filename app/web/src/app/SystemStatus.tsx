@@ -4,6 +4,7 @@ import { api, ApiError, type Locale, type Theme } from '../api'
 import { errorText, useLocale, useT } from '../i18n'
 import { Banner, Button, formatDate, Rows, zoneLabel } from '../ui'
 import { DefaultsEditor } from './DefaultsEditor'
+import { PausedNotice, type InventorySource } from './inventorySource'
 import { OnboardingChecklist } from './onboarding/OnboardingChecklist'
 import { useSession } from './session'
 import { statusStrings } from './statusStrings'
@@ -98,6 +99,7 @@ type Status = {
     credentials: number
     audit_entries: number
   }
+  inventory_source?: InventorySource
   logs: { counts: Record<string, number>; recent: LogEntry[] }
 }
 
@@ -223,6 +225,7 @@ export function SystemStatus() {
         <Pill state={problems ? 'error' : 'ok'} t={t} label={problems ? t('status.problems', { n: problems }) : t('status.allOk')} />
         <span className="muted">{t('status.checkedAt', { at: date(s.checked_at) })}</span>
       </div>
+      <PausedNotice source={s.inventory_source} />
       <div className="status-onboarding">
         <OnboardingChecklist epoch={epoch} />
       </div>

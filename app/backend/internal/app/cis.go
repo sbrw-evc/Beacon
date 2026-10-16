@@ -145,7 +145,7 @@ func ciViewWith(d *store.Data, ci *model.ConfigItem, services map[string][]Servi
 	}
 	v.NotMonitored = len(sources) > 0 && notMonitored(ci, v.Monitoring)
 	v.Presence = presence(d, ci, v.Monitoring, sources)
-	v.Registrable = !ci.Imported() && ci.NetBox == nil && netboxKindOf[ci.Kind] != ""
+	v.Registrable = !ci.Imported() && ci.NetBox == nil && netboxKindOf[ci.Kind] != "" && !ledgerIsSource(d)
 	if d.Settings.Alerting.Flow.URL != "" {
 		v.FlowURL = model.CIFlowHopURL("", ci.ID)
 	}
@@ -357,7 +357,14 @@ func (in CIInput) spec() netbox.Spec {
 	return netbox.Spec{Name: in.Name, Status: in.Status, Description: in.Description}
 }
 
+// ledgerOn: Ledger is the inventory source, so Beacon writes nothing to NetBox: devices are
+// created in Ledger, and items linked to NetBox earlier change and go away only in Beacon.
+func (s *CIService) ledgerOn() bool { return s.netbox.ledgerOn() }
+
 func (s *CIService) register(ctx context.Context, in CIInput) (*model.NetBoxRef, error) {
+	if s.ledgerOn() {
+		return nil, ErrRegisterInLedger
+	}
 	c, cfg, err := s.netbox.client()
 	if err != nil {
 		return nil, err
@@ -434,7 +441,9 @@ func (s *CIService) Update(ctx context.Context, actor, id string, in CIInput) (C
 	if ref != nil && netboxKindOf[in.Kind] != ref.Kind {
 		return CIView{}, invalid("ci_kind_fixed", nil)
 	}
-	if ref != nil {
+	if ref != nil && s.ledgerOn() {
+		note = ", NetBox not changed (Ledger is the inventory source)"
+	} else if ref != nil {
 		c, _, err := s.netbox.client()
 		if err != nil {
 			return CIView{}, err
@@ -508,7 +517,9 @@ func (s *CIService) Delete(ctx context.Context, actor, id string) error {
 		return err
 	}
 	note := ""
-	if ref := cur.NetBox; ref != nil {
+	if ref := cur.NetBox; ref != nil && s.ledgerOn() {
+		note = ", NetBox not changed (Ledger is the inventory source)"
+	} else if ref != nil {
 		c, _, err := s.netbox.client()
 		if err != nil {
 			return err

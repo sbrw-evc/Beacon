@@ -228,7 +228,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/users/{id}/avatar", a.authed(a.avatar))
 	mux.HandleFunc("PUT /api/settings", a.authed(a.can("status:defaults", a.updateSettings)))
 	mux.HandleFunc("GET /api/system", a.authed(a.can("status:view", a.system)))
-	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerSPA, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerMonitoring, a.registerCMDB, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
+	for _, register := range []func(*http.ServeMux){a.registerRefs, a.registerPostgres, a.registerOpenBao, a.registerDirectory, a.registerSPA, a.registerUsers, a.registerRoles, a.registerTeams, a.registerServices, a.registerConnectors, a.registerNetBox, a.registerInventoryDB, a.registerInventorySource, a.registerMonitoring, a.registerCMDB, a.registerIncidents, a.registerPagerDuty, a.registerNotifications, a.registerMaintenance, a.registerWallboards, a.registerRules, a.registerGrafana, a.registerFlow, a.registerOnboarding, a.registerGuides, a.registerResponse, a.registerTelegram, a.registerHostContext, a.registerServiceAccounts, a.registerFlowScope, a.registerProposals} {
 		register(mux)
 	}
 	a.registerRoutePreview(mux)

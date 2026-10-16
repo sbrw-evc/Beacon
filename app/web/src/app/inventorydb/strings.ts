@@ -70,6 +70,7 @@ export const strings: Dict = {
     'err.inventory_db_off': 'Ledger is not connected.',
     'err.inventory_db_failed': 'Ledger refused the request.',
     'err.inventory_db_sync_running': 'Devices are already being read.',
+    'err.inventory_db_netbox_active': 'NetBox is the inventory source. Turn the NetBox synchronization off before connecting Ledger.',
   },
   ru: {
     'inv.state.text':
@@ -139,5 +140,6 @@ export const strings: Dict = {
     'err.inventory_db_off': 'Ledger не подключена.',
     'err.inventory_db_failed': 'Ledger отклонил запрос.',
     'err.inventory_db_sync_running': 'Устройства уже загружаются.',
+    'err.inventory_db_netbox_active': 'Источник инвентаря — NetBox. Выключите синхронизацию с NetBox, прежде чем подключать Ledger.',
   },
 }

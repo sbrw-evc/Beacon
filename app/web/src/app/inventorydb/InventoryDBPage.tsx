@@ -12,6 +12,7 @@ import { useAction } from '../profile/useAction'
 import { useSession } from '../session'
 import { strings } from './strings'
 import '../netbox/netbox.css'
+import { SourceBanner, type InventorySource } from '../inventorySource'
 
 type InventoryConfig = {
   enabled: boolean
@@ -51,6 +52,7 @@ type InventoryView = {
   pushed: number
   next_sync_at?: string
   public_url_set: boolean
+  source: InventorySource
 }
 
 type Report = { ok: boolean; error?: string; probe: { items: number } }
@@ -125,6 +127,7 @@ export function InventoryDBPage() {
 
   return (
     <>
+      <SourceBanner page="ledger" source={view.source} />
       <SyncCard view={view} onSynced={apply} />
       <ProfileCard
         title={t('inv.settings')}
@@ -146,7 +149,7 @@ export function InventoryDBPage() {
           </div>
         }
       >
-        <fieldset className="plain-fieldset" disabled={!canEdit}>
+        <fieldset className="plain-fieldset" disabled={!canEdit || (view.source.source === 'netbox' && !draft.enabled)}>
           <Switch checked={draft.enabled} onChange={(v) => set({ enabled: v })} label={t('inv.enable')} hint={t('inv.enable.hint')} />
         </fieldset>
         <AnimatePresence initial={false} mode="wait">

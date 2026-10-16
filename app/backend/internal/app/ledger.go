@@ -18,9 +18,10 @@ import (
 	"github.com/sbrw-evc/beacon/app/backend/internal/store"
 )
 
-// Ledger is an optional source of devices next to NetBox: Beacon reads its devices as
-// configuration items and sends it the state of the alerts on them, so the device card there
-// shows what is on fire. It is off until someone connects it.
+// Ledger is the inventory of the Umbrella family: Beacon reads its devices as configuration
+// items and sends it the state of the alerts on them, so the device card there shows what is on
+// fire. It is off until someone connects it, and it cannot be connected while the NetBox
+// synchronization is on (see inventory_source.go).
 
 const (
 	inventoryActor       = "inventory-db"
@@ -78,6 +79,8 @@ type InventoryDBView struct {
 	NextSyncAt *time.Time `json:"next_sync_at,omitempty"`
 	// PublicURLSet: the public address of Beacon is set, so alert states carry links back.
 	PublicURLSet bool `json:"public_url_set"`
+	// Source is the inventory source Beacon reads: while it is NetBox, Ledger cannot be connected.
+	Source InventorySource `json:"source"`
 }
 
 type InventoryDBRequest struct {
@@ -108,6 +111,7 @@ func (s *InventoryDBService) View() InventoryDBView {
 		}
 		out.Config, out.Sync, out.Pushed = cfg, d.InventoryDBSync, len(d.InventoryDBPushed)
 		out.PublicURLSet = d.Settings.Alerting.PublicURL != ""
+		out.Source = inventorySourceOf(d)
 		for _, ci := range d.ConfigItems {
 			if ci.InventoryDB != nil {
 				out.Items++
@@ -182,6 +186,9 @@ func (s *InventoryDBService) Save(ctx context.Context, actor string, in Inventor
 		})
 		return s.View(), nil
 	}
+	if s.netboxOn() {
+		return InventoryDBView{}, ErrNetBoxIsSource
+	}
 	cfg, err := in.Config.Normalize()
 	if err != nil {
 		return InventoryDBView{}, invalid("inventory_db_invalid", err)
@@ -228,6 +235,10 @@ func (s *InventoryDBService) Save(ctx context.Context, actor string, in Inventor
 		return InventoryDBView{}, err
 	}
 	s.st.Write(func(d *store.Data) {
+		if d.Settings.NetBox.Enabled {
+			err = ErrNetBoxIsSource // turned on while Ledger was being checked
+			return
+		}
 		if !sameInventory(d.Settings.InventoryDB, cfg) {
 			// The alert states sent so far are in the other integration.
 			clear(d.InventoryDBPushed)
@@ -242,7 +253,16 @@ func (s *InventoryDBService) Save(ctx context.Context, actor string, in Inventor
 		}
 		d.AddAudit(store.AuditEntry{Actor: actor, Action: "settings.inventory_db", Detail: "enabled " + cfg.URL + " " + cfg.IntegrationID + note})
 	})
+	if err != nil {
+		return InventoryDBView{}, err
+	}
 	return s.View(), nil
+}
+
+func (s *InventoryDBService) netboxOn() bool {
+	var on bool
+	s.st.Read(func(d *store.Data) { on = d.Settings.NetBox.Enabled })
+	return on
 }
 
 // client connects with the stored settings; withSecret also resolves the signing secret.

@@ -31,6 +31,10 @@ func Migrate(ctx context.Context, st *store.Store, vault credentials.Vault) erro
 			d.Settings.NetBoxUsersDecided = true
 			changed = true
 		}
+		// Beacon reads one inventory source: with both on, Ledger stays and NetBox is paused.
+		if pauseNetBoxForLedger(d, now) {
+			changed = true
+		}
 		for _, u := range d.Users {
 			if d.Roles[u.Role] == nil {
 				u.Role = model.RoleUser

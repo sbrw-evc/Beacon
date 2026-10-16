@@ -140,9 +140,14 @@ type Settings struct {
 	// is not used for sign-in: people sign in through Keystone).
 	LDAP   directory.Config `json:"ldap"`
 	NetBox netbox.Config    `json:"netbox"`
-	// InventoryDB is the optional Ledger connection: devices in, alert states out.
+	// InventoryDB is the optional Ledger connection: devices in, alert states out. Beacon reads
+	// devices from one inventory source: NetBox and Ledger are never on together.
 	InventoryDB ledger.Config `json:"inventory_db"`
-	Alerting    Alerting      `json:"alerting"`
+	// NetBoxPausedAt: NetBox was turned off at start because Ledger was connected too (an
+	// installation from before the two were exclusive). The NetBox page and the status say so
+	// until the NetBox settings are saved again.
+	NetBoxPausedAt *time.Time `json:"-"`
+	Alerting       Alerting   `json:"alerting"`
 	// Response is incident response: impact, priority policies, escalation, war rooms, Jira.
 	Response Response `json:"response"`
 	// HostContext is how the incident card shows the machine of the incident.

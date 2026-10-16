@@ -5,6 +5,7 @@ import { useAction, useResource } from '../../connections/useRequest'
 import { useT } from '../../i18n'
 import { Banner, Button, Field, Input, Modal, Select, Switch, Textarea } from '../../ui'
 import { MultiPicker, TagInput, type Option } from '../services/Pickers'
+import { LedgerCreateLink, sourceStrings, useInventorySource } from '../inventorySource'
 import { strings } from './strings'
 import { blankInput, inputOf, KINDS, registrable, STATUSES, type CI, type CIInput, type Kind, type UserRef } from './types'
 
@@ -42,8 +43,12 @@ function EditorForm({ ci, tags, onClose, onSaved }: Props) {
     const label = u?.name || u?.username || o?.name || o?.username || t('ci.owner.deleted')
     return { key: id, label, title: label, muted: !u }
   }
+  const source = useInventorySource()
+  const ledger = source?.source === 'ledger'
+  const ts = useT(sourceStrings)
   const linked = !!ci?.netbox
-  const canRegister = !linked && registrable(draft.kind)
+  // With Ledger as the inventory source, devices are created in Ledger, not registered in NetBox.
+  const canRegister = !linked && !ledger && registrable(draft.kind)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -102,7 +107,16 @@ function EditorForm({ ci, tags, onClose, onSaved }: Props) {
         {(id) => <Input id={id} value={ips} spellCheck={false} placeholder="10.0.0.10, 2001:db8::10" onChange={(e) => setIps(e.target.value)} />}
       </Field>
       <Field label={t('ci.field.tags')}>{(id) => <TagInput id={id} value={draft.tags} suggestions={tags} onChange={(v) => set({ tags: v })} />}</Field>
+      {!linked && ledger && source && draft.kind === 'device' && !ci?.inventory_db && (
+        <div className="stack">
+          <p className="hint">{ts('src.create.ledger.hint')}</p>
+          <div className="row">
+            <LedgerCreateLink source={source} name={draft.name} />
+          </div>
+        </div>
+      )}
       {!linked &&
+        !ledger &&
         (canRegister ? (
           <Switch checked={draft.register} onChange={(register) => set({ register })} label={t('ci.field.register')} hint={t('ci.field.register.hint')} />
         ) : (

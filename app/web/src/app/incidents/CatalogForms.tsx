@@ -9,6 +9,7 @@ import { mergeDicts } from '../../connections/connectionStrings'
 import { strings as ciStrings } from '../cis/strings'
 import { KINDS, type CIList } from '../cis/types'
 import { useSession } from '../session'
+import { LedgerCreateLink, sourceStrings, useInventorySource } from '../inventorySource'
 import { strings } from './strings'
 import { firing, type Incident } from './types'
 
@@ -46,6 +47,12 @@ export function CreateCIForm({ a, onCancel, onDone }: { a: Incident; onCancel: (
   const [service, setService] = useState('')
   const services = useResource<{ services: ServiceRef[] }>(binder ? '/api/services' : '', 0)
   const save = useAction()
+  const ts = useT(sourceStrings)
+  const source = useInventorySource()
+  // With Ledger as the inventory source a device is created in Ledger, not as a second record here;
+  // the incident is bound to it once Beacon reads it.
+  const ledger = source?.source === 'ledger' ? source : null
+  const toLedger = !!ledger && kind === 'device'
   const submit = () =>
     void save.run(async () => {
       const out = await api<Done>('POST', `/api/incidents/${encodeURIComponent(a.id)}/create-ci`, {
@@ -65,6 +72,15 @@ export function CreateCIForm({ a, onCancel, onDone }: { a: Incident; onCancel: (
     <div className="stack inc-form">
       <h3>{t('inc.ci.create.title')}</h3>
       <p className="muted">{t('inc.ci.create.text', { name: a.ci_name })}</p>
+      {ledger && (
+        <Banner kind="info" title={ts('src.ledger.title')}>
+          <p>{ts('src.create.ledger.hint')}</p>
+          <p>{ts('src.create.ledger.bind')}</p>
+          <div className="row">
+            <LedgerCreateLink source={ledger} name={name} />
+          </div>
+        </Banner>
+      )}
       <Field label={t('inc.ci.name')} hint={name.trim() !== a.ci_name ? t('inc.ci.name.alias', { name: a.ci_name }) : undefined}>
         {(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} />}
       </Field>
@@ -102,9 +118,11 @@ export function CreateCIForm({ a, onCancel, onDone }: { a: Incident; onCancel: (
       <ErrorFlash error={save.error} strings={errStrings} />
       <div className="row inc-form-actions">
         <Button onClick={onCancel}>{t('inc.cancel')}</Button>
-        <Button variant="primary" busy={save.busy} disabled={!name.trim()} onClick={submit}>
-          {t('inc.ci.create')}
-        </Button>
+        {!toLedger && (
+          <Button variant="primary" busy={save.busy} disabled={!name.trim()} onClick={submit}>
+            {t('inc.ci.create')}
+          </Button>
+        )}
       </div>
     </div>
   )

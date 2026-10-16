@@ -27,6 +27,7 @@ import '../bulk/bulk.css'
 import { Flash, notify } from '../../notify'
 import { ask } from '../../confirm'
 import { SetupGuide } from '../guide/SetupGuide'
+import { LedgerCreateLink, sourceStrings, useInventorySource } from '../inventorySource'
 
 type Kind = 'zabbix' | 'prometheus' | 'grafana' | 'graylog'
 type Poll = { at: string; ok: boolean; error?: string; firing: number; sent: number }
@@ -729,13 +730,17 @@ function CreateDialog({ host, onClose, onSaved }: { host: Host | null; onClose: 
   const [kind, setKind] = useState('device')
   const [register, setRegister] = useState(false)
   const saver = useAction()
+  const ts = useT(sourceStrings)
+  const source = useInventorySource()
+  const ledger = source?.source === 'ledger'
   useEffect(() => {
     setKind('device')
     setRegister(false)
     saver.clear()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host])
-  const registrable = kind === 'device' || kind === 'vm'
+  // With Ledger as the inventory source, devices are created in Ledger, not registered in NetBox.
+  const registrable = !ledger && (kind === 'device' || kind === 'vm')
   const submit = () =>
     host &&
     void saver.run(async () => {
@@ -772,6 +777,14 @@ function CreateDialog({ host, onClose, onSaved }: { host: Host | null; onClose: 
             )}
           </Field>
           {registrable && <Switch checked={register} onChange={setRegister} label={t('mon.create.register')} />}
+          {ledger && source && kind === 'device' && (
+            <>
+              <p className="hint">{ts('src.create.ledger.hint')}</p>
+              <div className="row">
+                <LedgerCreateLink source={source} name={host.host || host.name} />
+              </div>
+            </>
+          )}
           <ErrorFlash error={saver.error} strings={createStrings} />
         </div>
       )}

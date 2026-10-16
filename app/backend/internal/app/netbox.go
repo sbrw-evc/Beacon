@@ -67,6 +67,9 @@ type NetBoxView struct {
 	DirectoryAvailable bool            `json:"directory_available"`
 	Items              int             `json:"items"`
 	Users              int             `json:"users"`
+	// Source is the inventory source Beacon reads (see inventory_source.go): while it is Ledger,
+	// NetBox cannot be turned on.
+	Source InventorySource `json:"source"`
 }
 
 type NetBoxRequest struct {
@@ -97,6 +100,7 @@ func (s *NetBoxService) View() NetBoxView {
 			cfg = netbox.Defaults()
 		}
 		out.Config, out.Sync = cfg, d.NetBoxSync
+		out.Source = inventorySourceOf(d)
 		out.DirectoryAvailable = directoryHasComputers(d.Settings.LDAP)
 		for _, ci := range d.ConfigItems {
 			if ci.NetBox != nil {
@@ -166,12 +170,16 @@ func (s *NetBoxService) Test(ctx context.Context, in NetBoxRequest) (NetBoxTestR
 func (s *NetBoxService) Save(ctx context.Context, actor string, in NetBoxRequest) (NetBoxView, error) {
 	if !in.Config.Enabled {
 		s.st.Write(func(d *store.Data) {
+			d.Settings.NetBoxPausedAt = nil
 			if d.Settings.NetBox.Enabled {
 				d.Settings.NetBox.Enabled = false
 				d.AddAudit(store.AuditEntry{Actor: actor, Action: "settings.netbox", Detail: "disabled"})
 			}
 		})
 		return s.View(), nil
+	}
+	if s.ledgerOn() {
+		return NetBoxView{}, ErrLedgerIsSource
 	}
 	cfg, err := in.Config.Normalize()
 	if err != nil {
@@ -198,7 +206,12 @@ func (s *NetBoxService) Save(ctx context.Context, actor string, in NetBoxRequest
 		}
 	}
 	s.st.Write(func(d *store.Data) {
+		if ledgerIsSource(d) {
+			err = ErrLedgerIsSource // connected while NetBox was being checked
+			return
+		}
 		d.Settings.NetBox = cfg
+		d.Settings.NetBoxPausedAt = nil
 		d.Settings.NetBoxUsersDecided = true
 		note := ""
 		if strings.TrimSpace(in.Token) != "" {
@@ -206,7 +219,16 @@ func (s *NetBoxService) Save(ctx context.Context, actor string, in NetBoxRequest
 		}
 		d.AddAudit(store.AuditEntry{Actor: actor, Action: "settings.netbox", Detail: "enabled " + cfg.URL + note})
 	})
+	if err != nil {
+		return NetBoxView{}, err
+	}
 	return s.View(), nil
+}
+
+func (s *NetBoxService) ledgerOn() bool {
+	var on bool
+	s.st.Read(func(d *store.Data) { on = ledgerIsSource(d) })
+	return on
 }
 
 // client connects with the stored settings.
@@ -214,6 +236,9 @@ func (s *NetBoxService) client() (*netbox.Client, netbox.Config, error) {
 	cfg := s.stored()
 	if !cfg.Enabled || cfg.TokenRef == "" {
 		return nil, cfg, ErrNetBoxOff
+	}
+	if s.ledgerOn() {
+		return nil, cfg, ErrLedgerIsSource
 	}
 	if s.secrets == nil {
 		return nil, cfg, credentials.ErrUnavailable
@@ -263,7 +288,7 @@ func (s *NetBoxService) due() bool {
 	var cfg netbox.Config
 	var last time.Time
 	s.st.Read(func(d *store.Data) { cfg, last = d.Settings.NetBox, d.NetBoxSync.StartedAt })
-	return cfg.Enabled && cfg.SyncMinutes > 0 && !s.now().Before(last.Add(time.Duration(cfg.SyncMinutes)*time.Minute))
+	return cfg.Enabled && cfg.SyncMinutes > 0 && !s.ledgerOn() && !s.now().Before(last.Add(time.Duration(cfg.SyncMinutes)*time.Minute))
 }
 
 // Sync reads NetBox and updates configuration items and user accounts. A failure to reach
@@ -287,7 +312,7 @@ func (s *NetBoxService) sync(ctx context.Context, actor string, confirmed bool) 
 	defer cancel()
 	state := model.SyncState{StartedAt: s.now(), Actor: actor}
 	c, cfg, err := s.client()
-	if errors.Is(err, ErrNetBoxOff) {
+	if errors.Is(err, ErrNetBoxOff) || errors.Is(err, ErrLedgerIsSource) {
 		return state, err
 	}
 	var inv netbox.Inventory

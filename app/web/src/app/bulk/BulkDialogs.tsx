@@ -9,6 +9,7 @@ import { Button, Field, Input, Modal, Select, Switch } from '../../ui'
 import { strings as ciStrings } from '../cis/strings'
 import { strings as monStrings } from '../monitoring/strings'
 import type { ServiceList } from '../services/types'
+import { useInventorySource } from '../inventorySource'
 import { BulkResults, ciRows, type BulkCIsResult, type BulkHostsResult } from './BulkResults'
 import { requestStrings, strings } from './strings'
 
@@ -124,7 +125,9 @@ export function CreateHostsDialog({ hosts, onClose, onDone }: { hosts: HostKey[]
     act.clear()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hosts])
-  const registrable = kind === 'device' || kind === 'vm'
+  // With Ledger as the inventory source, nothing is registered in NetBox.
+  const ledger = useInventorySource()?.source === 'ledger'
+  const registrable = !ledger && (kind === 'device' || kind === 'vm')
   const run = () =>
     hosts &&
     void act.run(async () => {

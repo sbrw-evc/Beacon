@@ -191,7 +191,9 @@ type SystemStatus struct {
 	Settings  SettingsStatus `json:"settings"`
 	Users     map[string]int `json:"users"`
 	Inventory Inventory      `json:"inventory"`
-	Logs      LogsStatus     `json:"logs"`
+	// InventorySource is where devices come from; NetBoxPausedAt in it is a warning.
+	InventorySource InventorySource `json:"inventory_source"`
+	Logs            LogsStatus      `json:"logs"`
 }
 
 func since(start time.Time) int64 { return time.Since(start).Milliseconds() }
@@ -210,6 +212,7 @@ func (s *StatusService) Collect(ctx context.Context) SystemStatus {
 			}
 		}
 		out.Inventory = inv
+		out.InventorySource = inventorySourceOf(d)
 		out.Intake.Connectors = len(d.Connectors)
 		for _, c := range d.Connectors {
 			if c.Published > 0 {

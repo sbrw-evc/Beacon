@@ -9,6 +9,7 @@ import { RoutePreview } from '../routing/RoutePreview'
 import { Chips } from '../services/Badges'
 import { useSession } from '../session'
 import { Aliases } from './Aliases'
+import { LedgerCreateLink, useInventorySource } from '../inventorySource'
 import { MonitorState, SourcePill, StatusPill } from './Badges'
 import { strings } from './strings'
 import type { Attrs, CI } from './types'
@@ -27,6 +28,9 @@ type Props = {
 export function CIDetail({ ci, editable, onClose, onEdit, onDelete, onChanged }: Props) {
   const t = useT(strings)
   const register = useAction()
+  const source = useInventorySource()
+  // A device made by hand while Ledger is the source belongs in Ledger.
+  const toLedger = source?.source === 'ledger' && ci?.source === 'local' && ci.kind === 'device' && !ci.inventory_db
   const close = () => {
     register.clear()
     onClose()
@@ -37,6 +41,7 @@ export function CIDetail({ ci, editable, onClose, onEdit, onDelete, onChanged }:
         <Button variant="danger-soft" className="svc-danger" onClick={() => onDelete(ci)}>
           {t('ci.delete')}
         </Button>
+        {toLedger && source && <LedgerCreateLink source={source} name={ci.name} />}
         {ci.registrable && (
           <Button
             busy={register.busy}

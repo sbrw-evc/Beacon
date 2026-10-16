@@ -59,8 +59,11 @@ processes inside Beacon.
 
 ## B6. Keep the catalogue right
 
-1. Physical CIs come from Ledger every 15 minutes (or from a real NetBox where Ledger is not used, never both);
-   computers can come from LDAP / Active Directory and hosts from Zabbix / Prometheus.
+1. Physical CIs come from Ledger every 15 minutes (or from a real NetBox where Ledger is not used, never both:
+   Beacon refuses to turn one on while the other is on, and pauses NetBox at start if both were on);
+   computers can come from LDAP / Active Directory and hosts from Zabbix / Prometheus. A new device is created
+   in Ledger ("Create the device in Ledger" on the incident and CI cards), not as a second record in Beacon;
+   Beacon writes nothing to NetBox while Ledger is the source ([ledger.md](ledger.md#one-inventory-source)).
 2. People build business services from CIs and give each service an owning team.
 3. Current proposes dependencies seen in traffic; people accept or reject them on the CMDB map.
 4. Beacon sends the alert state of Ledger's devices back to Ledger every 30 seconds.
