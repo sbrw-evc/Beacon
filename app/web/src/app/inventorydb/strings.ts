@@ -3,7 +3,7 @@ import type { Dict } from '../../i18n'
 export const strings: Dict = {
   en: {
     'inv.state.text':
-      'An optional connection to Ledger, the datacenter inventory app. Beacon reads its devices as configuration items and sends it the state of the alerts on them, so the device card in Ledger shows what is on fire with a link back to the incident.',
+      'Ledger is the inventory of the Umbrella family. Beacon reads its devices as configuration items and sends it the state of the alerts on them, so the device card in Ledger shows what is on fire with a link back to the incident. Beacon reads one inventory source: while Ledger is connected, the NetBox synchronization stays off.',
     'inv.state': 'State',
     'inv.state.on': 'Connected',
     'inv.state.off': 'Not connected',
@@ -74,7 +74,7 @@ export const strings: Dict = {
   },
   ru: {
     'inv.state.text':
-      'Необязательное подключение к Ledger, учёту инвентаря ЦОД. Beacon загружает его устройства как КЕ и отправляет ему статусы тревог по ним, поэтому в карточке устройства в Ledger видно, что горит, со ссылкой на инцидент.',
+      'Ledger — инвентарь семейства Umbrella. Beacon загружает его устройства как КЕ и отправляет ему статусы тревог по ним, поэтому в карточке устройства в Ledger видно, что горит, со ссылкой на инцидент. Beacon читает один источник инвентаря: пока подключён Ledger, синхронизация с NetBox выключена.',
     'inv.state': 'Состояние',
     'inv.state.on': 'Подключена',
     'inv.state.off': 'Не подключена',
