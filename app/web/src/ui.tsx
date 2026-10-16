@@ -503,7 +503,7 @@ export function Modal({
   )
 }
 
-const labels = {
+export const labels = {
   en: {
     'ui.show': 'Show',
     'ui.hide': 'Hide',

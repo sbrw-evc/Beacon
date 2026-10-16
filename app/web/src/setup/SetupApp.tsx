@@ -6,15 +6,8 @@ import { errorText, useLocale, useT } from '../i18n'
 import { useTheme } from '../theme'
 import { Banner, Brand, browserTimezone, Button, Field, Input, Password, Preferences, Rows, spring, Switch, TimezoneSelect, timezones, zoneLabel } from '../ui'
 import { strings } from './strings'
-import { PolicyChecklist } from '../PolicyChecklist'
-import { checkPassword, defaultPolicy, policyError, policyRows, type PasswordPolicy } from '../policy'
-import { policyEditorStrings } from '../policyEditorStrings'
-import { PolicyEditor } from '../PolicyEditor'
 import { Choice, ChoiceMark, Pop } from '../Choice'
 import type { Check as Probe } from '../connections/CheckResult'
-import { LdapCheckResult, LdapForm } from '../connections/LdapForm'
-import { ldapCheckKey, ldapComplete, ldapConfig, ldapDraft, ldapTestBody, type LdapDraft, type LdapReport } from '../connections/ldap'
-import { ldapStrings } from '../connections/ldapStrings'
 import { openBaoBody, openBaoCheckKey, openBaoDraft, type OpenBaoDraft, type OpenBaoReport } from '../connections/openbao'
 import { OpenBaoCheckResult, OpenBaoForm } from '../connections/OpenBaoForm'
 import { openBaoStrings } from '../connections/openbaoStrings'
@@ -34,29 +27,19 @@ import { Toaster } from '../notify'
 
 const TOKEN_HEADER = 'X-Setup-Token'
 
-// The password policy is part of the administrator step: the default fits most installations,
-// so it is collapsed there instead of being a step of its own.
-type StepId = 'code' | 'prefs' | 'openbao' | 'postgres' | 'ldap' | 'admin' | 'review'
-const STEPS: StepId[] = ['code', 'prefs', 'openbao', 'postgres', 'ldap', 'admin', 'review']
+// Nobody signs in to Umbrella with a password: people sign in at SPA, and the first administrator
+// is whoever SPA gives the role «Administrator». The SPA step takes the connection key (optional:
+// it can also come from SPA_CONNECTION_KEY).
+type StepId = 'code' | 'prefs' | 'openbao' | 'postgres' | 'spa' | 'review'
+const STEPS: StepId[] = ['code', 'prefs', 'openbao', 'postgres', 'spa', 'review']
+
+type SpaReport = { ok: boolean; issuer?: string; application?: string; error?: string }
 
 type Postgres = PostgresDraft & { reuse_existing: boolean }
 
-type Admin = {
-  username: string
-  last_name: string
-  first_name: string
-  middle_name: string
-  title: string
-  department: string
-  manager: string
-  email: string
-  password: string
-  confirm: string
-}
-
 const dict = {
-  en: { ...strings.en, ...openBaoStrings.en, ...postgresStrings.en, ...ldapStrings.en, ...policyEditorStrings.en },
-  ru: { ...strings.ru, ...openBaoStrings.ru, ...postgresStrings.ru, ...ldapStrings.ru, ...policyEditorStrings.ru },
+  en: { ...strings.en, ...openBaoStrings.en, ...postgresStrings.en },
+  ru: { ...strings.ru, ...openBaoStrings.ru, ...postgresStrings.ru },
 }
 
 const stepVariants: Variants = {
@@ -64,8 +47,6 @@ const stepVariants: Variants = {
   center: { opacity: 1, x: 0 },
   exit: (dir: 'fwd' | 'back') => ({ opacity: 0, x: dir === 'fwd' ? -36 : 36 }),
 }
-
-const USERNAME = /^[A-Za-z0-9][A-Za-z0-9._@-]{1,63}$/
 
 // publicURLOk mirrors the server check: http or https, a host, no query, fragment or user.
 export function publicURLOk(v: string) {
@@ -79,15 +60,11 @@ export function publicURLOk(v: string) {
   }
 }
 
-const samePolicy = (a: PasswordPolicy, b: PasswordPolicy) => JSON.stringify(a) === JSON.stringify(b)
-
 function stepOf(code: string): StepId | null {
   if (code === 'invalid_setup_token') return 'code'
   if (code.startsWith('openbao_')) return 'openbao'
   if (code.startsWith('postgres_')) return 'postgres'
-  if (code.startsWith('ldap_')) return 'ldap'
-  if (['weak_password', 'invalid_username', 'invalid_email', 'invalid_name'].includes(code)) return 'admin'
-  if (code === 'invalid_password_policy') return 'admin'
+  if (code.startsWith('spa_')) return 'spa'
   if (code === 'public_url_invalid') return 'prefs'
   if (code === 'invalid_locale' || code === 'invalid_theme' || code === 'invalid_timezone') return 'prefs'
   return null
@@ -117,26 +94,12 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
   })
   const [ob, setOb] = useState<OpenBaoDraft>(openBaoDraft)
   const [pg, setPg] = useState<Postgres>(() => ({ ...postgresDraft(), reuse_existing: false }))
-  const [ld, setLd] = useState<LdapDraft>(() => ldapDraft())
-  const [admin, setAdmin] = useState<Admin>({
-    username: 'admin',
-    last_name: '',
-    first_name: '',
-    middle_name: '',
-    title: '',
-    department: '',
-    manager: '',
-    email: '',
-    password: '',
-    confirm: '',
-  })
-  const [policy, setPolicy] = useState<PasswordPolicy>(defaultPolicy)
-  const [policyOpen, setPolicyOpen] = useState(false)
+  const [spaKey, setSpaKey] = useState('')
   // The address people reach Umbrella at: the wizard is opened at it in most installations.
   const [publicURL, setPublicURL] = useState(() => window.location.origin)
   const [obCheck, setObCheck] = useState<Probe<OpenBaoReport>>(null)
   const [pgCheck, setPgCheck] = useState<Probe<PostgresReport>>(null)
-  const [ldCheck, setLdCheck] = useState<Probe<LdapReport>>(null)
+  const [spaCheck, setSpaCheck] = useState<Probe<SpaReport>>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ message: string; detail?: string; step?: StepId | null } | null>(null)
   const [done, setDone] = useState(false)
@@ -145,17 +108,12 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
   const headers = { [TOKEN_HEADER]: code.trim() }
   const obKey = openBaoCheckKey(ob)
   const pgKey = postgresCheckKey(pg)
-  const ldKey = ldapCheckKey(ld)
+  const spaCheckKey = `${spaKey.trim()}\n${publicURL.trim()}`
 
   const obValid = obCheck?.ok === true && obCheck.key === obKey
   const pgValid = pgCheck?.ok === true && pgCheck.key === pgKey && pgCheck.result !== undefined && postgresUsable(pgCheck.result.probe)
   const pgNeedsReuse = pgValid && pgCheck?.result?.probe.has_state === true
-  const ldValid = !ld.enabled || (ldCheck?.ok === true && ldCheck.key === ldKey)
-  const policyProblem = policyError(policy)
-  const violations = checkPassword(admin.password, admin.username.trim(), policy)
-  const passwordsMatch = admin.password !== '' && admin.password === admin.confirm
-  const emailOk = admin.email.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin.email.trim())
-  const adminValid = USERNAME.test(admin.username.trim()) && violations.length === 0 && passwordsMatch && emailOk
+  const spaValid = spaKey.trim() === '' || (spaCheck?.ok === true && spaCheck.key === spaCheckKey)
   const publicValid = publicURLOk(publicURL)
 
   const canNext: Record<StepId, boolean> = {
@@ -163,8 +121,7 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
     prefs: publicValid,
     openbao: obValid,
     postgres: pgValid && (!pgNeedsReuse || pg.reuse_existing),
-    ldap: ldValid,
-    admin: adminValid && policyProblem === null,
+    spa: spaValid,
     review: false,
   }
 
@@ -229,11 +186,11 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
       setPgCheck({ key, ok: r.ok, result: r, error: r.error })
     })
 
-  const testLd = () =>
+  const testSpa = () =>
     run(async () => {
-      const key = ldKey
-      const r = await api<LdapReport>('POST', '/api/setup/ldap/test', ldapTestBody(ld), headers)
-      setLdCheck({ key, ok: r.ok, result: r, error: r.error })
+      const key = spaCheckKey
+      const r = await api<SpaReport>('POST', '/api/setup/spa/test', { spa_connection_key: spaKey.trim(), public_url: publicURL.trim() || window.location.origin }, headers)
+      setSpaCheck({ key, ok: r.ok, result: r, error: r.error })
     })
 
   const finish = () =>
@@ -246,21 +203,9 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
           theme: defaults.theme,
           timezone: defaults.timezone,
           public_url: publicURL.trim().replace(/\/+$/, ''),
-          password_policy: policy,
           openbao: openBaoBody(ob),
           postgres: pgBody(pg),
-          ldap: ld.enabled ? { config: ldapConfig(ld), bind_password: ld.bind_password } : { config: { enabled: false } },
-          admin: {
-            username: admin.username.trim(),
-            last_name: admin.last_name.trim(),
-            first_name: admin.first_name.trim(),
-            middle_name: admin.middle_name.trim(),
-            title: admin.title.trim(),
-            department: admin.department.trim(),
-            manager: admin.manager.trim(),
-            email: admin.email.trim(),
-            password: admin.password,
-          },
+          spa_connection_key: spaKey.trim(),
         },
         headers,
       )
@@ -294,7 +239,7 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
             />
           </svg>
           <h1>{t('done.title')}</h1>
-          <p className="muted">{t('done.text', { user: admin.username.trim() })}</p>
+          <p className="muted">{t(spaKey.trim() ? 'done.text' : 'done.text.nokey')}</p>
           <Button variant="primary" onClick={onReady}>
             {t('done.signin')}
           </Button>
@@ -498,181 +443,22 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
                   </div>
                 )}
 
-                {step === 'ldap' && (
+                {step === 'spa' && (
                   <div className="stack">
-                    <Head refEl={heading} title={t('ld.title')} text={t('ld.text')} />
-                    <Switch checked={ld.enabled} onChange={(v) => setLd({ ...ld, enabled: v })} label={t('ld.enable')} hint={t('ld.enable.hint')} />
-                    <AnimatePresence initial={false} mode="wait">
-                      {ld.enabled ? (
-                        <motion.div
-                          key="ldap-on"
-                          className="reveal-box"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                        >
-                          <div className="stack">
-                            <LdapForm value={ld} onChange={setLd} />
-                            <LdapCheckResult check={ldCheck} draft={ld} container={meta.container} />
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <motion.div key="ldap-off" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                          <Banner kind="info" title={t('ld.off')} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <Head refEl={heading} title={t('spa.title')} text={t('spa.text')} />
+                    <Field label={t('spa.key')} optional={t('optional')} hint={t('spa.key.hint')}>
+                      {(id) => <Password id={id} value={spaKey} onChange={(e) => setSpaKey(e.target.value)} autoComplete="off" spellCheck={false} placeholder="spa1.…" />}
+                    </Field>
+                    <Rows rows={[[t('spa.redirect'), <code key="r">{`${(publicURL.trim() || window.location.origin).replace(/\/+$/, '')}/api/auth/spa/callback`}</code>]]} />
+                    <Banner kind="info" title={t('spa.admin')} />
+                    {spaCheck && spaCheck.key === spaCheckKey && (
+                      <Banner kind={spaCheck.ok ? 'ok' : 'error'} title={spaCheck.ok ? t('spa.ok', { app: spaCheck.result?.application || 'Umbrella' }) : t('spa.fail')}>
+                        {spaCheck.ok ? spaCheck.result?.issuer : spaCheck.error}
+                      </Banner>
+                    )}
                     {errorBanner}
-                    <Foot
-                      back={back}
-                      next={next}
-                      canNext={canNext.ldap}
-                      t={t}
-                      check={ld.enabled ? testLd : undefined}
-                      busy={busy}
-                      checkDisabled={!ldapComplete(ld)}
-                    />
+                    <Foot back={back} next={next} canNext={canNext.spa} t={t} check={testSpa} busy={busy} checkDisabled={!spaKey.trim()} />
                   </div>
-                )}
-
-                {step === 'admin' && (
-                  <form
-                    className="stack"
-                    noValidate
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      next()
-                    }}
-                  >
-                    <Head refEl={heading} title={t('ad.title')} text={t('ad.text')} />
-                    <div className="grid-2">
-                      <Field label={t('ad.last_name')}>
-                        {(id) => (
-                          <Input
-                            id={id}
-                            value={admin.last_name}
-                            onChange={(e) => setAdmin({ ...admin, last_name: e.target.value })}
-                            autoComplete="family-name"
-                          />
-                        )}
-                      </Field>
-                      <Field label={t('ad.first_name')}>
-                        {(id) => (
-                          <Input
-                            id={id}
-                            value={admin.first_name}
-                            onChange={(e) => setAdmin({ ...admin, first_name: e.target.value })}
-                            autoComplete="given-name"
-                          />
-                        )}
-                      </Field>
-                    </div>
-                    <div className="grid-2">
-                      <Field label={t('ad.middle_name')} optional={t('ad.if_any')}>
-                        {(id) => (
-                          <Input
-                            id={id}
-                            value={admin.middle_name}
-                            onChange={(e) => setAdmin({ ...admin, middle_name: e.target.value })}
-                            autoComplete="additional-name"
-                          />
-                        )}
-                      </Field>
-                      <Field label={t('ad.title_field')} optional={t('optional')}>
-                        {(id) => (
-                          <Input
-                            id={id}
-                            value={admin.title}
-                            onChange={(e) => setAdmin({ ...admin, title: e.target.value })}
-                            autoComplete="organization-title"
-                          />
-                        )}
-                      </Field>
-                    </div>
-                    <div className="grid-2">
-                      <Field label={t('ad.department')} optional={t('optional')}>
-                        {(id) => <Input id={id} value={admin.department} onChange={(e) => setAdmin({ ...admin, department: e.target.value })} />}
-                      </Field>
-                      <Field label={t('ad.manager')} optional={t('optional')}>
-                        {(id) => <Input id={id} value={admin.manager} onChange={(e) => setAdmin({ ...admin, manager: e.target.value })} />}
-                      </Field>
-                    </div>
-                    <Field label={t('ad.email')} optional={t('optional')} hint={admin.email && !emailOk ? t('ad.email.bad') : t('ad.email.hint')}>
-                      {(id) => (
-                        <Input id={id} type="email" value={admin.email} onChange={(e) => setAdmin({ ...admin, email: e.target.value })} autoComplete="email" />
-                      )}
-                    </Field>
-                    <Field label={t('ad.username')} hint={admin.username && !USERNAME.test(admin.username.trim()) ? t('ad.username.bad') : undefined}>
-                      {(id) => (
-                        <Input
-                          id={id}
-                          value={admin.username}
-                          onChange={(e) => setAdmin({ ...admin, username: e.target.value })}
-                          autoComplete="username"
-                          spellCheck={false}
-                        />
-                      )}
-                    </Field>
-                    <div className="grid-2">
-                      <Field label={t('ad.password')}>
-                        {(id) => (
-                          <Password
-                            id={id}
-                            value={admin.password}
-                            onChange={(e) => setAdmin({ ...admin, password: e.target.value })}
-                            autoComplete="new-password"
-                          />
-                        )}
-                      </Field>
-                      <Field label={t('ad.confirm')}>
-                        {(id) => (
-                          <Password
-                            id={id}
-                            value={admin.confirm}
-                            onChange={(e) => setAdmin({ ...admin, confirm: e.target.value })}
-                            autoComplete="new-password"
-                          />
-                        )}
-                      </Field>
-                    </div>
-                    <PolicyChecklist policy={policy} password={admin.password} username={admin.username.trim()} confirm={admin.confirm} t={t} />
-                    <section className="section">
-                      <header>
-                        <h3>{t(samePolicy(policy, defaultPolicy) ? 'pol.default' : 'pol.custom')}</h3>
-                        <Button variant="ghost" aria-expanded={policyOpen} onClick={() => setPolicyOpen((o) => !o)}>
-                          {t(policyOpen ? 'pol.collapse' : 'pol.change')}
-                        </Button>
-                      </header>
-                      <p className="hint">{t('pol.later')}</p>
-                      <AnimatePresence initial={false}>
-                        {policyOpen && (
-                          <motion.div
-                            key="policy"
-                            className="reveal-box"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                          >
-                            <div className="stack">
-                              <p className="muted">{t('pol.text')}</p>
-                              <PolicyEditor value={policy} onChange={setPolicy} />
-                              {!samePolicy(policy, defaultPolicy) && (
-                                <div>
-                                  <Button variant="ghost" onClick={() => setPolicy(defaultPolicy)} style={{ paddingLeft: 0 }}>
-                                    {t('pol.reset')}
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </section>
-                    {errorBanner}
-                    <Foot back={back} next={next} canNext={canNext.admin} t={t} submit />
-                  </form>
                 )}
 
                 {step === 'review' && (
@@ -711,46 +497,10 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
                         ]}
                       />
                       <Summary
-                        title="LDAP / AD"
-                        edit={() => setStep('ldap')}
+                        title="SPA"
+                        edit={() => setStep('spa')}
                         t={t}
-                        rows={
-                          ld.enabled
-                            ? [
-                                [t('rv.ldap'), `${t(`ld.kind.${ld.kind}`)} · ${ld.url.trim()}`],
-                                [t('ld.baseDn'), ld.base_dn.trim()],
-                                [t('rv.adminGroup'), ld.admin_group_dn.trim()],
-                              ]
-                            : [[t('rv.ldap'), t('rv.ldap.off')]]
-                        }
-                      />
-                      <Summary
-                        title={t('step.policy')}
-                        edit={() => {
-                          setPolicyOpen(true)
-                          setStep('admin')
-                        }}
-                        t={t}
-                        rows={policyRows(t, policy)}
-                      />
-                      <Summary
-                        title={t('step.admin')}
-                        edit={() => setStep('admin')}
-                        t={t}
-                        rows={[
-                          [t('rv.login'), admin.username.trim()],
-                          [
-                            t('rv.name'),
-                            [admin.last_name, admin.first_name, admin.middle_name]
-                              .map((x) => x.trim())
-                              .filter(Boolean)
-                              .join(' ') || admin.username.trim(),
-                          ],
-                          [t('ad.title_field'), admin.title.trim()],
-                          [t('ad.department'), admin.department.trim()],
-                          [t('ad.manager'), admin.manager.trim()],
-                          [t('ad.email'), admin.email.trim()],
-                        ]}
+                        rows={[[t('spa.key'), spaKey.trim() ? t('spa.key.set') : t('spa.key.env')]]}
                       />
                     </div>
                     {error && (
@@ -771,7 +521,7 @@ export default function SetupApp({ meta, onReady }: { meta: Meta; onReady: () =>
                         variant="primary"
                         onClick={finish}
                         busy={busy}
-                        disabled={!(publicValid && obValid && pgValid && (!pgNeedsReuse || pg.reuse_existing) && ldValid && adminValid && policyProblem === null)}
+                        disabled={!(publicValid && obValid && pgValid && (!pgNeedsReuse || pg.reuse_existing) && spaValid)}
                       >
                         {busy ? t('rv.finishing') : t('rv.finish')}
                       </Button>

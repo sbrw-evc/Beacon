@@ -31,7 +31,7 @@ function answer(ok: boolean) {
   p.resolve(ok)
 }
 
-const strings: Dict = {
+export const strings: Dict = {
   en: { 'cf.title': 'Confirm the action', 'cf.ok': 'Confirm', 'cf.delete': 'Delete', 'cf.cancel': 'Cancel', 'cf.close': 'Close' },
   ru: { 'cf.title': 'Подтвердите действие', 'cf.ok': 'Подтвердить', 'cf.delete': 'Удалить', 'cf.cancel': 'Отмена', 'cf.close': 'Закрыть' },
 }

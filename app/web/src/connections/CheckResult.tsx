@@ -5,7 +5,7 @@ import { Flash } from '../notify'
 
 export type Check<T> = { key: string; ok: boolean; result?: T; error?: string } | null
 
-const checkStrings: Dict = {
+export const checkStrings: Dict = {
   en: { 'check.changed': 'Settings changed after the check. Check the connection again.' },
   ru: { 'check.changed': 'Настройки изменились после проверки. Проверьте подключение ещё раз.' },
 }

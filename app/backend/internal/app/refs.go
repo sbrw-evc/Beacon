@@ -55,13 +55,13 @@ func (a *App) registerRefs(mux *http.ServeMux) {
 // pages read that section. A caller gets a section when holding any of them;
 // other sections come back as empty arrays so pages degrade instead of failing.
 //
-//	users    — Users (count), Teams and Roles (member pickers), CI editor (owners)
+//	users    — Users (count), Teams and Roles (member pickers), CI editor and service accounts (owners)
 //	roles    — Users (role filter/editor), LDAP/Entra group mapping, Service accounts
 //	teams    — Users, Teams, Services (owner tree), Incidents (team filter),
 //	           Alerting (PagerDuty routing), LDAP/Entra group mapping, Service accounts
 //	services — Alerting (PagerDuty routing), Service accounts (scope)
 var refsAudience = struct{ users, roles, teams, services []string }{
-	users:    []string{"users:view", "teams:view", "roles:view", "cis:edit"},
+	users:    []string{"users:view", "teams:view", "roles:view", "cis:edit", "serviceaccounts:edit"},
 	roles:    []string{"users:view", "roles:view", "settings.ldap:view", "serviceaccounts:view"},
 	teams:    []string{"users:view", "teams:view", "services:view", "incidents:view", "settings.alerting:view", "settings.ldap:view", "serviceaccounts:view"},
 	services: []string{"settings.alerting:view", "serviceaccounts:view"},

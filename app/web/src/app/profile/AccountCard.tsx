@@ -13,9 +13,10 @@ export function AccountCard() {
     <ProfileCard title={t('profile.account')}>
       <Rows
         rows={[
-          [t('signin.username'), user.username],
+          [t('field.username'), user.username],
           [t('field.source'), t(`source.${user.source}`)],
           [t('field.role'), roleLabel(t, user.role, user.role_name)],
+          [t('field.groups'), (user.groups ?? []).join(', ')],
           [t('field.lastLogin'), formatDate(user.last_login_at, locale, timezone)],
         ]}
       />

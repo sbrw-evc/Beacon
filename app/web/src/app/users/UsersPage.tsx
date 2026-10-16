@@ -5,7 +5,6 @@ import { useT } from '../../i18n'
 import { Banner } from '../../ui'
 import { useAction } from '../profile/useAction'
 import { useSession } from '../session'
-import { CreateUserDialog } from './CreateUserDialog'
 import { NO_FILTERS, usersQuery, type Filters, type ManagedUser, type Refs } from './model'
 import { strings } from './strings'
 import { UserDialog } from './UserDialog'
@@ -24,7 +23,6 @@ export function UsersPage() {
   const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState<Filters>(NO_FILTERS)
   const [selected, setSelected] = useState<ManagedUser | null>(null)
-  const [creating, setCreating] = useState(0)
   const request = useRef(0)
 
   const { run } = loader
@@ -57,14 +55,6 @@ export function UsersPage() {
     void load(filters)
   }
 
-  const closeCreate = () => setCreating((k) => -Math.abs(k))
-
-  const created = (u: ManagedUser) => {
-    closeCreate()
-    notify({ kind: 'ok', title: t('usr.created', { name: u.display_name }) })
-    void load(filters)
-  }
-
   if (!users || !refs) {
     return loader.error ? (
       <Banner kind="error" title={loader.error.message}>
@@ -77,8 +67,9 @@ export function UsersPage() {
 
   return (
     <div className="stack usr-page">
-      <SetupGuide page="users" actions={{ create: () => setCreating((k) => Math.abs(k) + 1) }} />
-      <UsersToolbar refs={refs} filters={filters} onChange={setFilters} onCreate={() => setCreating((k) => Math.abs(k) + 1)} />
+      <SetupGuide page="users" />
+      <p className="muted">{t('usr.managed')}</p>
+      <UsersToolbar refs={refs} filters={filters} onChange={setFilters} />
       <AnimatePresence initial={false}>
         {loader.error && (
           <motion.div key="notice" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
@@ -91,7 +82,6 @@ export function UsersPage() {
       <div className="usr-count muted">{t('usr.count', { n: users.length, total })}</div>
       {users.length === 0 ? <p className="card usr-empty muted">{t('usr.empty')}</p> : <UsersList users={users} refs={refs} onOpen={(u) => setSelected(u)} />}
       <UserDialog user={selected} refs={refs} onClose={() => setSelected(null)} onChanged={changed} onDeleted={deleted} />
-      <CreateUserDialog key={Math.abs(creating)} open={creating > 0} refs={refs} onClose={closeCreate} onCreated={created} />
     </div>
   )
 }

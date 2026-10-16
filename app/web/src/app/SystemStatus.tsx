@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Pencil, RefreshCw } from 'lucide-react'
 import { api, ApiError, type Locale, type Theme } from '../api'
-import { defaultPolicy, ruleText, rules, type PasswordPolicy } from '../policy'
 import { errorText, useLocale, useT } from '../i18n'
 import { Banner, Button, formatDate, Rows, zoneLabel } from '../ui'
 import { DefaultsEditor } from './DefaultsEditor'
@@ -65,20 +64,7 @@ type Status = {
     error?: string
   }
   ldap: { enabled: boolean; ok: boolean; kind?: string; url?: string; tls?: string; base_dn?: string; admin_group?: string; latency_ms: number; error?: string }
-  entra: {
-    enabled: boolean
-    cloud?: string
-    tenant_id?: string
-    client_id?: string
-    redirect_url?: string
-    admin_group_id?: string
-    user_group_id?: string
-    issuer?: string
-    credentials: boolean
-    ok: boolean
-    latency_ms: number
-    error?: string
-  }
+  spa: { connected: boolean; issuer?: string; application?: string; last_sync?: string; ok: boolean; users: number; error?: string }
   intake: {
     ready: boolean
     connectors: number
@@ -99,7 +85,7 @@ type Status = {
     }
     error?: string
   }
-  settings: { default_theme: Theme; default_locale: Locale; default_timezone: string; password_policy?: PasswordPolicy; setup_at?: string; setup_by?: string }
+  settings: { default_theme: Theme; default_locale: Locale; default_timezone: string; setup_at?: string; setup_by?: string }
   users: Record<string, number>
   inventory: {
     users: Record<string, number>
@@ -215,20 +201,19 @@ export function SystemStatus() {
     </>
   )
 
-  const { build: b, runtime: rt, openbao: ob, postgres: pg, ldap: ld, entra: en, intake: ik, inventory: inv, logs } = s
+  const { build: b, runtime: rt, openbao: ob, postgres: pg, ldap: ld, spa: sp, intake: ik, inventory: inv, logs } = s
   const obState: State = ob.token_ok && ob.mount_ok ? 'ok' : 'error'
   const pgState: State = !pg.ok || pg.persist.error ? 'error' : pg.persist.pending ? 'warn' : 'ok'
   const ldState: State = !ld.enabled ? 'off' : ld.ok ? 'ok' : 'error'
-  const enState: State = !en.enabled ? 'off' : en.ok ? 'ok' : 'error'
+  const spState: State = !sp.connected || (sp.last_sync && !sp.ok) ? 'error' : sp.last_sync ? 'ok' : 'warn'
   const ikState: State = !ik.ready || ik.error ? 'error' : ik.invalid > 0 || (ik.stats?.open_failures ?? 0) > 0 ? 'warn' : 'ok'
   const errors = logs.counts.error ?? 0
   const warnings = logs.counts.warn ?? 0
   const logState: State = errors > 0 ? 'error' : warnings > 0 ? 'warn' : 'ok'
-  const problems = [obState, pgState, ldState, enState, ikState].filter((x) => x === 'error').length
+  const problems = [obState, pgState, ldState, spState, ikState].filter((x) => x === 'error').length
   const total = Object.values(inv.users).reduce((a, n) => a + n, 0)
   const st = ik.stats
   const h = pg.health
-  const policy = s.settings.password_policy ?? defaultPolicy
 
   return (
     <>
@@ -323,7 +308,6 @@ export function SystemStatus() {
                 [t('field.address'), ld.url],
                 [t('field.tls'), ld.tls === 'ldaps' ? 'LDAPS' : ld.tls === 'starttls' ? 'StartTLS' : t('field.tls.none')],
                 [t('field.baseDN'), ld.base_dn],
-                [t('field.adminGroup'), ld.admin_group],
                 [t('field.latency'), ms(ld.latency_ms, t)],
               ]}
             />
@@ -332,25 +316,20 @@ export function SystemStatus() {
           )}
           {ld.error && <Banner kind="error" title={ld.error} />}
         </Card>
-        <Card title={t('card.entra')} state={enState} t={t}>
-          {en.enabled ? (
+        <Card title="SPA" state={spState} t={t}>
+          {sp.connected ? (
             <Rows
               rows={[
-                [t('field.cloud'), en.cloud && t(`cloud.${en.cloud}`)],
-                [t('field.tenant'), en.tenant_id],
-                [t('field.clientId'), en.client_id],
-                [t('field.redirect'), en.redirect_url],
-                [t('field.issuer'), en.issuer],
-                [t('field.secret'), en.issuer ? t(en.credentials ? 'field.secret.ok' : 'field.secret.bad') : ''],
-                [t('field.adminGroup'), en.admin_group_id],
-                [t('field.userGroup'), en.user_group_id],
-                [t('field.latency'), ms(en.latency_ms, t)],
+                [t('field.issuer'), sp.issuer],
+                [t('field.application'), sp.application],
+                [t('field.lastSync'), date(sp.last_sync)],
+                [t('field.spaUsers'), sp.users],
               ]}
             />
           ) : (
-            <p className="muted">{t('entra.off')}</p>
+            <p className="muted">{t('spa.off')}</p>
           )}
-          {en.error && <Banner kind="error" title={en.error} />}
+          {sp.error && <Banner kind="error" title={sp.error} />}
         </Card>
         <Card title={t('card.intake')} state={ikState} label={ikState === 'ok' ? t('state.ready') : undefined} t={t}>
           <Rows
@@ -374,7 +353,7 @@ export function SystemStatus() {
         <Card title={t('card.inventory')} t={t}>
           <Rows
             rows={[
-              [t('field.users'), t('field.users.value', { total, local: inv.users.local ?? 0, ldap: inv.users.ldap ?? 0, entra: inv.users.entra ?? 0 })],
+              [t('field.users'), t('field.users.value', { total, spa: inv.users.spa ?? 0, legacy: total - (inv.users.spa ?? 0) })],
               [t('field.disabledUsers'), inv.disabled_users],
               [t('field.sessions'), t('field.sessions.value', { sessions: inv.sessions, users: inv.signed_in_users })],
               [t('field.roles'), inv.roles],
@@ -391,13 +370,6 @@ export function SystemStatus() {
               [t('field.theme'), s.settings.default_theme && t(`theme.${s.settings.default_theme}`)],
               [t('field.locale'), s.settings.default_locale && t(`lang.${s.settings.default_locale}`)],
               [t('field.timezone'), zoneLabel(s.settings.default_timezone)],
-              [
-                t('field.passwordPolicy'),
-                rules(policy)
-                  .filter((r) => r !== 'username')
-                  .map((r) => ruleText(t, r, policy))
-                  .join('; '),
-              ],
               [t('field.setupAt'), date(s.settings.setup_at)],
               [t('field.setupBy'), s.settings.setup_by],
             ]}

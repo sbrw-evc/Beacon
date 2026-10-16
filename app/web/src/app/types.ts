@@ -14,19 +14,17 @@ export type User = ProfileFields & {
   id: string
   username: string
   name: string
-  source: 'local' | 'ldap' | 'entra' | 'netbox' | 'google' | 'apple' | 'oidc'
+  source: 'spa' | 'local' | 'ldap' | 'entra' | 'netbox'
   role: string
   role_name?: string
   permissions?: string[]
   /** Active administrators; sent only to a user without any permission. */
   admins?: { name: string; email?: string }[]
-  passkeys_enabled?: boolean
   team_ids?: string[]
   /** What the user sees: all services, the services of their teams, or the chosen services. Ignored for administrators. */
   scope_mode?: ScopeMode
   /** The chosen services of the services mode. */
   service_ids?: string[]
-  must_change_password?: boolean
   timezone: string
   telegram?: string
   /** The interface language the server keeps (voice calls speak it). */
@@ -37,9 +35,10 @@ export type User = ProfileFields & {
   has_avatar?: boolean
   avatar_version?: string
   avatar_source?: 'upload' | 'ldap'
-  password_expired?: boolean
-  password_expiry_warning?: boolean
-  password_expires_at?: string
+  /** The person's account page in SPA: password, second factor, sessions. */
+  account_url?: string
+  /** Groups of the person in SPA. */
+  groups?: string[]
 }
 
 export const PROFILE_KEYS: (keyof ProfileFields)[] = ['last_name', 'first_name', 'middle_name', 'title', 'department', 'manager', 'email']

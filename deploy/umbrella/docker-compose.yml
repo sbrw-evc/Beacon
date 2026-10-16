@@ -13,6 +13,10 @@ services:
       TZ: ${TZ:-UTC}
       UMBRELLA_SECURE_COOKIES: ${UMBRELLA_SECURE_COOKIES:-false}
       UMBRELLA_STARTUP_WAIT: ${UMBRELLA_STARTUP_WAIT:-2m}
+      # People sign in at SPA: the connection key SPA shows for Umbrella (spa1.…). It can also be
+      # entered in the setup wizard, which keeps it in OpenBao.
+      SPA_CONNECTION_KEY: ${SPA_CONNECTION_KEY:-}
+      SPA_PUBLIC_URL: ${SPA_PUBLIC_URL:-}
     ports:
       - "${UMBRELLA_PORT:-8080}:8080"
     volumes:

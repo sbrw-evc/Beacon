@@ -674,7 +674,7 @@ code {
   padding: 28px;
 }
 
-.signin form {
+.signin-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1727,37 +1727,17 @@ body.side-resizing .app-body {
   }
 }
 
-.signin-or {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.85em;
+.signin-body h1 {
+  margin: 0;
 }
 
-.signin-for {
-  margin: 4px 0 0;
-}
-
-.signin-passkey {
+.signin-body > .btn {
   min-height: 44px;
-}
-
-.signin-passkey-hint {
-  margin-top: -8px;
-  text-align: center;
 }
 
 .signin-providers {
   display: grid;
   gap: 8px;
-}
-
-.signin-or::before,
-.signin-or::after {
-  content: '';
-  flex: 1;
-  border-top: 1px solid var(--border);
 }
 
 /* LongText: a long text collapsed to its first lines, and FieldList: named values of an incident. */

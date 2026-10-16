@@ -1,5 +1,3 @@
-import type { PasswordPolicy } from './policy'
-
 export type Theme = 'light' | 'dark'
 export type Locale = 'en' | 'ru'
 
@@ -9,12 +7,17 @@ export type Meta = {
   default_theme: Theme
   default_locale: Locale
   default_timezone: string
-  ldap_enabled?: boolean
-  entra_enabled?: boolean
-  passkeys_enabled?: boolean
-  providers?: { id: string; title: string }[]
   container?: boolean
-  password_policy?: PasswordPolicy
+  // spa: whether Umbrella is connected to SPA, where everyone signs in.
+  spa?: SpaInfo
+}
+
+export type SpaInfo = {
+  connected: boolean
+  error?: string
+  issuer?: string
+  application?: string
+  methods: { id: string; title: string }[]
 }
 
 export class ApiError extends Error {

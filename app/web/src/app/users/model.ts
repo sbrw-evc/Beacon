@@ -10,7 +10,6 @@ export type ManagedUser = User & {
   services?: ScopeService[]
   disabled: boolean
   created_at: string
-  password_changed_at?: string
   /** A NetBox contact account that the next NetBox synchronization creates again. */
   netbox_recreates?: boolean
 }
@@ -18,18 +17,17 @@ export type ManagedUser = User & {
 export type RoleRef = { id: string; name: string; system: boolean }
 export type TeamRef = { id: string; name: string; parent_id: string }
 export type ServiceRef = { id: string; name: string }
-export type Refs = { roles: RoleRef[]; teams: TeamRef[]; services: ServiceRef[]; new_user_role?: string }
+export type UserRef = { id: string; username: string; name: string; source: string; disabled: boolean }
+export type Refs = { roles: RoleRef[]; teams: TeamRef[]; services: ServiceRef[]; users?: UserRef[]; new_user_role?: string }
 
 export type Filters = { q: string; source: string; role: string; team: string; status: string }
 
 export const NO_FILTERS: Filters = { q: '', source: '', role: '', team: '', status: '' }
 
-export type UserStatus = 'locked' | 'must_change' | 'expired' | 'active'
+export type UserStatus = 'locked' | 'active'
 
 export function statusOf(u: ManagedUser): UserStatus {
   if (u.disabled) return 'locked'
-  if (u.must_change_password) return 'must_change'
-  if (u.password_expired) return 'expired'
   return 'active'
 }
 

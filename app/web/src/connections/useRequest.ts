@@ -52,7 +52,6 @@ export type ActionOptions = {
 // the result, or undefined when the request failed.
 export function useAction({ quietSession = false }: ActionOptions = {}) {
   const onError = useExpiry()
-  const { refresh } = useSession()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const run = useCallback(
@@ -64,14 +63,13 @@ export function useAction({ quietSession = false }: ActionOptions = {}) {
       } catch (e) {
         onError(e)
         if (!quietSession) setError(e)
-        else if (e instanceof ApiError && e.code === 'password_expired') await refresh()
         else if (!(e instanceof ApiError && e.status === 401)) setError(e)
         return undefined
       } finally {
         setBusy(false)
       }
     },
-    [onError, quietSession, refresh],
+    [onError, quietSession],
   )
   const clear = useCallback(() => setError(null), [])
   return { busy, error, run, clear }

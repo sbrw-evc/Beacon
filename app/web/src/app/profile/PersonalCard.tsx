@@ -1,49 +1,36 @@
-import { useEffect, useState } from 'react'
-import { api } from '../../api'
+import { ExternalLink } from 'lucide-react'
 import { useT } from '../../i18n'
-import { Banner, Button } from '../../ui'
+import { Banner } from '../../ui'
 import { useSession } from '../session'
 import { strings } from '../strings'
-import { profileChanged, profileOf, type ProfileFields, type User } from '../types'
+import { profileOf } from '../types'
 import { AvatarEditor } from './AvatarEditor'
 import { ProfileCard } from './ProfileCard'
 import { ProfileFieldsGrid } from './ProfileFieldsGrid'
 import { useAction } from './useAction'
 
+// PersonalCard shows the data SPA gives (name, e-mail); the photo is Umbrella's own.
 export function PersonalCard() {
   const t = useT(strings)
-  const { user, update } = useSession()
+  const { user } = useSession()
   const action = useAction()
-  const local = user.source === 'local'
-  const [form, setForm] = useState<ProfileFields>(() => profileOf(user))
-
-  useEffect(() => setForm(profileOf(user)), [user])
-
-  const changed = profileChanged(form, profileOf(user))
-
-  const save = () =>
-    action.run(async () => {
-      update(await api<User>('PUT', '/api/auth/me/profile', form))
-      return t('prefs.saved')
-    })
-
   return (
     <ProfileCard
       title={t('profile.personal')}
       action={action}
       wide
-      onSubmit={local ? save : undefined}
       footer={
-        local && (
-          <Button type="submit" variant="primary" busy={action.busy} disabled={!changed}>
-            {t('save')}
-          </Button>
+        user.account_url && (
+          <a className="btn btn-secondary" href={user.account_url} target="_blank" rel="noreferrer">
+            <ExternalLink size={16} aria-hidden />
+            {t('prefs.spa.open')}
+          </a>
         )
       }
     >
       <AvatarEditor action={action} />
-      {!local && <Banner kind="info" title={t('prefs.directory')} />}
-      <ProfileFieldsGrid value={form} onChange={setForm} editable={local} />
+      <Banner kind="info" title={t('prefs.directory')} />
+      <ProfileFieldsGrid value={profileOf(user)} onChange={() => undefined} editable={false} />
     </ProfileCard>
   )
 }

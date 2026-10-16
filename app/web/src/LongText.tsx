@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, Copy, ExternalLink } from 'lucide-react'
 import { useT, type Dict } from './i18n'
 
-const strings: Dict = {
+export const strings: Dict = {
   en: {
     'lt.more': 'Show all ({lines} lines)',
     'lt.more.chars': 'Show all',

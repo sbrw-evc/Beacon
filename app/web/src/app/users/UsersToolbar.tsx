@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useT } from '../../i18n'
 import { Button, Field, Input, Select } from '../../ui'
-import { useSession } from '../session'
 import { RoleSelect, TeamSelect } from './AccessFields'
 import { NO_FILTERS, type Filters, type Refs } from './model'
 import { strings } from './strings'
 
 const SEARCH_DELAY = 250
 
-export function UsersToolbar({ refs, filters, onChange, onCreate }: { refs: Refs; filters: Filters; onChange: (f: Filters) => void; onCreate: () => void }) {
+export function UsersToolbar({ refs, filters, onChange }: { refs: Refs; filters: Filters; onChange: (f: Filters) => void }) {
   const t = useT(strings)
-  const { can } = useSession()
   const [q, setQ] = useState(filters.q)
 
   useEffect(() => setQ(filters.q), [filters.q])
@@ -39,24 +37,16 @@ export function UsersToolbar({ refs, filters, onChange, onCreate }: { refs: Refs
             {t('usr.filter.reset')}
           </Button>
         )}
-        {can('users:create') && (
-          <Button variant="primary" onClick={onCreate}>
-            <Plus size={16} aria-hidden />
-            {t('usr.create')}
-          </Button>
-        )}
       </div>
       <div className="usr-filters">
         <Field label={t('usr.filter.source')}>
           {(id) => (
             <Select id={id} value={filters.source} onChange={(e) => set('source')(e.target.value)}>
               <option value="">{any}</option>
+              <option value="spa">{t('usr.source.spa')}</option>
               <option value="local">{t('usr.source.local')}</option>
               <option value="ldap">{t('usr.source.ldap')}</option>
               <option value="entra">{t('usr.source.entra')}</option>
-              <option value="google">{t('usr.source.google')}</option>
-              <option value="apple">{t('usr.source.apple')}</option>
-              <option value="oidc">{t('usr.source.oidc')}</option>
               <option value="netbox">{t('usr.source.netbox')}</option>
             </Select>
           )}

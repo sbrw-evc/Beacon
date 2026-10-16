@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { api, ApiError, setCsrf, type Meta } from '../api'
-import { defaultPolicy, type PasswordPolicy } from '../policy'
 import { useLocale, useT } from '../i18n'
 import { RouterProvider, SCROLL_ROOT_ID, useRouter } from '../router'
-import { ExpiredPassword } from './profile/ExpiredPassword'
-import { PasswordExpiryNotice } from './profile/PasswordExpiryNotice'
 import { ProfilePage } from './profile/ProfilePage'
 import { PageBoundary } from './PageBoundary'
 import { PageHead } from './PageHead'
@@ -17,8 +14,7 @@ import { Overview } from './mobile/Overview'
 import { useMobile } from './mobile/useMobile'
 import { SessionProvider, useSession, type Session } from './session'
 import { Sidebar, SidebarResizer, useCollapsed, useSidebarWidth } from './Sidebar'
-import { SignIn } from './SignIn'
-import { pendingSSO, SingleSignOn } from './SingleSignOn'
+import { markSignedOut, SignIn } from './SignIn'
 import { strings } from './strings'
 import { TopBar } from './TopBar'
 import type { User } from './types'
@@ -39,7 +35,6 @@ function Shell({ meta }: { meta: Meta }) {
   const [user, setUser] = useState<User | null>(null)
   const [checked, setChecked] = useState(false)
   const [defaultTz, setDefaultTz] = useState(meta.default_timezone || 'UTC')
-  const [policy, setPolicy] = useState<PasswordPolicy>(meta.password_policy ?? defaultPolicy)
   const t = useT(strings)
 
   useEffect(() => setNotifyOwner(user?.id ?? ''), [user?.id])
@@ -68,19 +63,22 @@ function Shell({ meta }: { meta: Meta }) {
     }
   }, [expire])
 
+  // Signing out ends the Umbrella session and then the SPA one: SPA comes back to the sign-in page.
   const signOut = useCallback(async () => {
+    let next = ''
     try {
-      await api('POST', '/api/auth/logout')
+      next = (await api<{ redirect?: string }>('POST', '/api/auth/logout')).redirect ?? ''
     } catch {
       return
-    } finally {
-      expire()
     }
+    markSignedOut()
+    expire()
+    if (next) window.location.assign(next)
   }, [expire])
 
   // The server keeps the interface language: voice calls speak to the user in it.
   const { locale } = useLocale()
-  const userLocale = user && !user.password_expired ? (user.locale ?? '') : null
+  const userLocale = user ? (user.locale ?? '') : null
   useEffect(() => {
     if (userLocale === null || userLocale === locale) return
     api('PUT', '/api/auth/me/preferences', { locale })
@@ -96,37 +94,19 @@ function Shell({ meta }: { meta: Meta }) {
         user,
         timezone: user.timezone || defaultTz,
         defaultTz,
-        policy,
         can: (perm: string) => permissions.has(perm),
         setDefaultTz,
         update: setUser,
         refresh,
-        setPolicy,
         expire,
       },
-    [user, defaultTz, policy, refresh, expire, permissions],
+    [user, defaultTz, refresh, expire, permissions],
   )
 
   if (!checked) return <div className="center-page boot">{t('loading')}</div>
-  if (window.location.pathname === '/sso') return <SingleSignOn meta={meta} user={user} onSignedIn={setUser} />
-  if (session) {
-    const sso = pendingSSO()
-    if (sso) {
-      window.location.replace(`/sso?request=${encodeURIComponent(sso)}`)
-      return <div className="center-page boot">{t('loading')}</div>
-    }
-  }
-  if (!session) return <SignIn meta={meta} onSignedIn={setUser} />
+  if (!session) return <SignIn meta={meta} />
 
   const hasSidebar = visiblePages(session.can).length > 0
-
-  if (session.user.password_expired) {
-    return (
-      <SessionProvider value={session}>
-        <ExpiredPassword onSignOut={signOut} />
-      </SessionProvider>
-    )
-  }
 
   return (
     <SessionProvider value={session}>
@@ -168,14 +148,10 @@ type Target = ReturnType<typeof resolve> | { kind: 'overview' }
 
 function Pages({ mobile = false }: { mobile?: boolean }) {
   const { path, navigate } = useRouter()
-  const { user, refresh, can } = useSession()
+  const { can } = useSession()
   const [forced, setForced] = useState(forcedPages)
   const home = mobile && hasOverview(can)
   const target: Target = home && path === OVERVIEW_PATH ? { kind: 'overview' } : home && path === HOME_PATH ? { kind: 'redirect', to: OVERVIEW_PATH } : resolve(path, can)
-
-  useEffect(() => {
-    if (user.source === 'local') void refresh()
-  }, [path, user.source, refresh])
 
   useEffect(() => {
     if (target.kind === 'redirect') navigate(target.to, { replace: true })
@@ -197,7 +173,6 @@ function Pages({ mobile = false }: { mobile?: boolean }) {
       >
         {target.kind === 'overview' ? (
           <PageBoundary resetKey={path}>
-            <PasswordExpiryNotice link />
             <Overview />
           </PageBoundary>
         ) : target.kind === 'profile' ? (
@@ -208,7 +183,6 @@ function Pages({ mobile = false }: { mobile?: boolean }) {
           <DesktopOnly page={target.page} onOpen={() => setForced(forcedPages())} />
         ) : (
           <>
-            <PasswordExpiryNotice link />
             {target.page.subtitle && !mobile && <PageHead page={target.page} />}
             <PageBoundary resetKey={path}>
               <target.page.Component />

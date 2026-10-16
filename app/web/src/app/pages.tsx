@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Activity, BellRing, Bot, Boxes, CalendarClock, Briefcase, Cable, Database, Fingerprint, Gauge, KeyRound, LockKeyhole, Megaphone, Network, Radar, Server, ShieldCheck, Siren, Tv, UserCog, Users, UsersRound, Warehouse, Waypoints, type LucideIcon } from 'lucide-react'
+import { Activity, BellRing, Bot, Boxes, CalendarClock, Briefcase, Cable, Database, Fingerprint, Gauge, KeyRound, LockKeyhole, Megaphone, Network, Radar, Server, Siren, Tv, UserCog, Users, UsersRound, Warehouse, Waypoints, type LucideIcon } from 'lucide-react'
 import { CIsPage } from './cis/CIsPage'
 import { IncidentsPage } from './incidents/IncidentsPage'
 import { CMDBMapPage } from './cmdb/CMDBMapPage'
@@ -16,8 +16,7 @@ import { ServicesPage } from './services/ServicesPage'
 import { AlertingSettings } from './settings/alerting/AlertingSettings'
 import { DirectorySettings } from './settings/directory/DirectorySettings'
 import { OpenBaoSettings } from './settings/openbao/OpenBaoSettings'
-import { IdentitySettings } from './settings/identity/IdentitySettings'
-import { PolicySettings } from './settings/policy/PolicySettings'
+import { SpaSettings } from './settings/spa/SpaSettings'
 import { PostgresSettings } from './settings/postgres/PostgresSettings'
 import { ServiceAccountsPage } from './settings/serviceaccounts/ServiceAccountsPage'
 import { SystemStatus } from './SystemStatus'
@@ -41,7 +40,7 @@ export const HOME_PATH = '/'
 export const PROFILE_PATH = '/profile'
 export const SETTINGS_PATH = '/settings'
 // Old addresses of pages that moved, so bookmarks keep working.
-const MOVED: Record<string, string> = { '/status': '/settings/status' }
+const MOVED: Record<string, string> = { '/status': '/settings/status', '/settings/identity': '/settings/spa', '/settings/password-policy': '/settings/spa' }
 
 export const PAGES: PageDef[] = [
   { id: 'incidents', path: '/incidents', icon: BellRing, Component: IncidentsPage, subtitle: 'page.incidents.subtitle' },
@@ -65,15 +64,7 @@ export const PAGES: PageDef[] = [
   { id: 'settings.ldap', path: '/settings/ldap', icon: Network, Component: DirectorySettings, subtitle: 'page.settings.subtitle' },
   { id: 'settings.postgres', path: '/settings/postgresql', icon: Database, Component: PostgresSettings, subtitle: 'page.settings.subtitle' },
   { id: 'settings.openbao', path: '/settings/openbao', icon: KeyRound, Component: OpenBaoSettings, subtitle: 'page.settings.subtitle' },
-  {
-    id: 'settings.policy',
-    path: '/settings/password-policy',
-   
-    icon: ShieldCheck,
-    Component: PolicySettings,
-    subtitle: 'page.settings.subtitle',
-  },
-  { id: 'settings.identity', path: '/settings/identity', icon: Fingerprint, Component: IdentitySettings, subtitle: 'page.settings.identity.subtitle' },
+  { id: 'settings.spa', path: '/settings/spa', icon: Fingerprint, Component: SpaSettings, subtitle: 'page.settings.spa.subtitle' },
   { id: 'serviceaccounts', path: '/settings/service-accounts', icon: Bot, Component: ServiceAccountsPage, subtitle: 'page.serviceaccounts.subtitle' },
 ]
 

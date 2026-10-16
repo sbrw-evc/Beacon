@@ -4,14 +4,12 @@ import { api } from '../../../api'
 import type { Check } from '../../../connections/CheckResult'
 import { LdapCheckResult, LdapForm } from '../../../connections/LdapForm'
 import { ldapCheckKey, ldapComplete, ldapConfig, ldapDraft, ldapTestBody, type LdapConfig, type LdapDraft, type LdapReport } from '../../../connections/ldap'
-import { useLocale, useT } from '../../../i18n'
-import { Banner, Button, formatDate, Switch } from '../../../ui'
+import { useT } from '../../../i18n'
+import { Banner, Button, Switch } from '../../../ui'
 import { ProfileCard } from '../../profile/ProfileCard'
 import { SummaryCard } from '../../profile/SummaryCard'
 import { useAction } from '../../profile/useAction'
 import { useSession } from '../../session'
-import { EntraSettings } from './EntraSettings'
-import { DIRECTORY_CHANGED, GroupMappingSettings } from './GroupMappingSettings'
 import { strings } from './strings'
 import './directory.css'
 import { Flash } from '../../../notify'
@@ -19,8 +17,6 @@ import { Flash } from '../../../notify'
 type DirectoryView = {
   config: Partial<LdapConfig>
   bind_password_set: boolean
-  local_admins: number
-  users: { total: number; admins: number; disabled: number; last_sign_in?: string }
 }
 
 function sameAccount(a: LdapDraft, b: LdapDraft) {
@@ -61,8 +57,6 @@ export function DirectorySettings() {
   const reusable = view.bind_password_set && sameAccount(draft, saved)
   const passwordReady = draft.bind_password !== '' || reusable
   const dirty = draft.enabled !== saved.enabled || (draft.enabled && (ldapCheckKey(draft) !== ldapCheckKey(saved) || draft.bind_password !== ''))
-  const turningOff = saved.enabled && !draft.enabled
-  const blocked = turningOff && view.local_admins === 0
   const complete = ldapComplete(draft, reusable)
 
   const test = () =>
@@ -77,7 +71,6 @@ export function DirectorySettings() {
       const body = draft.enabled ? { config: ldapConfig(draft), bind_password: draft.bind_password } : { config: { enabled: false } }
       apply(await api<DirectoryView>('PUT', '/api/settings/ldap', body))
       setCheck(null)
-      window.dispatchEvent(new Event(DIRECTORY_CHANGED))
       return t('dir.saved')
     })
 
@@ -102,13 +95,9 @@ export function DirectorySettings() {
                 [t('dir.server'), <code key="u">{saved.url}</code>],
                 [t('dir.tls'), saved.url.startsWith('ldaps://') ? 'LDAPS' : saved.start_tls ? 'StartTLS' : t('dir.tls.none')],
                 [t('ld.baseDn'), saved.base_dn],
-                [t('ld.adminGroup'), saved.admin_group_dn],
                 [t('dir.password'), t(view.bind_password_set ? 'dir.password.set' : 'dir.password.unset')],
               ] as [string, ReactNode][])
             : []),
-          [t('dir.users'), t('dir.users.value', { total: view.users.total, admins: view.users.admins, disabled: view.users.disabled })],
-          [t('dir.lastSignIn'), <LastSignIn key="l" at={view.users.last_sign_in} />],
-          [t('dir.localAdmins'), String(view.local_admins)],
         ]}
       />
       <ProfileCard
@@ -124,7 +113,7 @@ export function DirectorySettings() {
               </Button>
             )}
             {canEdit && (
-              <Button type="submit" variant="primary" busy={saver.busy} disabled={!dirty || blocked || (draft.enabled && (!complete || !passwordReady))}>
+              <Button type="submit" variant="primary" busy={saver.busy} disabled={!dirty || (draft.enabled && (!complete || !passwordReady))}>
                 {t('dir.save')}
               </Button>
             )}
@@ -158,26 +147,11 @@ export function DirectorySettings() {
             </motion.div>
           ) : (
             <motion.div key="off" className="stack" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              {blocked ? (
-                <Banner kind="error" title={t('dir.off.noAdmin')} />
-              ) : (
-                <Banner kind="info" title={t('dir.off')}>
-                  {turningOff && t('dir.off.sessions')}
-                </Banner>
-              )}
+              <Banner kind="info" title={t('dir.off')} />
             </motion.div>
           )}
         </AnimatePresence>
       </ProfileCard>
-      <EntraSettings />
-      <GroupMappingSettings />
     </>
   )
-}
-
-function LastSignIn({ at }: { at?: string }) {
-  const t = useT(strings)
-  const { locale } = useLocale()
-  const { timezone } = useSession()
-  return <span title={t('dir.lastSignIn.hint')}>{formatDate(at, locale, timezone) || '—'}</span>
 }

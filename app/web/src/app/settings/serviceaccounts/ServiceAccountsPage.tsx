@@ -39,6 +39,10 @@ export type ServiceAccount = {
   disabled: boolean
   created_at: string
   created_by: string
+  owner_id: string
+  owner_name?: string
+  /** SPA disabled the owner: the tokens of the account are refused. */
+  owner_disabled?: boolean
   tokens: APIToken[]
 }
 
@@ -90,6 +94,7 @@ export function ServiceAccountsPage() {
             <thead>
               <tr>
                 <th>{t('sa.col.name')}</th>
+                <th>{t('sa.col.owner')}</th>
                 <th>{t('sa.col.role')}</th>
                 <th>{t('sa.col.scope')}</th>
                 <th>{t('sa.col.tokens')}</th>
@@ -106,8 +111,10 @@ export function ServiceAccountsPage() {
                         <Bot size={14} /> {a.name}
                       </button>
                       {a.disabled && <span className="muted"> · {t('sa.disabled')}</span>}
+                      {a.owner_disabled && <span className="pill pill-error"> {t('sa.owner.disabled')}</span>}
                       {a.description && <div className="muted">{a.description}</div>}
                     </td>
+                    <td>{a.owner_name || t('sa.owner.none')}</td>
                     <td>{roleLabel(t, a.role, a.role_name)}</td>
                     <td>{scopeText(a)}</td>
                     <td>{a.tokens.filter((tk) => active(tk)).length}</td>
@@ -159,10 +166,13 @@ function AccountDialog({
   const [mode, setMode] = useState<ScopeMode>(account ? scopeModeOf(account) : 'all')
   const [services, setServices] = useState<string[]>(account?.service_ids ?? [])
   const [disabled, setDisabled] = useState(account?.disabled ?? false)
+  const { user: me } = useSession()
+  const [owner, setOwner] = useState(account?.owner_id ?? me.id)
+  const people = (refs.users ?? []).filter((u) => u.source !== 'service' && (!u.disabled || u.id === owner))
   const action = useAction()
 
   const save = async () => {
-    const body = { name, description, role_id: access.role_id, team_ids: access.team_ids, scope_mode: mode, service_ids: mode === 'services' ? services : [], disabled }
+    const body = { name, description, owner_id: owner, role_id: access.role_id, team_ids: access.team_ids, scope_mode: mode, service_ids: mode === 'services' ? services : [], disabled }
     const out = await action.run(() =>
       account ? api<ServiceAccount>('PUT', `/api/service-accounts/${account.id}`, body) : api<ServiceAccount>('POST', '/api/service-accounts', body),
     )
@@ -205,6 +215,19 @@ function AccountDialog({
         <Field label={t('sa.field.description')} optional={t('sa.optional')}>
           {(id) => <Textarea id={id} rows={2} value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />}
         </Field>
+        <Field label={t('sa.field.owner')} hint={t('sa.field.owner.hint')}>
+          {(id) => (
+            <Select id={id} value={owner} onChange={(e) => setOwner(e.target.value)}>
+              {!people.some((u) => u.id === owner) && <option value={owner}>{account?.owner_name || owner || t('sa.owner.none')}</option>}
+              {people.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.username}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        {account?.owner_disabled && <Banner kind="error" title={t('sa.owner.disabled.text')} />}
         <AccessFields refs={refs} value={access} onChange={setAccess} />
         <ScopeField refs={refs} mode={mode} value={services} admin={adminOf({ role: access.role_id })} onMode={setMode} onChange={setServices} />
         <Switch checked={disabled} onChange={setDisabled} label={t('sa.field.disabled')} />

@@ -2,7 +2,7 @@ import { useT } from '../../i18n'
 import { statusOf, type ManagedUser } from './model'
 import { strings } from './strings'
 
-const tone = { active: 'ok', locked: 'error', expired: 'warn', must_change: 'info' } as const
+const tone = { active: 'ok', locked: 'error' } as const
 
 export function StatusPill({ user }: { user: ManagedUser }) {
   const t = useT(strings)

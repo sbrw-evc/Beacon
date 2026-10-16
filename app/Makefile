@@ -11,7 +11,7 @@ build:
 
 test:
 	cd backend && go vet ./... && go test ./...
-	cd web && npm run typecheck
+	cd web && npm run typecheck && npm test
 
 run: build
 	cd backend && ./umbrella -web ../web/dist
