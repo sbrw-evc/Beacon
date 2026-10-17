@@ -1,7 +1,7 @@
 # Beacon: business processes
 
 Beacon turns alerts from monitoring systems into incidents, finds who owns them, pages those people and runs the
-response. How Beacon works with Keystone, Ledger and Current is in [family.md](https://github.com/sbrw-evc/current/blob/HEAD/docs/family.md); this page is about the
+response. How Beacon works with Keystone, Ledger and Current is in [family.md](https://onedev.evcsbrw.ru/Monitoring/Current/~files/main/docs/family.md); this page is about the
 processes inside Beacon.
 
 ## Roles in the processes
