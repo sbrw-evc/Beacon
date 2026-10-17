@@ -12,7 +12,7 @@ Connectors, webhook intake and the visual builder following the plan from [`n8n.
 Sign-in, people and roles come from Keystone, sign-in and access for the Umbrella family:
 [docs/identity-federation.md](docs/identity-federation.md) (the protocol is in the Keystone repository, `docs/protocol.md`).
 
-Business processes inside Beacon: [docs/processes.md](docs/processes.md); between the applications of the family: [family.md](https://github.com/sbrw-evc/current/blob/HEAD/docs/family.md).
+Business processes inside Beacon: [docs/processes.md](docs/processes.md); between the applications of the family: [family.md](https://onedev.evcsbrw.ru/Monitoring/Current/~files/main/docs/family.md).
 
 Zabbix and Prometheus hosts matched to CIs: [docs/monitoring-hosts.md](docs/monitoring-hosts.md).
 

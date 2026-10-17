@@ -3,9 +3,9 @@
 *Formerly **Umbrella Monitoring**. Beacon, part of the Umbrella family, turns alerts from monitoring systems into
 incidents, paging and response.*
 
-The other members of the family: [Keystone](https://github.com/sbrw-evc/keystone) (sign-in and access; formerly SPA),
-[Ledger](https://github.com/sbrw-evc/ledger) (inventory — DCIM/IPAM — and spreadsheet databases; formerly Inventory DB),
-[Current](https://github.com/sbrw-evc/current) (network traffic and network devices; formerly Umbrella Flow) and
+The other members of the family: [Keystone](https://onedev.evcsbrw.ru/Monitoring/Keystone) (sign-in and access; formerly SPA),
+[Ledger](https://onedev.evcsbrw.ru/Monitoring/Ledger) (inventory — DCIM/IPAM — and spreadsheet databases; formerly Inventory DB),
+[Current](https://onedev.evcsbrw.ru/Monitoring/Current) (network traffic and network devices; formerly Umbrella Flow) and
 Network Control.
 
 Beacon is an umbrella monitoring web application: it receives events from monitoring systems and clouds through a low-code connector builder, acknowledges receipt to the source, normalizes events and collapses duplicates into incidents by CI and signal, keeps a catalog of CIs and business services with a CMDB map, raises alerts by RED and USE rules and hands incidents over to PagerDuty. If PagerDuty has not accepted an incident, the responsible people are notified through fallback channels (e-mail and Telegram). From an incident, a link opens a context dashboard in Grafana with the incident's variables. Access to pages and functions is configured with roles; people sign in at Keystone, sign-in and access for the Umbrella family, which gives them these roles ([app/docs/identity-federation.md](app/docs/identity-federation.md)).

@@ -1,6 +1,6 @@
 # Integration with Ledger (architecture)
 
-[Ledger](https://github.com/sbrw-evc/ledger) is a NetBox-style data-centre inventory application: sites, racks,
+[Ledger](https://onedev.evcsbrw.ru/Monitoring/Ledger) is a NetBox-style data-centre inventory application: sites, racks,
 devices, interfaces, cables, IP addresses and VLANs. Beacon and Ledger exchange data in both directions; what is
 described here is the same for the MVP (flow P-11) and the target architecture (flow P-13). The integration needs no new
 containers: both sides are built from blocks of the low-code builder.

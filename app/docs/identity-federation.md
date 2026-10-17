@@ -3,7 +3,7 @@
 Beacon does not sign people in itself and is no longer the identity hub of the family. People
 sign in at **Keystone**, sign-in and access for the Umbrella family. The protocol between Keystone and
 the applications (OpenID Connect with PKCE, the `spa1.` connection key, the federation API, the role
-catalogue) is described in the Keystone repository: **[docs/protocol.md](https://github.com/sbrw-evc/keystone/blob/HEAD/docs/protocol.md)**.
+catalogue) is described in the Keystone repository: **[docs/protocol.md](https://onedev.evcsbrw.ru/Monitoring/Keystone/~files/main/docs/protocol.md)**.
 Keystone was called SPA before, and the Keystone protocol keeps that historical spelling in its identifiers:
 `spa1.`, `SPA_CONNECTION_KEY`, `SPA_PUBLIC_URL`, `/api/auth/spa/start|callback`, `/api/spa/v1/*` and the OpenBao key
 `spa/connection_key`.
