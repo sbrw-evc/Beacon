@@ -23,7 +23,7 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s --health-timeout 5s --health-retries 20
     env:
-      UMBRELLA_TEST_POSTGRES: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+      UMBRELLA_TEST_POSTGRES: localhost:5432:postgres:postgres:postgres
     defaults:
       run:
         working-directory: app/backend
