@@ -6,7 +6,7 @@ name: beacon
 
 services:
   beacon:
-    image: ${UMBRELLA_IMAGE:-beacon:latest}
+    image: ${UMBRELLA_IMAGE:-onedev.evcsbrw.ru/monitoring/beacon/beacon:latest}
     pull_policy: build
     build:
       context: ../../app
